@@ -14,12 +14,13 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     const port = this.config.get<number>('REDIS_PORT', 6379);
     const password = this.config.get<string>('REDIS_PASSWORD');
     const isProd = this.config.get<string>('NODE_ENV') === 'production';
+    const redisTls = this.config.get<string>('REDIS_TLS') === 'true';
 
     this._client = new Redis({
       host,
       port,
       password: password || undefined,
-      tls: isProd ? {} : undefined,
+      tls: isProd || redisTls ? {} : undefined,
       retryStrategy: (times: number) => {
         if (times >= 10) {
           this.logger.error('Redis max retries reached — giving up');
