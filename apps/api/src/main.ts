@@ -52,7 +52,16 @@ async function bootstrap(): Promise<void> {
   // CORS
   const isDev = process.env.NODE_ENV !== 'production';
   app.enableCors({
-    origin: isDev ? 'http://localhost:3000' : 'https://expertly.net',
+    origin: isDev
+      ? [
+          'http://localhost:3000',
+          'http://localhost:3001',
+          'http://localhost:3002',
+          'http://localhost:3003',
+          'http://localhost:3004',
+          'http://localhost:3005',
+        ]
+      : 'https://expertly.net',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-revalidate-secret'],
