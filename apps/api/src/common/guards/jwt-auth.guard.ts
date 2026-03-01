@@ -1,0 +1,117 @@
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { FastifyRequest } from 'fastify';
+import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+import { SupabaseService } from '../services/supabase.service';
+import { AuthUser, UserRole, MembershipStatus } from '@expertly/types';
+
+interface UserRow {
+  id: string;
+  role: UserRole;
+  is_active: boolean;
+  is_deleted: boolean;
+}
+
+interface MemberRow {
+  id: string;
+  membership_status: MembershipStatus;
+}
+
+@Injectable()
+export class JwtAuthGuard implements CanActivate {
+  protected readonly logger = new Logger(JwtAuthGuard.name);
+
+  constructor(
+    private readonly reflector: Reflector,
+    private readonly supabase: SupabaseService,
+  ) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (isPublic) return true;
+
+    const request = context.switchToHttp().getRequest<FastifyRequest & { user: AuthUser }>();
+    const token = this.extractToken(request);
+
+    if (!token) {
+      throw new UnauthorizedException('No authentication token provided');
+    }
+
+    const { data: { user: supabaseUser }, error } =
+      await this.supabase.adminClient.auth.getUser(token);
+
+    if (error || !supabaseUser) {
+      throw new UnauthorizedException('Invalid or expired token');
+    }
+
+    // Fetch DB user row
+    const { data: dbUser, error: userErr } = await this.supabase.adminClient
+      .from('users')
+      .select('id, role, is_active, is_deleted')
+      .eq('supabase_uid', supabaseUser.id)
+      .single();
+
+    if (userErr || !dbUser) {
+      throw new UnauthorizedException('User record not found');
+    }
+
+    const userRow = dbUser as UserRow;
+
+    if (!userRow.is_active || userRow.is_deleted) {
+      throw new UnauthorizedException('Account is inactive or deleted');
+    }
+
+    const authUser: AuthUser = {
+      id: supabaseUser.id,
+      dbId: userRow.id,
+      email: supabaseUser.email ?? '',
+      role: userRow.role,
+    };
+
+    // If member, fetch member record
+    if (userRow.role === 'member') {
+      const { data: memberData } = await this.supabase.adminClient
+        .from('members')
+        .select('id, membership_status')
+        .eq('user_id', userRow.id)
+        .single();
+
+      if (memberData) {
+        const memberRow = memberData as MemberRow;
+        authUser.memberId = memberRow.id;
+        authUser.membershipStatus = memberRow.membership_status;
+
+        // Suspended members get downgraded to user role
+        if (memberRow.membership_status === 'suspended') {
+          authUser.role = 'user';
+        }
+      }
+    }
+
+    request.user = authUser;
+    return true;
+  }
+
+  protected extractToken(request: FastifyRequest): string | null {
+    const authHeader = request.headers.authorization;
+    if (authHeader?.startsWith('Bearer ')) {
+      return authHeader.slice(7);
+    }
+
+    const cookies = (request as FastifyRequest & { cookies?: Record<string, string> }).cookies;
+    if (cookies?.['sb-access-token']) {
+      return cookies['sb-access-token'];
+    }
+
+    return null;
+  }
+}

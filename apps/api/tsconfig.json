@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "ES2021",
+    "outDir": "dist",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "paths": {
+      "@expertly/types": ["../../packages/types/src"],
+      "@expertly/utils": ["../../packages/utils/src"],
+      "@expertly/schemas": ["../../packages/schemas/src"]
+    }
+  },
+  "include": ["src/**/*", "../../packages/types/src/**/*", "../../packages/utils/src/**/*"]
+}
