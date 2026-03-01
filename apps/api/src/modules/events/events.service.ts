@@ -4,13 +4,14 @@ import { CacheService } from '../../common/services/cache.service';
 import { PaginationMeta } from '@expertly/types';
 import { QueryEventsDto } from './dto/query-events.dto';
 
-const EVENT_TTL = 300; // 5 min
+const EVENT_TTL = 300;        // 5 min
 const EVENT_DETAIL_TTL = 600; // 10 min
 
-// NEVER select embedding
+// NEVER select embedding column
 const EVENT_LIST_FIELDS =
   'id, title, slug, description, cover_image_url, start_date, end_date, ' +
-  'location, is_virtual, status, country, format, created_at, updated_at';
+  'location, is_virtual, virtual_url, capacity, status, speakers, ' +
+  'created_at, updated_at';
 
 @Injectable()
 export class EventsService {
@@ -29,7 +30,7 @@ export class EventsService {
     const cacheKey = this.cache.buildKey(
       'events',
       'list',
-      `p${page}l${limit}${dto.country ?? ''}${dto.format ?? ''}${dto.upcoming ?? ''}`,
+      `p${page}l${limit}${dto.upcoming ?? ''}`,
     );
 
     return this.cache.getOrFetch(
@@ -38,16 +39,10 @@ export class EventsService {
         let query = this.supabase.adminClient
           .from('events')
           .select(EVENT_LIST_FIELDS, { count: 'exact' })
-          .eq('status', 'published')
+          .in('status', ['published', 'completed'])
           .range(offset, offset + limit - 1)
           .order('start_date', { ascending: true });
 
-        if (dto.country) {
-          query = query.eq('country', dto.country);
-        }
-        if (dto.format) {
-          query = query.eq('format', dto.format);
-        }
         if (dto.upcoming) {
           query = query.gt('start_date', new Date().toISOString());
         }
@@ -83,7 +78,7 @@ export class EventsService {
           .from('events')
           .select(EVENT_LIST_FIELDS)
           .eq('slug', slug)
-          .eq('status', 'published')
+          .in('status', ['published', 'completed'])
           .maybeSingle();
         if (error) throw error;
         return data;

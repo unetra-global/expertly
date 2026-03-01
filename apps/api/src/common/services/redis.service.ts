@@ -12,42 +12,47 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   onModuleInit(): void {
     const redisUrl = this.config.get<string>('REDIS_URL');
 
+    const sharedOptions = {
+      // Never permanently close — always reconnect with capped backoff
+      retryStrategy: (times: number): number => {
+        const delay = Math.min(times * 300, 5000);
+        if (times % 10 === 0) {
+          this.logger.warn(`Redis reconnecting… attempt ${times}`);
+        }
+        return delay;
+      },
+      // Per-command retry: fail fast so requests don't hang indefinitely
+      maxRetriesPerRequest: 3,
+      enableOfflineQueue: true,
+      connectTimeout: 10000,
+    };
+
     if (redisUrl) {
       this._client = new Redis(redisUrl, {
+        ...sharedOptions,
         tls: { rejectUnauthorized: false },
-        maxRetriesPerRequest: 3,
-        retryStrategy: (times: number) => {
-          if (times >= 10) {
-            this.logger.error('Redis max retries reached — giving up');
-            return null;
-          }
-          return Math.min(times * 500, 2000);
-        },
       });
     } else {
       const host = this.config.get<string>('REDIS_HOST', 'localhost');
       const port = this.config.get<number>('REDIS_PORT', 6379);
       const password = this.config.get<string>('REDIS_PASSWORD');
+      const redisTls = this.config.get<string>('REDIS_TLS');
 
       this._client = new Redis({
+        ...sharedOptions,
         host,
         port,
         password: password || undefined,
-        maxRetriesPerRequest: 3,
-        retryStrategy: (times: number) => {
-          if (times >= 10) {
-            this.logger.error('Redis max retries reached — giving up');
-            return null;
-          }
-          return Math.min(times * 500, 2000);
-        },
+        ...(redisTls === 'true' ? { tls: { rejectUnauthorized: false } } : {}),
       });
     }
 
     this._client.on('connect', () => this.logger.log('Redis connected'));
+    this._client.on('ready', () => this.logger.log('Redis ready'));
     this._client.on('error', (err: Error) =>
       this.logger.error('Redis error', err.message),
     );
+    this._client.on('close', () => this.logger.warn('Redis connection closed'));
   }
 
   async onModuleDestroy(): Promise<void> {
