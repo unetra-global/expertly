@@ -64,7 +64,7 @@ function EventCard({ event }: { event: HomepageEvent }) {
       </div>
 
       {/* Title */}
-      <h3 className="font-semibold text-brand-navy leading-snug line-clamp-2 group-hover:text-brand-navy-dark text-sm sm:text-base">
+      <h3 className="font-semibold text-brand-navy leading-snug line-clamp-2 group-hover:text-brand-navy text-sm sm:text-base">
         {event.title}
       </h3>
 
@@ -73,7 +73,7 @@ function EventCard({ event }: { event: HomepageEvent }) {
         {/* Date */}
         <div className="flex items-center gap-2 text-xs text-gray-500">
           <svg
-            className="h-3.5 w-3.5 text-brand-gold flex-shrink-0"
+            className="h-3.5 w-3.5 text-brand-blue flex-shrink-0"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -93,7 +93,7 @@ function EventCard({ event }: { event: HomepageEvent }) {
         {event.location && (
           <div className="flex items-center gap-2 text-xs text-gray-500">
             <svg
-              className="h-3.5 w-3.5 text-brand-gold flex-shrink-0"
+              className="h-3.5 w-3.5 text-brand-blue flex-shrink-0"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -120,7 +120,7 @@ function EventCard({ event }: { event: HomepageEvent }) {
         {organiserName && (
           <div className="flex items-center gap-2 text-xs text-gray-500">
             <svg
-              className="h-3.5 w-3.5 text-brand-gold flex-shrink-0"
+              className="h-3.5 w-3.5 text-brand-blue flex-shrink-0"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -152,7 +152,7 @@ export default function UpcomingEventsSection({
         {/* Section header */}
         <div className="flex items-end justify-between mb-10">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-brand-gold mb-2">
+            <p className="text-xs font-semibold uppercase tracking-widest text-brand-blue mb-2">
               What&apos;s Coming
             </p>
             <h2 className="text-3xl sm:text-4xl font-bold text-brand-navy">
@@ -164,7 +164,7 @@ export default function UpcomingEventsSection({
           </div>
           <Link
             href="/events"
-            className="hidden sm:inline-flex items-center gap-1 text-sm font-semibold text-brand-navy hover:text-brand-gold transition-colors"
+            className="hidden sm:inline-flex items-center gap-1 text-sm font-semibold text-brand-navy hover:text-brand-blue transition-colors"
           >
             View all
             <svg
@@ -195,7 +195,7 @@ export default function UpcomingEventsSection({
         <div className="mt-8 sm:hidden text-center">
           <Link
             href="/events"
-            className="inline-flex items-center gap-1 text-sm font-semibold text-brand-navy hover:text-brand-gold transition-colors"
+            className="inline-flex items-center gap-1 text-sm font-semibold text-brand-navy hover:text-brand-blue transition-colors"
           >
             View all events →
           </Link>

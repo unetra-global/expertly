@@ -25,75 +25,62 @@ export function NavbarClient({
 
   const initials = userEmail ? userEmail[0].toUpperCase() : 'U';
 
+  const navLinks = [
+    { href: '/members', label: 'Find Members' },
+    { href: '/articles', label: 'Articles' },
+    { href: '/events', label: 'Events' },
+  ];
+
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
+    <header className="sticky top-0 z-50 bg-brand-navy border-b border-white/10">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-        {/* Logo */}
-        <Link href="/" className="flex-shrink-0 flex items-center gap-0.5">
-          <span className="text-xl font-bold text-brand-navy">Expertly</span>
-          <span className="text-xl font-bold text-brand-gold">.</span>
+
+        {/* ── Logo ─────────────────────────────────────── */}
+        <Link href="/" className="flex-shrink-0 flex items-center gap-2.5 group">
+          <div className="w-8 h-8 rounded bg-brand-blue flex items-center justify-center flex-shrink-0 group-hover:bg-brand-blue-dark transition-colors">
+            <span className="text-white font-bold text-sm leading-none select-none">E</span>
+          </div>
+          <span className="text-white font-bold text-base tracking-wide hidden sm:block">
+            Expertly
+          </span>
         </Link>
 
-        {/* Desktop search */}
-        <div className="hidden md:flex flex-1 max-w-sm mx-4">
-          <div className="w-full relative">
-            <svg
-              className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden
+        {/* ── Desktop nav links ─────────────────────────── */}
+        <div className="hidden md:flex items-center gap-8 flex-1 justify-center">
+          {navLinks.map(({ href, label }) => (
+            <Link
+              key={href}
+              href={href}
+              className="text-sm font-medium text-white/70 hover:text-white transition-colors"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-            <input
-              type="search"
-              placeholder="Search experts, articles…"
-              className="w-full pl-9 pr-4 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-navy focus:border-transparent placeholder:text-gray-400"
-            />
-          </div>
+              {label}
+            </Link>
+          ))}
         </div>
 
-        {/* Desktop nav links */}
-        <div className="hidden md:flex items-center gap-6">
-          <Link
-            href="/members"
-            className="text-sm font-medium text-gray-700 hover:text-brand-navy transition-colors"
-          >
-            Members
-          </Link>
-          <Link
-            href="/articles"
-            className="text-sm font-medium text-gray-700 hover:text-brand-navy transition-colors"
-          >
-            Articles
-          </Link>
-          <Link
-            href="/events"
-            className="text-sm font-medium text-gray-700 hover:text-brand-navy transition-colors"
-          >
-            Events
-          </Link>
-
-          {/* Auth state */}
+        {/* ── Desktop right side ────────────────────────── */}
+        <div className="hidden md:flex items-center gap-3">
           {!isLoggedIn && (
-            <Link
-              href="/auth"
-              className="inline-flex items-center px-4 py-2 rounded-lg bg-brand-gold hover:bg-brand-gold-dark text-white text-sm font-semibold transition-colors"
-            >
-              Sign in
-            </Link>
+            <>
+              <Link
+                href="/auth"
+                className="text-sm font-medium text-white/70 hover:text-white transition-colors px-2"
+              >
+                Log In
+              </Link>
+              <Link
+                href="/application"
+                className="inline-flex items-center px-4 py-2 rounded-lg bg-brand-blue hover:bg-brand-blue-dark text-white text-sm font-semibold transition-colors"
+              >
+                Become a Member
+              </Link>
+            </>
           )}
 
           {isLoggedIn && isOps && (
             <Link
               href="/ops"
-              className="inline-flex items-center px-4 py-2 rounded-lg bg-brand-navy hover:bg-brand-navy-dark text-white text-sm font-semibold transition-colors"
+              className="inline-flex items-center px-4 py-2 rounded-lg bg-brand-blue hover:bg-brand-blue-dark text-white text-sm font-semibold transition-colors"
             >
               Dashboard
             </Link>
@@ -102,36 +89,32 @@ export function NavbarClient({
           {isLoggedIn && isMember && !isOps && (
             <Link
               href="/member/dashboard"
-              className="inline-flex items-center px-4 py-2 rounded-lg bg-brand-navy hover:bg-brand-navy-dark text-white text-sm font-semibold transition-colors"
+              className="inline-flex items-center px-4 py-2 rounded-lg bg-brand-blue hover:bg-brand-blue-dark text-white text-sm font-semibold transition-colors"
             >
-              Portal
+              Member Portal
             </Link>
           )}
 
           {isLoggedIn && !isMember && !isOps && (
             <Link
               href="/application"
-              className="inline-flex items-center px-4 py-2 rounded-lg bg-brand-gold hover:bg-brand-gold-dark text-white text-sm font-semibold transition-colors"
+              className="inline-flex items-center px-4 py-2 rounded-lg bg-brand-blue hover:bg-brand-blue-dark text-white text-sm font-semibold transition-colors"
             >
-              Apply
+              Become a Member
             </Link>
           )}
 
           {/* User avatar dropdown */}
           {isLoggedIn && (
-            <div className="relative">
+            <div className="relative ml-1">
               <button
                 onClick={() => setUserMenuOpen((o) => !o)}
-                className="flex items-center justify-center w-8 h-8 rounded-full bg-brand-navy text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-gold"
+                className="flex items-center justify-center w-8 h-8 rounded-full bg-brand-blue-light text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-blue focus:ring-offset-2 focus:ring-offset-brand-navy overflow-hidden"
                 aria-label="User menu"
               >
                 {userAvatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={userAvatarUrl}
-                    alt="Avatar"
-                    className="w-8 h-8 rounded-full object-cover"
-                  />
+                  <img src={userAvatarUrl} alt="Avatar" className="w-8 h-8 object-cover" />
                 ) : (
                   initials
                 )}
@@ -139,51 +122,28 @@ export function NavbarClient({
 
               {userMenuOpen && (
                 <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setUserMenuOpen(false)}
-                    aria-hidden
-                  />
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-20">
+                  <div className="fixed inset-0 z-10" onClick={() => setUserMenuOpen(false)} aria-hidden />
+                  <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-card-hover border border-gray-100 py-1.5 z-20">
                     {userEmail && (
-                      <p className="px-4 py-2 text-xs text-gray-500 border-b border-gray-100 truncate">
+                      <p className="px-4 py-2 text-xs text-brand-text-muted border-b border-gray-100 truncate">
                         {userEmail}
                       </p>
                     )}
                     {isMember && (
-                      <Link
-                        href="/member/profile"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                        onClick={() => setUserMenuOpen(false)}
-                      >
-                        My Profile
-                      </Link>
+                      <>
+                        <Link href="/member/profile" className="block px-4 py-2 text-sm text-brand-text hover:bg-brand-surface" onClick={() => setUserMenuOpen(false)}>My Profile</Link>
+                        <Link href="/member/articles" className="block px-4 py-2 text-sm text-brand-text hover:bg-brand-surface" onClick={() => setUserMenuOpen(false)}>My Articles</Link>
+                      </>
                     )}
-                    {isMember && (
-                      <Link
-                        href="/member/articles"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                        onClick={() => setUserMenuOpen(false)}
+                    <Link href="/member/settings" className="block px-4 py-2 text-sm text-brand-text hover:bg-brand-surface" onClick={() => setUserMenuOpen(false)}>Settings</Link>
+                    <div className="border-t border-gray-100 mt-1 pt-1">
+                      <button
+                        onClick={() => { setUserMenuOpen(false); void signOut(); }}
+                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                       >
-                        My Articles
-                      </Link>
-                    )}
-                    <Link
-                      href="/member/settings"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                      onClick={() => setUserMenuOpen(false)}
-                    >
-                      Settings
-                    </Link>
-                    <button
-                      onClick={() => {
-                        setUserMenuOpen(false);
-                        void signOut();
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                    >
-                      Sign out
-                    </button>
+                        Sign out
+                      </button>
+                    </div>
                   </div>
                 </>
               )}
@@ -191,136 +151,52 @@ export function NavbarClient({
           )}
         </div>
 
-        {/* Mobile hamburger */}
+        {/* ── Mobile hamburger ──────────────────────────── */}
         <button
-          className="md:hidden p-2 rounded-lg text-gray-600 hover:text-brand-navy hover:bg-gray-100 transition-colors"
+          className="md:hidden p-2 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
           onClick={() => setMobileOpen((o) => !o)}
           aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
           aria-expanded={mobileOpen}
         >
           {mobileOpen ? (
-            <svg
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           ) : (
-            <svg
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 6h16M4 12h16M4 18h16"
-              />
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           )}
         </button>
       </nav>
 
-      {/* Mobile menu panel */}
+      {/* ── Mobile menu ───────────────────────────────────── */}
       {mobileOpen && (
-        <div className="md:hidden border-t border-gray-100 bg-white px-4 py-4 space-y-2">
-          {/* Mobile search */}
-          <div className="relative mb-3">
-            <svg
-              className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-            <input
-              type="search"
-              placeholder="Search experts, articles…"
-              className="w-full pl-9 pr-4 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-navy placeholder:text-gray-400"
-            />
+        <div className="md:hidden border-t border-white/10 bg-brand-navy-medium px-4 py-4">
+          <div className="space-y-1 mb-4">
+            {navLinks.map(({ href, label }) => (
+              <Link
+                key={href}
+                href={href}
+                className="block py-2.5 px-3 rounded-lg text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+                onClick={() => setMobileOpen(false)}
+              >
+                {label}
+              </Link>
+            ))}
           </div>
 
-          {[
-            { href: '/members', label: 'Members' },
-            { href: '/articles', label: 'Articles' },
-            { href: '/events', label: 'Events' },
-          ].map(({ href, label }) => (
-            <Link
-              key={href}
-              href={href}
-              className="block py-2.5 px-3 rounded-lg text-sm font-medium text-gray-700 hover:text-brand-navy hover:bg-gray-50"
-              onClick={() => setMobileOpen(false)}
-            >
-              {label}
-            </Link>
-          ))}
-
-          <div className="pt-2 border-t border-gray-100">
+          <div className="pt-3 border-t border-white/10 space-y-2">
             {!isLoggedIn && (
-              <Link
-                href="/auth"
-                className="block w-full text-center py-2.5 px-3 rounded-lg bg-brand-gold text-white text-sm font-semibold"
-                onClick={() => setMobileOpen(false)}
-              >
-                Sign in
-              </Link>
+              <>
+                <Link href="/auth" className="block py-2.5 px-3 text-sm font-medium text-white/70 hover:text-white" onClick={() => setMobileOpen(false)}>Log In</Link>
+                <Link href="/application" className="block w-full text-center py-2.5 px-3 rounded-lg bg-brand-blue text-white text-sm font-semibold hover:bg-brand-blue-dark transition-colors" onClick={() => setMobileOpen(false)}>Become a Member</Link>
+              </>
             )}
-            {isLoggedIn && isOps && (
-              <Link
-                href="/ops"
-                className="block w-full text-center py-2.5 px-3 rounded-lg bg-brand-navy text-white text-sm font-semibold"
-                onClick={() => setMobileOpen(false)}
-              >
-                Dashboard
-              </Link>
-            )}
-            {isLoggedIn && isMember && !isOps && (
-              <Link
-                href="/member/dashboard"
-                className="block w-full text-center py-2.5 px-3 rounded-lg bg-brand-navy text-white text-sm font-semibold"
-                onClick={() => setMobileOpen(false)}
-              >
-                Portal
-              </Link>
-            )}
-            {isLoggedIn && !isMember && !isOps && (
-              <Link
-                href="/application"
-                className="block w-full text-center py-2.5 px-3 rounded-lg bg-brand-gold text-white text-sm font-semibold"
-                onClick={() => setMobileOpen(false)}
-              >
-                Apply
-              </Link>
-            )}
-            {isLoggedIn && (
-              <button
-                onClick={() => {
-                  setMobileOpen(false);
-                  void signOut();
-                }}
-                className="mt-2 block w-full text-left py-2.5 px-3 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50"
-              >
-                Sign out
-              </button>
-            )}
+            {isLoggedIn && isOps && <Link href="/ops" className="block w-full text-center py-2.5 px-3 rounded-lg bg-brand-blue text-white text-sm font-semibold" onClick={() => setMobileOpen(false)}>Dashboard</Link>}
+            {isLoggedIn && isMember && !isOps && <Link href="/member/dashboard" className="block w-full text-center py-2.5 px-3 rounded-lg bg-brand-blue text-white text-sm font-semibold" onClick={() => setMobileOpen(false)}>Member Portal</Link>}
+            {isLoggedIn && !isMember && !isOps && <Link href="/application" className="block w-full text-center py-2.5 px-3 rounded-lg bg-brand-blue text-white text-sm font-semibold" onClick={() => setMobileOpen(false)}>Become a Member</Link>}
+            {isLoggedIn && <button onClick={() => { setMobileOpen(false); void signOut(); }} className="w-full text-left py-2.5 px-3 rounded-lg text-sm font-medium text-red-400 hover:bg-white/10">Sign out</button>}
           </div>
         </div>
       )}

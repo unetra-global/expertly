@@ -38,7 +38,7 @@ export default function Footer() {
         <div className="mb-10">
           <Link href="/" className="inline-flex items-center gap-0.5">
             <span className="text-2xl font-bold text-white">Expertly</span>
-            <span className="text-2xl font-bold text-brand-gold">.</span>
+            <span className="text-2xl font-bold text-brand-blue-light">.</span>
           </Link>
           <p className="mt-2 text-sm text-gray-400 max-w-xs">
             The professional network for finance and legal experts.

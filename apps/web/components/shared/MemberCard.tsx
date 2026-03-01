@@ -80,7 +80,7 @@ export function MemberCard({
 
         {/* Name + badges */}
         <div className="text-center">
-          <h3 className="font-semibold text-brand-navy text-sm leading-snug group-hover:text-brand-navy-dark">
+          <h3 className="font-semibold text-brand-navy text-sm leading-snug group-hover:text-brand-navy">
             {displayName}
           </h3>
 
@@ -91,7 +91,7 @@ export function MemberCard({
           )}
 
           {serviceName && (
-            <p className="mt-1.5 text-xs font-medium text-brand-gold">
+            <p className="mt-1.5 text-xs font-medium text-brand-blue">
               {serviceName}
             </p>
           )}

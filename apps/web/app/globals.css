@@ -14,18 +14,56 @@
   * {
     @apply box-border;
   }
+
+  /* Smooth scroll */
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
 @layer components {
-  .btn-navy {
-    @apply inline-flex items-center justify-center rounded-lg bg-brand-navy px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-navy-light focus:outline-none focus:ring-2 focus:ring-brand-navy focus:ring-offset-2;
+  /* ── Buttons ─────────────────────────────────────────────────── */
+
+  /* Primary blue button — main CTAs */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-brand-blue px-5 py-2.5 text-sm font-semibold text-white transition-colors
+           hover:bg-brand-blue-dark focus:outline-none focus:ring-2 focus:ring-brand-blue focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
-  .btn-gold {
-    @apply inline-flex items-center justify-center rounded-lg bg-brand-gold px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-gold-dark focus:outline-none focus:ring-2 focus:ring-brand-gold focus:ring-offset-2;
+  /* Primary button on dark backgrounds (uses white text, same blue) */
+  .btn-primary-dark {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-brand-blue px-5 py-2.5 text-sm font-semibold text-white transition-colors
+           hover:bg-brand-blue-light focus:outline-none focus:ring-2 focus:ring-brand-blue focus:ring-offset-2 focus:ring-offset-brand-navy;
   }
 
+  /* Secondary — outline button on light bg */
   .btn-outline {
-    @apply inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-5 py-2.5 text-sm font-semibold text-brand-text transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-5 py-2.5 text-sm font-semibold text-brand-text transition-colors
+           hover:bg-brand-surface-alt focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2;
+  }
+
+  /* Ghost white — outline button on dark bg */
+  .btn-outline-white {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-white/30 bg-transparent px-5 py-2.5 text-sm font-semibold text-white transition-colors
+           hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/30 focus:ring-offset-2 focus:ring-offset-brand-navy;
+  }
+
+  /* Legacy aliases — kept so existing code continues to compile */
+  .btn-navy {
+    @apply btn-primary;
+  }
+  .btn-gold {
+    @apply btn-primary;
+  }
+
+  /* ── Section labels ───────────────────────────────────────────── */
+  .section-label {
+    @apply text-xs font-semibold uppercase tracking-widest text-brand-blue;
+  }
+
+  /* ── Input ───────────────────────────────────────────────────── */
+  .input-base {
+    @apply w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-brand-text placeholder:text-brand-text-muted
+           focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-transparent;
   }
 }

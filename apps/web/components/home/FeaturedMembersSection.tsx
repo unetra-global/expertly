@@ -16,19 +16,14 @@ export default function FeaturedMembersSection({
         {/* Section header */}
         <div className="flex items-end justify-between mb-10">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-brand-gold mb-2">
-              Our Experts
-            </p>
-            <h2 className="text-3xl sm:text-4xl font-bold text-brand-navy">
-              Featured Experts
+            <p className="section-label mb-2">Our Network</p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-brand-navy">
+              Featured Members
             </h2>
-            <p className="mt-2 text-gray-500 text-sm sm:text-base">
-              Verified finance and legal professionals trusted by the community.
-            </p>
           </div>
           <Link
             href="/members"
-            className="hidden sm:inline-flex items-center gap-1 text-sm font-semibold text-brand-navy hover:text-brand-gold transition-colors"
+            className="hidden sm:inline-flex items-center gap-1 text-sm font-semibold text-brand-navy hover:text-brand-blue transition-colors"
           >
             View all
             <svg
@@ -59,7 +54,7 @@ export default function FeaturedMembersSection({
         <div className="mt-8 sm:hidden text-center">
           <Link
             href="/members"
-            className="inline-flex items-center gap-1 text-sm font-semibold text-brand-navy hover:text-brand-gold transition-colors"
+            className="inline-flex items-center gap-1 text-sm font-semibold text-brand-navy hover:text-brand-blue transition-colors"
           >
             View all members →
           </Link>

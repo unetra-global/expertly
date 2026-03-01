@@ -79,7 +79,7 @@ export function ArticleCard({ article, className }: ArticleCardProps) {
 
       {/* Content */}
       <div className="p-5">
-        <h3 className="font-semibold text-brand-navy leading-snug line-clamp-2 group-hover:text-brand-navy-dark text-sm sm:text-base">
+        <h3 className="font-semibold text-brand-navy leading-snug line-clamp-2 group-hover:text-brand-navy text-sm sm:text-base">
           {article.title}
         </h3>
 

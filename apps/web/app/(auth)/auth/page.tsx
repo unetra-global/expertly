@@ -63,7 +63,7 @@ export default function AuthPage() {
         aria-hidden
       >
         <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-brand-navy opacity-5" />
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-brand-gold opacity-5" />
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-brand-blue opacity-5" />
       </div>
 
       <div className="relative w-full max-w-md">
@@ -71,7 +71,7 @@ export default function AuthPage() {
         <div className="text-center mb-10">
           <span className="inline-flex items-center gap-1 text-3xl font-bold">
             <span className="text-brand-navy">Expertly</span>
-            <span className="text-brand-gold">.</span>
+            <span className="text-brand-blue">.</span>
           </span>
           <p className="mt-3 text-base text-gray-500 leading-relaxed">
             The professional network for finance&nbsp;&amp;&nbsp;legal experts
@@ -157,7 +157,7 @@ export default function AuthPage() {
           Not a member yet?{' '}
           <a
             href="/application"
-            className="font-medium text-brand-gold hover:text-brand-gold-dark"
+            className="font-medium text-brand-blue hover:text-brand-blue-dark"
           >
             Apply for membership →
           </a>

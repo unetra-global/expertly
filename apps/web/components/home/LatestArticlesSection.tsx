@@ -16,7 +16,7 @@ export default function LatestArticlesSection({
         {/* Section header */}
         <div className="flex items-end justify-between mb-10">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-brand-gold mb-2">
+            <p className="text-xs font-semibold uppercase tracking-widest text-brand-blue mb-2">
               Expert Knowledge
             </p>
             <h2 className="text-3xl sm:text-4xl font-bold text-brand-navy">
@@ -28,7 +28,7 @@ export default function LatestArticlesSection({
           </div>
           <Link
             href="/articles"
-            className="hidden sm:inline-flex items-center gap-1 text-sm font-semibold text-brand-navy hover:text-brand-gold transition-colors"
+            className="hidden sm:inline-flex items-center gap-1 text-sm font-semibold text-brand-navy hover:text-brand-blue transition-colors"
           >
             View all
             <svg
@@ -59,7 +59,7 @@ export default function LatestArticlesSection({
         <div className="mt-8 sm:hidden text-center">
           <Link
             href="/articles"
-            className="inline-flex items-center gap-1 text-sm font-semibold text-brand-navy hover:text-brand-gold transition-colors"
+            className="inline-flex items-center gap-1 text-sm font-semibold text-brand-navy hover:text-brand-blue transition-colors"
           >
             View all articles →
           </Link>
