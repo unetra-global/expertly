@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-inter: 'Inter', system-ui, sans-serif;
+  }
+
+  body {
+    @apply bg-brand-surface text-brand-text antialiased;
+  }
+
+  * {
+    @apply box-border;
+  }
+}
+
+@layer components {
+  .btn-navy {
+    @apply inline-flex items-center justify-center rounded-lg bg-brand-navy px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-navy-light focus:outline-none focus:ring-2 focus:ring-brand-navy focus:ring-offset-2;
+  }
+
+  .btn-gold {
+    @apply inline-flex items-center justify-center rounded-lg bg-brand-gold px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-gold-dark focus:outline-none focus:ring-2 focus:ring-brand-gold focus:ring-offset-2;
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-5 py-2.5 text-sm font-semibold text-brand-text transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2;
+  }
+}

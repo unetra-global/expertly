@@ -1,0 +1,71 @@
+// Centralized query key factory — Section 21
+// All query keys in the app must come from here
+
+export const queryKeys = {
+  // Homepage
+  homepage: ['homepage'] as const,
+
+  // Taxonomy
+  taxonomy: {
+    all: ['taxonomy'] as const,
+    categories: () => [...queryKeys.taxonomy.all, 'categories'] as const,
+    services: (categoryId?: string) =>
+      [...queryKeys.taxonomy.all, 'services', categoryId ?? 'all'] as const,
+  },
+
+  // Members
+  members: {
+    all: ['members'] as const,
+    list: (filters?: Record<string, unknown>) =>
+      [...queryKeys.members.all, 'list', filters ?? {}] as const,
+    detail: (slug: string) => [...queryKeys.members.all, 'detail', slug] as const,
+    byId: (id: string) => [...queryKeys.members.all, 'id', id] as const,
+    me: () => [...queryKeys.members.all, 'me'] as const,
+    featured: () => [...queryKeys.members.all, 'featured'] as const,
+  },
+
+  // Articles
+  articles: {
+    all: ['articles'] as const,
+    list: (filters?: Record<string, unknown>) =>
+      [...queryKeys.articles.all, 'list', filters ?? {}] as const,
+    detail: (slug: string) => [...queryKeys.articles.all, 'detail', slug] as const,
+    byId: (id: string) => [...queryKeys.articles.all, 'id', id] as const,
+    mine: () => [...queryKeys.articles.all, 'mine'] as const,
+    related: (id: string) => [...queryKeys.articles.all, 'related', id] as const,
+  },
+
+  // Events
+  events: {
+    all: ['events'] as const,
+    list: (filters?: Record<string, unknown>) =>
+      [...queryKeys.events.all, 'list', filters ?? {}] as const,
+    detail: (slug: string) => [...queryKeys.events.all, 'detail', slug] as const,
+  },
+
+  // Applications
+  applications: {
+    all: ['applications'] as const,
+    me: () => [...queryKeys.applications.all, 'me'] as const,
+  },
+
+  // Consultation
+  consultation: {
+    all: ['consultation'] as const,
+    received: () => [...queryKeys.consultation.all, 'received'] as const,
+    sent: () => [...queryKeys.consultation.all, 'sent'] as const,
+  },
+
+  // Dashboard
+  dashboard: {
+    all: ['dashboard'] as const,
+    stats: () => [...queryKeys.dashboard.all, 'stats'] as const,
+  },
+
+  // Search
+  search: {
+    all: ['search'] as const,
+    results: (q: string, type: string) =>
+      [...queryKeys.search.all, q, type] as const,
+  },
+};
