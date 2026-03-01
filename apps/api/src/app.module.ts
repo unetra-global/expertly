@@ -1,21 +1,44 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
+import { RedisModule } from './common/modules/redis.module';
+import { SupabaseModule } from './common/modules/supabase.module';
+import { CacheModule } from './common/modules/cache.module';
 import { HealthModule } from './modules/health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { TaxonomyModule } from './modules/taxonomy/taxonomy.module';
 import { MembersModule } from './modules/members/members.module';
 import { HomepageModule } from './modules/homepage/homepage.module';
+import { ApplicationsModule } from './modules/applications/applications.module';
+import { UploadModule } from './modules/upload/upload.module';
+import { ArticlesModule } from './modules/articles/articles.module';
+import { EventsModule } from './modules/events/events.module';
+import { ConsultationModule } from './modules/consultation/consultation.module';
+import { SearchModule } from './modules/search/search.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     ScheduleModule.forRoot(),
+    // Shared global singletons — must come before feature modules
+    RedisModule,
+    SupabaseModule,
+    CacheModule,
+    // Feature modules
     HealthModule,
     AuthModule,
     TaxonomyModule,
     MembersModule,
     HomepageModule,
+    // Week 3 modules
+    ApplicationsModule,
+    UploadModule,
+    ArticlesModule,
+    EventsModule,
+    ConsultationModule,
+    SearchModule,
+    DashboardModule,
   ],
 })
 export class AppModule {}
