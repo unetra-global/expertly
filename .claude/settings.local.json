@@ -3,7 +3,12 @@
     "allow": [
       "Bash(git init)",
       "Bash(git add .)",
-      "Bash(git commit -m \"Session 1.1: monorepo scaffold\")"
+      "Bash(git commit -m \"Session 1.1: monorepo scaffold\")",
+      "Bash(npx tsc --noEmit)",
+      "Bash(tsc --version)",
+      "Bash(npm install -g typescript)",
+      "Bash(tsc --noEmit)",
+      "Bash(git commit -m \"Session 1.2: shared packages \\(types, utils, schemas\\)\")"
     ]
   }
 }
