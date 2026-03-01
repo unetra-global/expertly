@@ -69,7 +69,7 @@ export function NavbarClient({
                 Log In
               </Link>
               <Link
-                href="/application"
+                href="/auth?tab=signup"
                 className="inline-flex items-center px-4 py-2 rounded-lg bg-brand-blue hover:bg-brand-blue-dark text-white text-sm font-semibold transition-colors"
               >
                 Become a Member
@@ -190,7 +190,7 @@ export function NavbarClient({
             {!isLoggedIn && (
               <>
                 <Link href="/auth" className="block py-2.5 px-3 text-sm font-medium text-white/70 hover:text-white" onClick={() => setMobileOpen(false)}>Log In</Link>
-                <Link href="/application" className="block w-full text-center py-2.5 px-3 rounded-lg bg-brand-blue text-white text-sm font-semibold hover:bg-brand-blue-dark transition-colors" onClick={() => setMobileOpen(false)}>Become a Member</Link>
+                <Link href="/auth?tab=signup" className="block w-full text-center py-2.5 px-3 rounded-lg bg-brand-blue text-white text-sm font-semibold hover:bg-brand-blue-dark transition-colors" onClick={() => setMobileOpen(false)}>Become a Member</Link>
               </>
             )}
             {isLoggedIn && isOps && <Link href="/ops" className="block w-full text-center py-2.5 px-3 rounded-lg bg-brand-blue text-white text-sm font-semibold" onClick={() => setMobileOpen(false)}>Dashboard</Link>}

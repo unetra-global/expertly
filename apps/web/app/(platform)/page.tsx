@@ -82,7 +82,7 @@ export default async function HomePage() {
             professionals worldwide.
           </p>
           <a
-            href="/application"
+            href="/auth?tab=signup"
             className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-brand-blue hover:bg-brand-blue-dark text-white font-semibold text-sm transition-colors"
           >
             Apply for Membership
