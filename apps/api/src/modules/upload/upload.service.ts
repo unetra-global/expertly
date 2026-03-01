@@ -2,9 +2,9 @@ import {
   BadRequestException,
   Injectable,
   Logger,
+  OnModuleInit,
 } from '@nestjs/common';
 import { SupabaseService } from '../../common/services/supabase.service';
-import { fileTypeFromBuffer } from 'file-type';
 import sharp from 'sharp';
 import { randomUUID } from 'crypto';
 
@@ -13,11 +13,22 @@ const ALLOWED_DOCUMENT_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
 const MAX_DOC_SIZE = 10 * 1024 * 1024;  // 10 MB
 
+// file-type v19 is ESM-only — use dynamic import at module init
+type FileTypeResult = { mime: string; ext: string } | undefined;
+type FileTypeFromBuffer = (buffer: Buffer | Uint8Array) => Promise<FileTypeResult>;
+
 @Injectable()
-export class UploadService {
+export class UploadService implements OnModuleInit {
   private readonly logger = new Logger(UploadService.name);
+  private fileTypeFromBuffer!: FileTypeFromBuffer;
 
   constructor(private readonly supabase: SupabaseService) {}
+
+  async onModuleInit(): Promise<void> {
+    // Dynamic import of ESM-only file-type package
+    const { fileTypeFromBuffer } = await import('file-type');
+    this.fileTypeFromBuffer = fileTypeFromBuffer as FileTypeFromBuffer;
+  }
 
   // ─── Avatar ──────────────────────────────────────────────────────────────
 
@@ -26,13 +37,11 @@ export class UploadService {
     buffer: Buffer,
     originalName: string,
   ): Promise<{ url: string }> {
-    // Validate size
     if (buffer.length > MAX_IMAGE_SIZE) {
       throw new BadRequestException('FILE_TOO_LARGE');
     }
 
-    // Validate magic bytes
-    const type = await fileTypeFromBuffer(buffer);
+    const type = await this.fileTypeFromBuffer(buffer);
     if (!type || !ALLOWED_IMAGE_TYPES.includes(type.mime)) {
       throw new BadRequestException('INVALID_FILE_TYPE');
     }
@@ -72,7 +81,7 @@ export class UploadService {
       throw new BadRequestException('FILE_TOO_LARGE');
     }
 
-    const type = await fileTypeFromBuffer(buffer);
+    const type = await this.fileTypeFromBuffer(buffer);
     if (!type || !ALLOWED_IMAGE_TYPES.includes(type.mime)) {
       throw new BadRequestException('INVALID_FILE_TYPE');
     }
@@ -113,7 +122,7 @@ export class UploadService {
       throw new BadRequestException('FILE_TOO_LARGE');
     }
 
-    const type = await fileTypeFromBuffer(buffer);
+    const type = await this.fileTypeFromBuffer(buffer);
     if (!type || !ALLOWED_DOCUMENT_TYPES.includes(type.mime)) {
       throw new BadRequestException('INVALID_FILE_TYPE');
     }
