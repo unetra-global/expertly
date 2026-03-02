@@ -205,7 +205,14 @@ export class ArticlesController {
     return this.articles.getById(id, user);
   }
 
-  // 7. GET /articles/:slug (OptionalJWT)
+  // 7. GET /articles/:id/related (OptionalJWT) — must come BEFORE :slug
+  @Get(':id/related')
+  @UseGuards(OptionalJwtGuard, RolesGuard)
+  getRelated(@Param('id') id: string): Promise<unknown[]> {
+    return this.articles.getRelated(id);
+  }
+
+  // 8. GET /articles/:slug (OptionalJWT)
   @Get(':slug')
   @UseGuards(OptionalJwtGuard, RolesGuard)
   getBySlug(
@@ -213,13 +220,6 @@ export class ArticlesController {
     @Param('slug') slug: string,
   ): Promise<unknown> {
     return this.articles.getBySlug(slug, user);
-  }
-
-  // 8. GET /articles/:id/related (OptionalJWT)
-  @Get(':id/related')
-  @UseGuards(OptionalJwtGuard, RolesGuard)
-  getRelated(@Param('id') id: string): Promise<unknown[]> {
-    return this.articles.getRelated(id);
   }
 
   // 9. PATCH /articles/:id (JWT + Member)

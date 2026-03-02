@@ -256,7 +256,7 @@ export class RssProcessor implements OnModuleInit, OnModuleDestroy {
     // Fetch the update
     const { data: update } = await sb
       .from('regulatory_updates')
-      .select('*')
+      .select('id, title, summary, source, relevant_categories')
       .eq('id', updateId)
       .single();
 
