@@ -57,14 +57,14 @@ export default function HeroSection() {
         <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-1.5 mb-8">
           <span className="w-1.5 h-1.5 rounded-full bg-brand-blue animate-pulse" />
           <span className="text-white/80 text-xs font-semibold tracking-widest uppercase">
-            Finance &amp; Legal Network
+            Global Network
           </span>
         </div>
 
         {/* Headline */}
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-[1.12] tracking-tight max-w-3xl mx-auto">
-          Global Network for Legal &amp;{' '}
-          <span className="text-brand-blue-light">Financial Excellence</span>
+          The World&apos;s Premier{' '}
+          <span className="text-brand-blue-light">Financial &amp; Legal Experts</span>
         </h1>
 
         <p className="mt-5 text-base sm:text-lg text-white/60 max-w-xl mx-auto leading-relaxed">
@@ -93,7 +93,7 @@ export default function HeroSection() {
               onChange={(e) => setProfession(e.target.value)}
               className="w-full pl-9 pr-4 py-3 text-sm text-brand-text bg-transparent rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue appearance-none cursor-pointer"
             >
-              <option value="">Select Profession</option>
+              <option value="">Select Services</option>
               {PROFESSIONS.map((p) => (
                 <option key={p} value={p}>{p}</option>
               ))}
@@ -134,7 +134,7 @@ export default function HeroSection() {
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
-            Find an Expert
+            FIND AN EXPERT
           </button>
         </form>
 

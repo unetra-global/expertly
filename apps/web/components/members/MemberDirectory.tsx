@@ -10,11 +10,20 @@ import { MemberCard } from './MemberCard';
 import { ConsultationModal } from './ConsultationModal';
 import type { MemberListItem, PaginatedResponse } from '@/types/api';
 
-// Common countries for filter dropdown
 const COUNTRIES = [
   'Australia', 'Canada', 'Hong Kong', 'India', 'Malaysia', 'Singapore',
   'United Arab Emirates', 'United Kingdom', 'United States',
 ];
+
+const EXPERIENCE_OPTIONS = [
+  { label: 'Any Experience', value: '' },
+  { label: '5+ Years', value: '5' },
+  { label: '10+ Years', value: '10' },
+  { label: '15+ Years', value: '15' },
+  { label: '20+ Years', value: '20' },
+];
+
+const MAX_HOURLY_MAX = 1000;
 
 interface MemberDirectoryProps {
   initialFilters: Record<string, string>;
@@ -28,22 +37,22 @@ export default function MemberDirectory({
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Controlled filter state — source of truth
   const [service, setService] = useState(initialFilters.service ?? '');
   const [country, setCountry] = useState(initialFilters.country ?? '');
   const [search, setSearch] = useState(initialFilters.q ?? '');
   const [debouncedSearch, setDebouncedSearch] = useState(initialFilters.q ?? '');
+  const [minYears, setMinYears] = useState(initialFilters.minYears ?? '');
+  const [maxHourly, setMaxHourly] = useState(Number(initialFilters.maxHourly ?? MAX_HOURLY_MAX));
+  const [sort, setSort] = useState(initialFilters.sort ?? '');
   const [page, setPage] = useState(1);
   const [consultMember, setConsultMember] = useState<MemberListItem | null>(null);
 
-  // Taxonomy: services for filter (flat list)
   const { data: taxonomyData } = useQuery<Array<{ id: string; name: string; category?: { name: string } }>>({
     queryKey: queryKeys.taxonomy.services(),
     queryFn: () => apiClient.get('/taxonomy/services'),
     staleTime: 3600 * 1000,
   });
 
-  // Debounce search input by 300ms
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(search);
@@ -52,24 +61,28 @@ export default function MemberDirectory({
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Sync filter changes → URL params
-  const syncUrl = useCallback((s: string, c: string, q: string) => {
+  const syncUrl = useCallback((s: string, c: string, q: string, my: string, mh: number, so: string) => {
     const params = new URLSearchParams();
     if (s) params.set('service', s);
     if (c) params.set('country', c);
     if (q) params.set('q', q);
+    if (my) params.set('minYears', my);
+    if (mh < MAX_HOURLY_MAX) params.set('maxHourly', String(mh));
+    if (so) params.set('sort', so);
     router.push(`/members${params.size ? `?${params.toString()}` : ''}`, { scroll: false });
   }, [router]);
 
   useEffect(() => {
-    syncUrl(service, country, debouncedSearch);
-  }, [service, country, debouncedSearch, syncUrl]);
+    syncUrl(service, country, debouncedSearch, minYears, maxHourly, sort);
+  }, [service, country, debouncedSearch, minYears, maxHourly, sort, syncUrl]);
 
-  // Sync from URL params (handles browser back/forward)
   useEffect(() => {
     setService(searchParams.get('service') ?? '');
     setCountry(searchParams.get('country') ?? '');
     setSearch(searchParams.get('q') ?? '');
+    setMinYears(searchParams.get('minYears') ?? '');
+    setMaxHourly(Number(searchParams.get('maxHourly') ?? MAX_HOURLY_MAX));
+    setSort(searchParams.get('sort') ?? '');
     setPage(1);
   }, [searchParams]);
 
@@ -77,6 +90,9 @@ export default function MemberDirectory({
     ...(service && { service }),
     ...(country && { country }),
     ...(debouncedSearch && { q: debouncedSearch }),
+    ...(minYears && { minYearsExperience: minYears }),
+    ...(maxHourly < MAX_HOURLY_MAX && { maxHourlyRate: String(maxHourly) }),
+    ...(sort && { sort }),
     limit: isAuthenticated ? '12' : '20',
     page: String(page),
   };
@@ -93,17 +109,21 @@ export default function MemberDirectory({
   const members = data?.data ?? [];
   const meta = data?.meta;
   const totalResults = meta?.total ?? members.length;
-  const hasFilters = !!(service || country || debouncedSearch);
+  const hasFilters = !!(service || country || debouncedSearch || minYears || maxHourly < MAX_HOURLY_MAX);
 
   function clearFilters() {
     setService('');
     setCountry('');
     setSearch('');
     setDebouncedSearch('');
+    setMinYears('');
+    setMaxHourly(MAX_HOURLY_MAX);
+    setSort('');
     setPage(1);
   }
 
   const guestLimitReached = !isAuthenticated && members.length >= 20;
+  const maxHourlyLabel = maxHourly >= MAX_HOURLY_MAX ? 'Any' : `$${maxHourly}/hr`;
 
   return (
     <>
@@ -111,10 +131,57 @@ export default function MemberDirectory({
       <div className="bg-brand-navy">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <p className="section-label mb-2">Our Network</p>
-          <h1 className="text-3xl sm:text-4xl font-bold text-white">Member Directory</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold text-white">Find Financial &amp; Legal Experts</h1>
           <p className="mt-3 text-white/60 text-base max-w-xl">
             Browse verified finance and legal professionals from around the world.
           </p>
+
+          {/* Top search bar */}
+          <div className="mt-6 bg-white rounded-2xl shadow-lg p-2 flex flex-col sm:flex-row gap-2 max-w-3xl">
+            <div className="flex-1 relative">
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none"
+                fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by name, keyword…"
+                className="w-full pl-9 pr-4 py-3 text-sm text-gray-800 bg-transparent rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue"
+              />
+            </div>
+            <div className="hidden sm:block w-px bg-gray-200 self-stretch my-1" />
+            <div className="relative">
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none"
+                fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064" />
+              </svg>
+              <select
+                value={country}
+                onChange={(e) => { setCountry(e.target.value); setPage(1); }}
+                className="pl-9 pr-8 py-3 text-sm text-gray-800 bg-transparent rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue appearance-none cursor-pointer w-full sm:w-44"
+              >
+                <option value="">All Countries</option>
+                {COUNTRIES.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+            <button
+              onClick={() => syncUrl(service, country, search, minYears, maxHourly, sort)}
+              className="flex-shrink-0 inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-brand-blue hover:bg-brand-blue-dark text-white text-sm font-semibold transition-colors whitespace-nowrap"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              FIND AN EXPERT
+            </button>
+          </div>
         </div>
       </div>
 
@@ -123,9 +190,9 @@ export default function MemberDirectory({
 
           {/* ── Sidebar ──────────────────────────────────── */}
           <aside className="lg:w-64 xl:w-72 flex-shrink-0">
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-5 lg:sticky lg:top-24">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-sm font-semibold text-brand-navy">Filters</h2>
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-5 lg:sticky lg:top-24 space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xs font-bold text-brand-navy uppercase tracking-wider">Filters</h2>
                 {hasFilters && (
                   <button
                     onClick={clearFilters}
@@ -136,70 +203,84 @@ export default function MemberDirectory({
                 )}
               </div>
 
-              {/* Search */}
-              <div className="mb-4">
-                <label htmlFor="search" className="block text-xs font-medium text-brand-text-secondary mb-1.5">
-                  Search
-                </label>
-                <div className="relative">
-                  <svg className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-brand-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                  <input
-                    id="search"
-                    type="search"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Name, keyword…"
-                    className="input-base pl-9 text-sm"
-                  />
-                </div>
-              </div>
-
-              {/* Service filter */}
-              <div className="mb-4">
-                <label htmlFor="service-filter" className="block text-xs font-medium text-brand-text-secondary mb-1.5">
-                  Service
+              {/* CATEGORY */}
+              <div>
+                <label className="block text-xs font-bold text-brand-navy uppercase tracking-wider mb-2">
+                  Category
                 </label>
                 <select
-                  id="service-filter"
                   value={service}
                   onChange={(e) => { setService(e.target.value); setPage(1); }}
-                  className="input-base text-sm appearance-none cursor-pointer"
+                  className="w-full px-3 py-2.5 text-sm text-brand-text bg-brand-surface border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue appearance-none cursor-pointer"
                 >
-                  <option value="">All services</option>
+                  <option value="">All Categories</option>
                   {(taxonomyData ?? []).map((s) => (
                     <option key={s.id} value={s.name}>{s.name}</option>
                   ))}
                 </select>
               </div>
 
-              {/* Country filter */}
+              {/* MIN EXPERIENCE */}
               <div>
-                <label htmlFor="country-filter" className="block text-xs font-medium text-brand-text-secondary mb-1.5">
-                  Country
-                </label>
-                <select
-                  id="country-filter"
-                  value={country}
-                  onChange={(e) => { setCountry(e.target.value); setPage(1); }}
-                  className="input-base text-sm appearance-none cursor-pointer"
-                >
-                  <option value="">All countries</option>
-                  {COUNTRIES.map((c) => (
-                    <option key={c} value={c}>{c}</option>
+                <p className="text-xs font-bold text-brand-navy uppercase tracking-wider mb-2">
+                  Min Experience
+                </p>
+                <div className="space-y-2">
+                  {EXPERIENCE_OPTIONS.map((opt) => (
+                    <label key={opt.value} className="flex items-center gap-2.5 cursor-pointer group">
+                      <input
+                        type="radio"
+                        name="minYears"
+                        value={opt.value}
+                        checked={minYears === opt.value}
+                        onChange={() => { setMinYears(opt.value); setPage(1); }}
+                        className="h-4 w-4 accent-brand-blue cursor-pointer"
+                      />
+                      <span className="text-sm text-brand-text group-hover:text-brand-navy transition-colors">
+                        {opt.label}
+                      </span>
+                    </label>
                   ))}
-                </select>
+                </div>
               </div>
 
-              {/* Guest prompt in sidebar */}
-              {!isAuthenticated && (
-                <div className="mt-5 rounded-xl bg-brand-blue-subtle border border-blue-100 p-4 text-center">
-                  <p className="text-xs text-blue-700 leading-relaxed mb-2">
-                    Sign in to unlock advanced filters and full member details.
+              {/* MAX HOURLY */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-bold text-brand-navy uppercase tracking-wider">
+                    Max Hourly
                   </p>
-                  <Link href="/auth" className="inline-flex items-center justify-center w-full text-xs font-semibold text-white bg-brand-blue hover:bg-brand-blue-dark rounded-lg px-3 py-2 transition-colors">
-                    Sign In
+                  <span className="text-xs font-semibold text-brand-blue">{maxHourlyLabel}</span>
+                </div>
+                <input
+                  type="range"
+                  min={50}
+                  max={MAX_HOURLY_MAX}
+                  step={50}
+                  value={maxHourly}
+                  onChange={(e) => { setMaxHourly(Number(e.target.value)); setPage(1); }}
+                  className="w-full accent-brand-blue cursor-pointer"
+                />
+                <div className="flex justify-between text-xs text-brand-text-muted mt-1">
+                  <span>$50</span>
+                  <span>$1k+</span>
+                </div>
+              </div>
+
+              {/* Join CTA — shown to unauthenticated users */}
+              {!isAuthenticated && (
+                <div className="rounded-xl bg-brand-blue p-4 text-center">
+                  <p className="text-xs font-bold text-white uppercase tracking-wider mb-1">
+                    Join Expertly Today
+                  </p>
+                  <p className="text-xs text-blue-100 leading-relaxed mb-3">
+                    Get full access to verified professionals and advanced filters.
+                  </p>
+                  <Link
+                    href="/auth?tab=signup"
+                    className="inline-flex items-center justify-center w-full text-xs font-semibold text-brand-blue bg-white hover:bg-blue-50 rounded-lg px-3 py-2 transition-colors"
+                  >
+                    Become a Member
                   </Link>
                 </div>
               )}
@@ -208,7 +289,7 @@ export default function MemberDirectory({
 
           {/* ── Main content ─────────────────────────────── */}
           <div className="flex-1 min-w-0">
-            {/* Result count */}
+            {/* Result count + sort */}
             <div className="flex items-center justify-between mb-6">
               <p className="text-sm text-brand-text-secondary">
                 {isLoading ? (
@@ -221,6 +302,16 @@ export default function MemberDirectory({
                   </>
                 )}
               </p>
+              <select
+                value={sort}
+                onChange={(e) => { setSort(e.target.value); setPage(1); }}
+                className="text-sm text-brand-text border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-brand-blue appearance-none cursor-pointer"
+              >
+                <option value="">Sort: Relevance</option>
+                <option value="fee_asc">Fee: Low to High</option>
+                <option value="fee_desc">Fee: High to Low</option>
+                <option value="experience_desc">Most Experienced</option>
+              </select>
             </div>
 
             {/* Error state */}
@@ -250,18 +341,17 @@ export default function MemberDirectory({
             {!isLoading && !isError && (
               <>
                 {members.length === 0 ? (
-                  /* Empty state */
                   <div className="rounded-2xl bg-white border border-gray-100 p-12 text-center">
                     <div className="w-16 h-16 rounded-full bg-brand-surface flex items-center justify-center mx-auto mb-4">
                       <svg className="h-8 w-8 text-brand-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
                     </div>
-                    <h3 className="text-base font-semibold text-brand-navy mb-1">No professionals found</h3>
+                    <h3 className="text-base font-semibold text-brand-navy mb-1">No members found matching your criteria.</h3>
                     <p className="text-sm text-brand-text-muted mb-4">Try adjusting your filters or search query.</p>
                     {hasFilters && (
-                      <button onClick={clearFilters} className="btn-outline text-sm">
-                        Clear filters
+                      <button onClick={clearFilters} className="text-sm font-medium text-brand-blue hover:underline">
+                        Clear all filters
                       </button>
                     )}
                   </div>
@@ -293,12 +383,8 @@ export default function MemberDirectory({
                       You&apos;ve reached the preview limit. Sign in to access the full directory with unlimited results.
                     </p>
                     <div className="flex items-center justify-center gap-3">
-                      <Link href="/auth" className="btn-primary-dark px-6">
-                        Sign In
-                      </Link>
-                      <Link href="/auth?tab=signup" className="btn-outline-white px-6">
-                        Create Account
-                      </Link>
+                      <Link href="/auth" className="btn-primary-dark px-6">Sign In</Link>
+                      <Link href="/auth?tab=signup" className="btn-outline-white px-6">Create Account</Link>
                     </div>
                   </div>
                 )}
@@ -316,11 +402,9 @@ export default function MemberDirectory({
                       </svg>
                       Previous
                     </button>
-
                     <span className="px-4 py-2 text-sm text-brand-text-secondary">
                       Page {page} of {meta.totalPages}
                     </span>
-
                     <button
                       onClick={() => setPage((p) => Math.min(meta.totalPages, p + 1))}
                       disabled={page >= meta.totalPages}

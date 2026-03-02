@@ -1,12 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { apiClient } from '@/lib/apiClient';
 import { queryKeys } from '@/hooks/queryKeys';
 import type { ArticleListItem, PaginatedResponse } from '@/types/api';
+
+const READ_TIME_OPTIONS = [
+  { label: 'Any Length', value: '' },
+  { label: '< 5 mins', value: 'short' },
+  { label: '5–10 mins', value: 'medium' },
+  { label: '> 10 mins', value: 'long' },
+];
 
 function ArticleCard({ article }: { article: ArticleListItem }) {
   const authorName =
@@ -42,26 +49,22 @@ function ArticleCard({ article }: { article: ArticleListItem }) {
       </div>
 
       <div className="flex-1 flex flex-col p-5">
-        {/* Category */}
         {article.serviceCategory && (
           <span className="inline-flex items-center self-start rounded-full bg-brand-blue-subtle border border-blue-100 px-2.5 py-0.5 text-xs font-medium text-brand-blue mb-3">
             {article.serviceCategory.name}
           </span>
         )}
 
-        {/* Title */}
         <h3 className="font-semibold text-brand-navy text-base leading-snug group-hover:text-brand-blue transition-colors line-clamp-2 mb-2">
           {article.title}
         </h3>
 
-        {/* Excerpt */}
         {article.excerpt && (
           <p className="text-sm text-brand-text-secondary leading-relaxed line-clamp-3 mb-4 flex-1">
             {article.excerpt}
           </p>
         )}
 
-        {/* Meta row */}
         <div className="flex items-center gap-2 pt-3 border-t border-gray-50 mt-auto">
           {article.author?.profilePhotoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -105,32 +108,61 @@ export default function ArticleList({ initialCategory = '' }: ArticleListProps) 
   const searchParams = useSearchParams();
 
   const [category, setCategory] = useState(initialCategory);
+  const [readTime, setReadTime] = useState('');
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [sort, setSort] = useState('');
   const [page, setPage] = useState(1);
 
-  // Fetch categories for filter
   const { data: categoriesData } = useQuery<Array<{ id: string; name: string }>>({
     queryKey: queryKeys.taxonomy.categories(),
     queryFn: () => apiClient.get('/taxonomy/categories'),
     staleTime: 3600 * 1000,
   });
 
-  // Sync category filter ↔ URL
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const syncUrl = useCallback((cat: string, q: string, rt: string, so: string) => {
     const params = new URLSearchParams();
-    if (category) params.set('category', category);
+    if (cat) params.set('category', cat);
+    if (q) params.set('q', q);
+    if (rt) params.set('readTime', rt);
+    if (so) params.set('sort', so);
     router.push(`/articles${params.size ? `?${params.toString()}` : ''}`, { scroll: false });
-  }, [category, router]);
+  }, [router]);
+
+  useEffect(() => {
+    syncUrl(category, debouncedSearch, readTime, sort);
+  }, [category, debouncedSearch, readTime, sort, syncUrl]);
 
   useEffect(() => {
     setCategory(searchParams.get('category') ?? '');
+    setSearch(searchParams.get('q') ?? '');
+    setReadTime(searchParams.get('readTime') ?? '');
+    setSort(searchParams.get('sort') ?? '');
     setPage(1);
   }, [searchParams]);
+
+  // Map readTime filter to API params
+  const readTimeFilter: Record<string, string> = {};
+  if (readTime === 'short') readTimeFilter.maxReadTime = '5';
+  else if (readTime === 'medium') { readTimeFilter.minReadTime = '5'; readTimeFilter.maxReadTime = '10'; }
+  else if (readTime === 'long') readTimeFilter.minReadTime = '10';
 
   const activeFilters: Record<string, string> = {
     status: 'published',
     limit: '9',
     page: String(page),
     ...(category && { category }),
+    ...(debouncedSearch && { q: debouncedSearch }),
+    ...(sort && { sort }),
+    ...readTimeFilter,
   };
 
   const { data, isLoading, isError } = useQuery<PaginatedResponse<ArticleListItem>>({
@@ -145,6 +177,15 @@ export default function ArticleList({ initialCategory = '' }: ArticleListProps) 
   const articles = data?.data ?? [];
   const meta = data?.meta;
   const totalResults = meta?.total ?? articles.length;
+  const hasFilters = !!(category || debouncedSearch || readTime);
+
+  function clearFilters() {
+    setCategory('');
+    setSearch('');
+    setReadTime('');
+    setSort('');
+    setPage(1);
+  }
 
   return (
     <>
@@ -152,127 +193,211 @@ export default function ArticleList({ initialCategory = '' }: ArticleListProps) 
       <div className="bg-brand-navy">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <p className="section-label mb-2">Knowledge Hub</p>
-          <h1 className="text-3xl sm:text-4xl font-bold text-white">Expert Articles</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold text-white">Expert Insights &amp; Articles</h1>
           <p className="mt-3 text-white/60 text-base max-w-xl">
             Insights and analysis from verified finance and legal professionals.
           </p>
+
+          {/* Top search bar */}
+          <div className="mt-6 bg-white rounded-2xl shadow-lg p-2 flex flex-col sm:flex-row gap-2 max-w-3xl">
+            <div className="flex-1 relative">
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none"
+                fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search articles…"
+                className="w-full pl-9 pr-4 py-3 text-sm text-gray-800 bg-transparent rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue"
+              />
+            </div>
+            <div className="hidden sm:block w-px bg-gray-200 self-stretch my-1" />
+            <div className="relative">
+              <select
+                value={category}
+                onChange={(e) => { setCategory(e.target.value); setPage(1); }}
+                className="pl-4 pr-8 py-3 text-sm text-gray-800 bg-transparent rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue appearance-none cursor-pointer w-full sm:w-44"
+              >
+                <option value="">All Categories</option>
+                {(categoriesData ?? []).map((cat) => (
+                  <option key={cat.id} value={cat.name}>{cat.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        {/* Category filter tabs */}
-        {(categoriesData ?? []).length > 0 && (
-          <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2 scrollbar-hide">
-            <button
-              onClick={() => { setCategory(''); setPage(1); }}
-              className={`flex-shrink-0 rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${!category ? 'bg-brand-blue border-brand-blue text-white' : 'bg-white border-gray-200 text-brand-text hover:border-brand-blue/30'}`}
-            >
-              All
-            </button>
-            {(categoriesData ?? []).map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => { setCategory(cat.name); setPage(1); }}
-                className={`flex-shrink-0 rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${category === cat.name ? 'bg-brand-blue border-brand-blue text-white' : 'bg-white border-gray-200 text-brand-text hover:border-brand-blue/30'}`}
-              >
-                {cat.name}
-              </button>
-            ))}
-          </div>
-        )}
+        <div className="flex flex-col lg:flex-row gap-8">
 
-        {/* Result count */}
-        <div className="flex items-center justify-between mb-6">
-          <p className="text-sm text-brand-text-secondary">
-            {isLoading ? (
-              <span className="inline-block w-24 h-4 bg-gray-100 rounded animate-pulse" />
-            ) : (
-              <>
-                <span className="font-semibold text-brand-navy">{totalResults.toLocaleString()}</span>
-                {' '}article{totalResults !== 1 ? 's' : ''}
-                {category && ` in ${category}`}
-              </>
-            )}
-          </p>
-        </div>
-
-        {/* Error */}
-        {isError && (
-          <div className="rounded-2xl bg-red-50 border border-red-100 p-8 text-center">
-            <p className="text-sm text-red-700">Failed to load articles. Please try again.</p>
-          </div>
-        )}
-
-        {/* Loading skeletons */}
-        {isLoading && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="bg-white rounded-2xl border border-gray-100 overflow-hidden animate-pulse">
-                <div className="aspect-[16/9] bg-gray-100" />
-                <div className="p-5 space-y-2">
-                  <div className="h-3 bg-gray-100 rounded w-1/3" />
-                  <div className="h-4 bg-gray-100 rounded w-full" />
-                  <div className="h-4 bg-gray-100 rounded w-3/4" />
-                  <div className="h-3 bg-gray-100 rounded w-1/2 mt-4" />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Article grid */}
-        {!isLoading && !isError && (
-          <>
-            {articles.length === 0 ? (
-              <div className="rounded-2xl bg-white border border-gray-100 p-12 text-center">
-                <p className="text-base font-semibold text-brand-navy mb-1">No articles yet</p>
-                <p className="text-sm text-brand-text-muted">
-                  {category ? `No articles in ${category} yet.` : 'Check back soon for expert insights.'}
-                </p>
-                {category && (
-                  <button onClick={() => setCategory('')} className="mt-4 btn-outline text-sm">
-                    View all articles
+          {/* ── Sidebar ──────────────────────────────────── */}
+          <aside className="lg:w-64 xl:w-72 flex-shrink-0">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-5 lg:sticky lg:top-24 space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xs font-bold text-brand-navy uppercase tracking-wider">Filters</h2>
+                {hasFilters && (
+                  <button
+                    onClick={clearFilters}
+                    className="text-xs font-medium text-brand-blue hover:text-brand-blue-dark transition-colors"
+                  >
+                    Clear all
                   </button>
                 )}
               </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {articles.map((article) => (
-                  <ArticleCard key={article.id} article={article} />
+
+              {/* READING TIME */}
+              <div>
+                <p className="text-xs font-bold text-brand-navy uppercase tracking-wider mb-2">
+                  Reading Time
+                </p>
+                <div className="space-y-2">
+                  {READ_TIME_OPTIONS.map((opt) => (
+                    <label key={opt.value} className="flex items-center gap-2.5 cursor-pointer group">
+                      <input
+                        type="radio"
+                        name="readTime"
+                        value={opt.value}
+                        checked={readTime === opt.value}
+                        onChange={() => { setReadTime(opt.value); setPage(1); }}
+                        className="h-4 w-4 accent-brand-blue cursor-pointer"
+                      />
+                      <span className="text-sm text-brand-text group-hover:text-brand-navy transition-colors">
+                        {opt.label}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Share Your Expertise CTA */}
+              <div className="rounded-xl bg-brand-blue p-4 text-center">
+                <p className="text-xs font-bold text-white uppercase tracking-wider mb-1">
+                  Share Your Expertise
+                </p>
+                <p className="text-xs text-blue-100 leading-relaxed mb-3">
+                  Publish articles and grow your professional brand on Expertly.
+                </p>
+                <Link
+                  href="/auth?tab=signup"
+                  className="inline-flex items-center justify-center w-full text-xs font-semibold text-brand-blue bg-white hover:bg-blue-50 rounded-lg px-3 py-2 transition-colors"
+                >
+                  Start Writing
+                </Link>
+              </div>
+            </div>
+          </aside>
+
+          {/* ── Main content ─────────────────────────────── */}
+          <div className="flex-1 min-w-0">
+            {/* Result count + sort */}
+            <div className="flex items-center justify-between mb-6">
+              <p className="text-sm text-brand-text-secondary">
+                {isLoading ? (
+                  <span className="inline-block w-24 h-4 bg-gray-100 rounded animate-pulse" />
+                ) : (
+                  <>
+                    <span className="font-semibold text-brand-navy">{totalResults.toLocaleString()}</span>
+                    {' '}article{totalResults !== 1 ? 's' : ''}
+                    {category && ` in ${category}`}
+                  </>
+                )}
+              </p>
+              <select
+                value={sort}
+                onChange={(e) => { setSort(e.target.value); setPage(1); }}
+                className="text-sm text-brand-text border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-brand-blue appearance-none cursor-pointer"
+              >
+                <option value="">Sort: Newest</option>
+                <option value="oldest">Oldest First</option>
+                <option value="read_time_asc">Shortest Read</option>
+                <option value="read_time_desc">Longest Read</option>
+              </select>
+            </div>
+
+            {/* Error */}
+            {isError && (
+              <div className="rounded-2xl bg-red-50 border border-red-100 p-8 text-center">
+                <p className="text-sm text-red-700">Failed to load articles. Please try again.</p>
+              </div>
+            )}
+
+            {/* Loading skeletons */}
+            {isLoading && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="bg-white rounded-2xl border border-gray-100 overflow-hidden animate-pulse">
+                    <div className="aspect-[16/9] bg-gray-100" />
+                    <div className="p-5 space-y-2">
+                      <div className="h-3 bg-gray-100 rounded w-1/3" />
+                      <div className="h-4 bg-gray-100 rounded w-full" />
+                      <div className="h-4 bg-gray-100 rounded w-3/4" />
+                      <div className="h-3 bg-gray-100 rounded w-1/2 mt-4" />
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
 
-            {/* Pagination */}
-            {meta && meta.totalPages > 1 && (
-              <div className="mt-10 flex items-center justify-center gap-2">
-                <button
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-brand-text hover:bg-brand-surface disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                >
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                  </svg>
-                  Previous
-                </button>
-                <span className="px-4 py-2 text-sm text-brand-text-secondary">
-                  Page {page} of {meta.totalPages}
-                </span>
-                <button
-                  onClick={() => setPage((p) => Math.min(meta.totalPages, p + 1))}
-                  disabled={page >= meta.totalPages}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-brand-text hover:bg-brand-surface disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                >
-                  Next
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              </div>
+            {/* Article grid */}
+            {!isLoading && !isError && (
+              <>
+                {articles.length === 0 ? (
+                  <div className="rounded-2xl bg-white border border-gray-100 p-12 text-center">
+                    <p className="text-base font-semibold text-brand-navy mb-1">No articles yet</p>
+                    <p className="text-sm text-brand-text-muted">
+                      {category ? `No articles in ${category} yet.` : 'Check back soon for expert insights.'}
+                    </p>
+                    {hasFilters && (
+                      <button onClick={clearFilters} className="mt-4 text-sm font-medium text-brand-blue hover:underline">
+                        Clear all filters
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {articles.map((article) => (
+                      <ArticleCard key={article.id} article={article} />
+                    ))}
+                  </div>
+                )}
+
+                {/* Pagination */}
+                {meta && meta.totalPages > 1 && (
+                  <div className="mt-10 flex items-center justify-center gap-2">
+                    <button
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-brand-text hover:bg-brand-surface disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                      Previous
+                    </button>
+                    <span className="px-4 py-2 text-sm text-brand-text-secondary">
+                      Page {page} of {meta.totalPages}
+                    </span>
+                    <button
+                      onClick={() => setPage((p) => Math.min(meta.totalPages, p + 1))}
+                      disabled={page >= meta.totalPages}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-brand-text hover:bg-brand-surface disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Next
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+              </>
             )}
-          </>
-        )}
+          </div>
+        </div>
       </div>
     </>
   );
