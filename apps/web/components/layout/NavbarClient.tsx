@@ -143,6 +143,16 @@ export function NavbarClient({
           )}
         </div>
 
+        {/* ── Mobile CTA (Log In visible without hamburger) ─ */}
+        {!isLoggedIn && (
+          <Link
+            href="/auth"
+            className="md:hidden inline-flex items-center px-3 py-1.5 rounded-lg bg-brand-blue hover:bg-brand-blue-dark text-white text-sm font-semibold transition-colors"
+          >
+            Log In
+          </Link>
+        )}
+
         {/* ── Mobile hamburger ──────────────────────────── */}
         <button
           className="md:hidden p-2 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"

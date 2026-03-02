@@ -48,30 +48,28 @@ export default function FeatureCardsSection() {
             <Link
               key={feature.title}
               href={feature.href}
-              className="group bg-white rounded-2xl shadow-lg p-6 flex flex-col gap-4 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200"
+              className="group bg-white rounded-2xl shadow-lg p-5 sm:p-6 flex flex-row sm:flex-col items-start gap-4 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200"
             >
-              {/* Icon */}
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-blue-50">
+              {/* Icon — left on mobile, top on desktop */}
+              <div className="inline-flex items-center justify-center w-12 h-12 flex-shrink-0 rounded-xl bg-blue-50">
                 {feature.icon}
               </div>
 
-              {/* Content */}
-              <div>
-                <h3 className="font-bold text-brand-navy text-sm tracking-wider mb-2">
+              {/* Content + CTA */}
+              <div className="flex flex-col gap-2 min-w-0">
+                <h3 className="font-bold text-brand-navy text-sm tracking-wider">
                   {feature.title}
                 </h3>
                 <p className="text-sm text-brand-text-secondary leading-relaxed">
                   {feature.description}
                 </p>
+                <span className="inline-flex items-center gap-1 text-xs font-bold text-brand-blue group-hover:gap-2 transition-all uppercase tracking-wider mt-1">
+                  {feature.cta}
+                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </span>
               </div>
-
-              {/* CTA */}
-              <span className="inline-flex items-center gap-1 text-xs font-bold text-brand-blue group-hover:gap-2 transition-all mt-auto uppercase tracking-wider">
-                {feature.cta}
-                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </svg>
-              </span>
             </Link>
           ))}
         </div>

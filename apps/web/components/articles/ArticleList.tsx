@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { apiClient } from '@/lib/apiClient';
 import { queryKeys } from '@/hooks/queryKeys';
+import { FilterSheet } from '@/components/ui/FilterSheet';
 import type { ArticleListItem, PaginatedResponse } from '@/types/api';
 
 const READ_TIME_OPTIONS = [
@@ -30,7 +31,6 @@ function ArticleCard({ article }: { article: ArticleListItem }) {
       href={`/articles/${article.slug}`}
       className="group bg-white rounded-2xl border border-gray-100 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200 overflow-hidden flex flex-col"
     >
-      {/* Cover image */}
       <div className="aspect-[16/9] bg-brand-surface overflow-hidden">
         {article.featuredImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -47,32 +47,24 @@ function ArticleCard({ article }: { article: ArticleListItem }) {
           </div>
         )}
       </div>
-
-      <div className="flex-1 flex flex-col p-5">
+      <div className="flex-1 flex flex-col p-4 sm:p-5">
         {article.serviceCategory && (
           <span className="inline-flex items-center self-start rounded-full bg-brand-blue-subtle border border-blue-100 px-2.5 py-0.5 text-xs font-medium text-brand-blue mb-3">
             {article.serviceCategory.name}
           </span>
         )}
-
         <h3 className="font-semibold text-brand-navy text-base leading-snug group-hover:text-brand-blue transition-colors line-clamp-2 mb-2">
           {article.title}
         </h3>
-
         {article.excerpt && (
           <p className="text-sm text-brand-text-secondary leading-relaxed line-clamp-3 mb-4 flex-1">
             {article.excerpt}
           </p>
         )}
-
         <div className="flex items-center gap-2 pt-3 border-t border-gray-50 mt-auto">
           {article.author?.profilePhotoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={article.author.profilePhotoUrl}
-              alt={authorName}
-              className="w-6 h-6 rounded-full object-cover flex-shrink-0"
-            />
+            <img src={article.author.profilePhotoUrl} alt={authorName} className="w-6 h-6 rounded-full object-cover flex-shrink-0" />
           ) : (
             <div className="w-6 h-6 rounded-full bg-brand-navy flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
               {authorName[0]}
@@ -80,18 +72,8 @@ function ArticleCard({ article }: { article: ArticleListItem }) {
           )}
           <div className="flex items-center gap-1.5 text-xs text-brand-text-muted min-w-0">
             <span className="truncate font-medium text-brand-text-secondary">{authorName}</span>
-            {publishedDate && (
-              <>
-                <span className="flex-shrink-0">·</span>
-                <span className="flex-shrink-0">{publishedDate}</span>
-              </>
-            )}
-            {article.readTimeMinutes && (
-              <>
-                <span className="flex-shrink-0">·</span>
-                <span className="flex-shrink-0">{article.readTimeMinutes} min read</span>
-              </>
-            )}
+            {publishedDate && <><span className="flex-shrink-0">·</span><span className="flex-shrink-0">{publishedDate}</span></>}
+            {article.readTimeMinutes && <><span className="flex-shrink-0">·</span><span className="flex-shrink-0">{article.readTimeMinutes} min</span></>}
           </div>
         </div>
       </div>
@@ -113,6 +95,7 @@ export default function ArticleList({ initialCategory = '' }: ArticleListProps) 
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [sort, setSort] = useState('');
   const [page, setPage] = useState(1);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const { data: categoriesData } = useQuery<Array<{ id: string; name: string }>>({
     queryKey: queryKeys.taxonomy.categories(),
@@ -121,10 +104,7 @@ export default function ArticleList({ initialCategory = '' }: ArticleListProps) 
   });
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(search);
-      setPage(1);
-    }, 300);
+    const timer = setTimeout(() => { setDebouncedSearch(search); setPage(1); }, 300);
     return () => clearTimeout(timer);
   }, [search]);
 
@@ -149,7 +129,6 @@ export default function ArticleList({ initialCategory = '' }: ArticleListProps) 
     setPage(1);
   }, [searchParams]);
 
-  // Map readTime filter to API params
   const readTimeFilter: Record<string, string> = {};
   if (readTime === 'short') readTimeFilter.maxReadTime = '5';
   else if (readTime === 'medium') { readTimeFilter.minReadTime = '5'; readTimeFilter.maxReadTime = '10'; }
@@ -178,6 +157,7 @@ export default function ArticleList({ initialCategory = '' }: ArticleListProps) 
   const meta = data?.meta;
   const totalResults = meta?.total ?? articles.length;
   const hasFilters = !!(category || debouncedSearch || readTime);
+  const activeFilterCount = [category, readTime].filter(Boolean).length;
 
   function clearFilters() {
     setCategory('');
@@ -187,24 +167,76 @@ export default function ArticleList({ initialCategory = '' }: ArticleListProps) 
     setPage(1);
   }
 
+  const filterControls = (
+    <>
+      {/* CATEGORY */}
+      <div>
+        <label className="block text-xs font-bold text-brand-navy uppercase tracking-wider mb-2">
+          Category
+        </label>
+        <select
+          value={category}
+          onChange={(e) => { setCategory(e.target.value); setPage(1); }}
+          className="w-full px-3 py-2.5 text-sm text-brand-text bg-brand-surface border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue appearance-none cursor-pointer"
+        >
+          <option value="">All Categories</option>
+          {(categoriesData ?? []).map((cat) => (
+            <option key={cat.id} value={cat.name}>{cat.name}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* READING TIME */}
+      <div>
+        <p className="text-xs font-bold text-brand-navy uppercase tracking-wider mb-2">Reading Time</p>
+        <div className="space-y-2.5">
+          {READ_TIME_OPTIONS.map((opt) => (
+            <label key={opt.value} className="flex items-center gap-3 cursor-pointer group">
+              <input
+                type="radio"
+                name="readTime"
+                value={opt.value}
+                checked={readTime === opt.value}
+                onChange={() => { setReadTime(opt.value); setPage(1); }}
+                className="h-4 w-4 accent-brand-blue cursor-pointer"
+              />
+              <span className="text-sm text-brand-text group-hover:text-brand-navy transition-colors">{opt.label}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* Share Your Expertise CTA */}
+      <div className="rounded-xl bg-brand-blue p-4 text-center">
+        <p className="text-xs font-bold text-white uppercase tracking-wider mb-1">Share Your Expertise</p>
+        <p className="text-xs text-blue-100 leading-relaxed mb-3">
+          Publish articles and grow your professional brand on Expertly.
+        </p>
+        <Link
+          href="/auth?tab=signup"
+          className="inline-flex items-center justify-center w-full text-xs font-semibold text-brand-blue bg-white hover:bg-blue-50 rounded-lg px-3 py-2 transition-colors"
+        >
+          Start Writing
+        </Link>
+      </div>
+    </>
+  );
+
   return (
     <>
       {/* Page header */}
       <div className="bg-brand-navy">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
           <p className="section-label mb-2">Knowledge Hub</p>
-          <h1 className="text-3xl sm:text-4xl font-bold text-white">Expert Insights &amp; Articles</h1>
-          <p className="mt-3 text-white/60 text-base max-w-xl">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white">Expert Insights &amp; Articles</h1>
+          <p className="mt-2 text-white/60 text-sm sm:text-base max-w-xl">
             Insights and analysis from verified finance and legal professionals.
           </p>
 
           {/* Top search bar */}
-          <div className="mt-6 bg-white rounded-2xl shadow-lg p-2 flex flex-col sm:flex-row gap-2 max-w-3xl">
+          <div className="mt-5 bg-white rounded-2xl shadow-lg p-2 flex gap-2 max-w-3xl">
             <div className="flex-1 relative">
-              <svg
-                className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none"
-                fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden
-              >
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <input
@@ -212,15 +244,16 @@ export default function ArticleList({ initialCategory = '' }: ArticleListProps) 
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search articles…"
-                className="w-full pl-9 pr-4 py-3 text-sm text-gray-800 bg-transparent rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                className="w-full pl-9 pr-4 py-2.5 text-sm text-gray-800 bg-transparent rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue"
               />
             </div>
-            <div className="hidden sm:block w-px bg-gray-200 self-stretch my-1" />
-            <div className="relative">
+            {/* Category dropdown — desktop only */}
+            <div className="hidden sm:flex items-center">
+              <div className="w-px bg-gray-200 self-stretch my-1 mr-2" />
               <select
                 value={category}
                 onChange={(e) => { setCategory(e.target.value); setPage(1); }}
-                className="pl-4 pr-8 py-3 text-sm text-gray-800 bg-transparent rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue appearance-none cursor-pointer w-full sm:w-44"
+                className="pl-4 pr-8 py-2.5 text-sm text-gray-800 bg-transparent rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue appearance-none cursor-pointer w-44"
               >
                 <option value="">All Categories</option>
                 {(categoriesData ?? []).map((cat) => (
@@ -232,70 +265,28 @@ export default function ArticleList({ initialCategory = '' }: ArticleListProps) 
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col lg:flex-row gap-8">
 
-          {/* ── Sidebar ──────────────────────────────────── */}
-          <aside className="lg:w-64 xl:w-72 flex-shrink-0">
+          {/* ── Sidebar — desktop only ────────────────────── */}
+          <aside className="hidden lg:block lg:w-64 xl:w-72 flex-shrink-0">
             <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-5 lg:sticky lg:top-24 space-y-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-xs font-bold text-brand-navy uppercase tracking-wider">Filters</h2>
                 {hasFilters && (
-                  <button
-                    onClick={clearFilters}
-                    className="text-xs font-medium text-brand-blue hover:text-brand-blue-dark transition-colors"
-                  >
+                  <button onClick={clearFilters} className="text-xs font-medium text-brand-blue hover:text-brand-blue-dark transition-colors">
                     Clear all
                   </button>
                 )}
               </div>
-
-              {/* READING TIME */}
-              <div>
-                <p className="text-xs font-bold text-brand-navy uppercase tracking-wider mb-2">
-                  Reading Time
-                </p>
-                <div className="space-y-2">
-                  {READ_TIME_OPTIONS.map((opt) => (
-                    <label key={opt.value} className="flex items-center gap-2.5 cursor-pointer group">
-                      <input
-                        type="radio"
-                        name="readTime"
-                        value={opt.value}
-                        checked={readTime === opt.value}
-                        onChange={() => { setReadTime(opt.value); setPage(1); }}
-                        className="h-4 w-4 accent-brand-blue cursor-pointer"
-                      />
-                      <span className="text-sm text-brand-text group-hover:text-brand-navy transition-colors">
-                        {opt.label}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Share Your Expertise CTA */}
-              <div className="rounded-xl bg-brand-blue p-4 text-center">
-                <p className="text-xs font-bold text-white uppercase tracking-wider mb-1">
-                  Share Your Expertise
-                </p>
-                <p className="text-xs text-blue-100 leading-relaxed mb-3">
-                  Publish articles and grow your professional brand on Expertly.
-                </p>
-                <Link
-                  href="/auth?tab=signup"
-                  className="inline-flex items-center justify-center w-full text-xs font-semibold text-brand-blue bg-white hover:bg-blue-50 rounded-lg px-3 py-2 transition-colors"
-                >
-                  Start Writing
-                </Link>
-              </div>
+              {filterControls}
             </div>
           </aside>
 
           {/* ── Main content ─────────────────────────────── */}
           <div className="flex-1 min-w-0">
-            {/* Result count + sort */}
-            <div className="flex items-center justify-between mb-6">
+            {/* Result count + mobile Filters button + sort */}
+            <div className="flex items-center justify-between mb-5 lg:mb-6">
               <p className="text-sm text-brand-text-secondary">
                 {isLoading ? (
                   <span className="inline-block w-24 h-4 bg-gray-100 rounded animate-pulse" />
@@ -307,28 +298,42 @@ export default function ArticleList({ initialCategory = '' }: ArticleListProps) 
                   </>
                 )}
               </p>
-              <select
-                value={sort}
-                onChange={(e) => { setSort(e.target.value); setPage(1); }}
-                className="text-sm text-brand-text border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-brand-blue appearance-none cursor-pointer"
-              >
-                <option value="">Sort: Newest</option>
-                <option value="oldest">Oldest First</option>
-                <option value="read_time_asc">Shortest Read</option>
-                <option value="read_time_desc">Longest Read</option>
-              </select>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setSheetOpen(true)}
+                  className="lg:hidden inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm font-medium text-brand-text hover:bg-brand-surface transition-colors"
+                >
+                  <svg className="h-4 w-4 text-brand-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" />
+                  </svg>
+                  Filters
+                  {activeFilterCount > 0 && (
+                    <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-brand-blue text-white text-xs font-bold leading-none">
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </button>
+                <select
+                  value={sort}
+                  onChange={(e) => { setSort(e.target.value); setPage(1); }}
+                  className="text-sm text-brand-text border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-brand-blue appearance-none cursor-pointer"
+                >
+                  <option value="">Newest</option>
+                  <option value="oldest">Oldest</option>
+                  <option value="read_time_asc">Shortest</option>
+                  <option value="read_time_desc">Longest</option>
+                </select>
+              </div>
             </div>
 
-            {/* Error */}
             {isError && (
               <div className="rounded-2xl bg-red-50 border border-red-100 p-8 text-center">
                 <p className="text-sm text-red-700">Failed to load articles. Please try again.</p>
               </div>
             )}
 
-            {/* Loading skeletons */}
             {isLoading && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <div key={i} className="bg-white rounded-2xl border border-gray-100 overflow-hidden animate-pulse">
                     <div className="aspect-[16/9] bg-gray-100" />
@@ -336,14 +341,12 @@ export default function ArticleList({ initialCategory = '' }: ArticleListProps) 
                       <div className="h-3 bg-gray-100 rounded w-1/3" />
                       <div className="h-4 bg-gray-100 rounded w-full" />
                       <div className="h-4 bg-gray-100 rounded w-3/4" />
-                      <div className="h-3 bg-gray-100 rounded w-1/2 mt-4" />
                     </div>
                   </div>
                 ))}
               </div>
             )}
 
-            {/* Article grid */}
             {!isLoading && !isError && (
               <>
                 {articles.length === 0 ? (
@@ -359,14 +362,13 @@ export default function ArticleList({ initialCategory = '' }: ArticleListProps) 
                     )}
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
                     {articles.map((article) => (
                       <ArticleCard key={article.id} article={article} />
                     ))}
                   </div>
                 )}
 
-                {/* Pagination */}
                 {meta && meta.totalPages > 1 && (
                   <div className="mt-10 flex items-center justify-center gap-2">
                     <button
@@ -379,9 +381,7 @@ export default function ArticleList({ initialCategory = '' }: ArticleListProps) 
                       </svg>
                       Previous
                     </button>
-                    <span className="px-4 py-2 text-sm text-brand-text-secondary">
-                      Page {page} of {meta.totalPages}
-                    </span>
+                    <span className="px-3 py-2 text-sm text-brand-text-secondary">{page} / {meta.totalPages}</span>
                     <button
                       onClick={() => setPage((p) => Math.min(meta.totalPages, p + 1))}
                       disabled={page >= meta.totalPages}
@@ -399,6 +399,16 @@ export default function ArticleList({ initialCategory = '' }: ArticleListProps) 
           </div>
         </div>
       </div>
+
+      {/* Mobile Filter Bottom Sheet */}
+      <FilterSheet
+        isOpen={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        onClear={clearFilters}
+        hasFilters={hasFilters}
+      >
+        {filterControls}
+      </FilterSheet>
     </>
   );
 }
