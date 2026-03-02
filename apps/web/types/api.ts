@@ -202,3 +202,39 @@ export interface EventListItem {
 export interface EventFull extends EventListItem {
   speakers?: EventSpeaker[];
 }
+
+// ── Applications ──────────────────────────────────────────────────────────────
+
+export type ApplicationStatus =
+  | 'draft'
+  | 'submitted'
+  | 'under_review'
+  | 'approved'
+  | 'rejected'
+  | 'waitlisted';
+
+export interface ApplicationDraft {
+  id: string;
+  status: ApplicationStatus;
+  currentStep?: 1 | 2 | 3;
+  rejectionReason?: string;
+  reApplicationEligibleAt?: string;
+  submittedAt?: string;
+  approvedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// ── Background Jobs ───────────────────────────────────────────────────────────
+
+export type JobStatus = 'pending' | 'processing' | 'completed' | 'failed';
+
+export interface BackgroundJob {
+  id: string;
+  type: string;
+  status: JobStatus;
+  result?: Record<string, unknown>;
+  error?: string;
+  createdAt: string;
+  updatedAt: string;
+}
