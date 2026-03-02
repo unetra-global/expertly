@@ -1,0 +1,94 @@
+import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
+import { ArticleDetail } from '@/components/articles/ArticleDetail';
+import type { ArticleFull } from '@/types/api';
+
+export const revalidate = 300;
+
+const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api/v1';
+
+async function fetchArticle(slug: string): Promise<ArticleFull | null> {
+  try {
+    const res = await fetch(`${API}/articles/${slug}`, {
+      next: { revalidate: 300 },
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) return null;
+    const json = (await res.json()) as { success: boolean; data?: ArticleFull };
+    return json.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchRelatedArticles(articleId: string): Promise<ArticleFull[]> {
+  try {
+    const res = await fetch(`${API}/articles/${articleId}/related`, {
+      next: { revalidate: 300 },
+    });
+    if (!res.ok) return [];
+    const json = (await res.json()) as { success: boolean; data?: ArticleFull[] };
+    return json.data ?? [];
+  } catch {
+    return [];
+  }
+}
+
+interface PageProps {
+  params: { slug: string };
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const article = await fetchArticle(params.slug);
+  if (!article) return { title: 'Article Not Found | Expertly' };
+
+  const authorName =
+    article.author?.user.fullName ||
+    [article.author?.user.firstName, article.author?.user.lastName].filter(Boolean).join(' ') ||
+    'Expertly Author';
+
+  return {
+    title: `${article.title} | Expertly`,
+    description: article.excerpt ?? article.subtitle,
+    openGraph: {
+      title: article.title,
+      description: article.excerpt ?? article.subtitle,
+      images: article.featuredImageUrl ? [{ url: article.featuredImageUrl }] : [],
+      type: 'article',
+      publishedTime: article.publishedAt,
+      modifiedTime: article.updatedAt,
+    },
+    other: {
+      'application/ld+json': JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        headline: article.title,
+        description: article.excerpt,
+        image: article.featuredImageUrl,
+        author: {
+          '@type': 'Person',
+          name: authorName,
+          url: article.author?.slug
+            ? `https://expertly.net/members/${article.author.slug}`
+            : undefined,
+        },
+        publisher: {
+          '@type': 'Organization',
+          name: 'Expertly',
+          url: 'https://expertly.net',
+        },
+        datePublished: article.publishedAt,
+        dateModified: article.updatedAt,
+      }),
+    },
+  };
+}
+
+export default async function ArticleSlugPage({ params }: PageProps) {
+  const article = await fetchArticle(params.slug);
+  if (!article) notFound();
+
+  const related = await fetchRelatedArticles(article.id);
+
+  return <ArticleDetail article={article} related={related} />;
+}
