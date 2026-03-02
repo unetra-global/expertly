@@ -238,3 +238,105 @@ export interface BackgroundJob {
   createdAt: string;
   updatedAt: string;
 }
+
+// ── Member Portal — extended types ────────────────────────────────────────────
+
+export interface Availability {
+  days: string[];
+  slots: string[];
+  timezone: string;
+  responseTime: string;
+  preferredContact: string[];
+  notes?: string;
+}
+
+export interface NotificationPreferences {
+  consultationRequests: boolean;
+  articleStatus: boolean;
+  membershipReminders: boolean;
+  regulatoryNudges: boolean;
+  platformUpdates: boolean;
+}
+
+/** Full member profile returned by GET /members/me (authenticated) */
+export interface MemberMe extends MemberFullProfile {
+  isFeatured?: boolean;
+  firmSize?: string;
+  membershipExpiryAt?: string;
+  membershipTier?: string;
+  isVerifiedPending?: boolean;
+  availability?: Availability;
+  notificationPreferences?: NotificationPreferences;
+  consultationFeeMinUsd?: number;
+  consultationFeeMaxUsd?: number;
+}
+
+// ── Articles — member-facing ───────────────────────────────────────────────────
+
+export type ArticleStatus =
+  | 'draft'
+  | 'submitted'
+  | 'under_review'
+  | 'published'
+  | 'rejected'
+  | 'archived';
+
+export interface MemberArticle {
+  id: string;
+  slug?: string;
+  title?: string;
+  body?: string;
+  excerpt?: string;
+  featuredImageUrl?: string;
+  status: ArticleStatus;
+  wordCount?: number;
+  tags?: string[];
+  rejectionReason?: string;
+  submittedAt?: string;
+  publishedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  category?: { id: string; name: string };
+  categoryId?: string;
+  viewCount?: number;
+  isAiAssisted?: boolean;
+}
+
+// ── Consultation ───────────────────────────────────────────────────────────────
+
+export interface ConsultationRequest {
+  id: string;
+  subject: string;
+  description?: string;
+  preferredTime?: string;
+  status: 'pending' | 'accepted' | 'declined' | 'completed';
+  requesterName?: string;
+  requesterEmail?: string;
+  serviceName?: string;
+  createdAt: string;
+}
+
+// ── Dashboard ──────────────────────────────────────────────────────────────────
+
+export interface DashboardStats {
+  profileCompletion: number;
+  publishedArticlesCount: number;
+  totalArticleViews: number;
+  consultationRequestsCount: number;
+  membershipExpiryAt?: string;
+  membershipTier?: string;
+  isVerified: boolean;
+  isVerifiedPending?: boolean;
+  memberSlug?: string;
+  recentConsultationRequests: ConsultationRequest[];
+  recentArticles: MemberArticle[];
+}
+
+// ── Digest ─────────────────────────────────────────────────────────────────────
+
+export interface DigestSubscription {
+  categoryId: string;
+  categoryName: string;
+  isSubscribed: boolean;
+  frequency: 'weekly' | 'fortnightly';
+}

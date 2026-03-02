@@ -68,4 +68,11 @@ export const queryKeys = {
     results: (q: string, type: string) =>
       [...queryKeys.search.all, q, type] as const,
   },
+
+  // Notifications
+  notifications: {
+    all: ['notifications'] as const,
+    preferences: () => [...queryKeys.notifications.all, 'preferences'] as const,
+    digests: () => [...queryKeys.notifications.all, 'digests'] as const,
+  },
 };
