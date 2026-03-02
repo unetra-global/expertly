@@ -75,4 +75,24 @@ export const queryKeys = {
     preferences: () => [...queryKeys.notifications.all, 'preferences'] as const,
     digests: () => [...queryKeys.notifications.all, 'digests'] as const,
   },
+
+  // Ops
+  ops: {
+    all: ['ops'] as const,
+    stats: () => [...queryKeys.ops.all, 'stats'] as const,
+    applications: (filters?: Record<string, unknown>) =>
+      [...queryKeys.ops.all, 'applications', filters ?? {}] as const,
+    application: (id: string) => [...queryKeys.ops.all, 'application', id] as const,
+    members: (filters?: Record<string, unknown>) =>
+      [...queryKeys.ops.all, 'members', filters ?? {}] as const,
+    member: (id: string) => [...queryKeys.ops.all, 'member', id] as const,
+    articles: (filters?: Record<string, unknown>) =>
+      [...queryKeys.ops.all, 'articles', filters ?? {}] as const,
+    article: (id: string) => [...queryKeys.ops.all, 'article', id] as const,
+    seats: () => [...queryKeys.ops.all, 'seats'] as const,
+    events: (filters?: Record<string, unknown>) =>
+      [...queryKeys.ops.all, 'events', filters ?? {}] as const,
+    broadcastLogs: () => [...queryKeys.ops.all, 'broadcast-logs'] as const,
+    users: () => [...queryKeys.ops.all, 'users'] as const,
+  },
 };

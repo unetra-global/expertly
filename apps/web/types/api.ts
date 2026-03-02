@@ -340,3 +340,138 @@ export interface DigestSubscription {
   isSubscribed: boolean;
   frequency: 'weekly' | 'fortnightly';
 }
+
+// ── Ops Dashboard ──────────────────────────────────────────────────────────────
+
+export interface OpsStats {
+  totalApplications: number;
+  totalMembers: number;
+  totalArticles: number;
+  totalEvents: number;
+  pendingApplications?: number;
+  pendingArticles?: number;
+  pendingReVerification?: number;
+  expiringIn30Days?: number;
+}
+
+export interface OpsApplication {
+  id: string;
+  userId: string;
+  status: string;
+  currentStep?: number;
+  firstName?: string;
+  lastName?: string;
+  designation?: string;
+  headline?: string;
+  bio?: string;
+  linkedinUrl?: string;
+  profilePhotoUrl?: string;
+  firmName?: string;
+  firmSize?: string;
+  country?: string;
+  city?: string;
+  consultationFeeMinUsd?: number;
+  consultationFeeMaxUsd?: number;
+  qualifications?: string[];
+  credentials?: Credential[];
+  workExperience?: WorkExperience[];
+  education?: Education[];
+  primaryServiceId?: string;
+  secondaryServiceIds?: string[];
+  engagements?: Engagement[];
+  availability?: Availability;
+  membershipTier?: string;
+  submittedAt?: string;
+  reviewedAt?: string;
+  rejectionReason?: string;
+  reApplicationEligibleAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OpsMember {
+  id: string;
+  slug: string;
+  firstName?: string;
+  lastName?: string;
+  designation?: string;
+  headline?: string;
+  bio?: string;
+  status?: string;
+  isVerified?: boolean;
+  isFeatured?: boolean;
+  membershipTier?: string;
+  membershipExpiryAt?: string;
+  linkedinUrl?: string;
+  profilePhotoUrl?: string;
+  country?: string;
+  city?: string;
+  pendingServiceId?: string;
+  pendingReVerification?: boolean;
+  userId?: string;
+  credentials?: Credential[];
+  createdAt: string;
+}
+
+export interface OpsArticle {
+  id: string;
+  title?: string;
+  slug?: string;
+  body?: string;
+  excerpt?: string;
+  status: string;
+  authorId?: string;
+  categoryId?: string;
+  tags?: string[];
+  creationMode?: 'ai' | 'manual';
+  submittedAt?: string;
+  publishedAt?: string;
+  rejectionReason?: string;
+  createdAt: string;
+}
+
+export interface Seat {
+  id: string;
+  categoryId?: string;
+  serviceId?: string;
+  capacity: number;
+  claimedCount: number;
+  isActive?: boolean;
+  createdAt: string;
+}
+
+export interface OpsEvent {
+  id: string;
+  slug?: string;
+  title: string;
+  shortDescription?: string;
+  description?: string;
+  format?: string;
+  country?: string;
+  city?: string;
+  venue?: string;
+  startDate: string;
+  endDate?: string;
+  registrationUrl?: string;
+  coverImageUrl?: string;
+  isPublished?: boolean;
+  regions?: string[];
+  tags?: string[];
+}
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  role: string;
+  isActive?: boolean;
+  isDeleted?: boolean;
+  createdAt: string;
+}
+
+export interface BroadcastLog {
+  id: string;
+  subject: string;
+  message?: string;
+  recipientCount: number;
+  sentAt: string;
+}
