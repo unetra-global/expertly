@@ -61,20 +61,12 @@ export function NavbarClient({
         {/* ── Desktop right side ────────────────────────── */}
         <div className="hidden md:flex items-center gap-3">
           {!isLoggedIn && (
-            <>
-              <Link
-                href="/auth"
-                className="text-sm font-medium text-white/70 hover:text-white transition-colors px-2"
-              >
-                Log In
-              </Link>
-              <Link
-                href="/auth?tab=signup"
-                className="inline-flex items-center px-4 py-2 rounded-lg bg-brand-blue hover:bg-brand-blue-dark text-white text-sm font-semibold transition-colors"
-              >
-                Become a Member
-              </Link>
-            </>
+            <Link
+              href="/auth"
+              className="inline-flex items-center px-4 py-2 rounded-lg bg-brand-blue hover:bg-brand-blue-dark text-white text-sm font-semibold transition-colors"
+            >
+              Log In
+            </Link>
           )}
 
           {isLoggedIn && isOps && (
@@ -188,10 +180,7 @@ export function NavbarClient({
 
           <div className="pt-3 border-t border-white/10 space-y-2">
             {!isLoggedIn && (
-              <>
-                <Link href="/auth" className="block py-2.5 px-3 text-sm font-medium text-white/70 hover:text-white" onClick={() => setMobileOpen(false)}>Log In</Link>
-                <Link href="/auth?tab=signup" className="block w-full text-center py-2.5 px-3 rounded-lg bg-brand-blue text-white text-sm font-semibold hover:bg-brand-blue-dark transition-colors" onClick={() => setMobileOpen(false)}>Become a Member</Link>
-              </>
+              <Link href="/auth" className="block w-full text-center py-2.5 px-3 rounded-lg bg-brand-blue text-white text-sm font-semibold hover:bg-brand-blue-dark transition-colors" onClick={() => setMobileOpen(false)}>Log In</Link>
             )}
             {isLoggedIn && isOps && <Link href="/ops" className="block w-full text-center py-2.5 px-3 rounded-lg bg-brand-blue text-white text-sm font-semibold" onClick={() => setMobileOpen(false)}>Dashboard</Link>}
             {isLoggedIn && isMember && !isOps && <Link href="/member/dashboard" className="block w-full text-center py-2.5 px-3 rounded-lg bg-brand-blue text-white text-sm font-semibold" onClick={() => setMobileOpen(false)}>Member Portal</Link>}
