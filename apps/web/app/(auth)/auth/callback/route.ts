@@ -76,15 +76,15 @@ export async function GET(request: NextRequest) {
     return buildRedirect(`${appUrl}/`, cookiesToSet);
   }
 
-  // ── Fetch user record (role + account_status) ─────────────────────────────
+  // ── Fetch user record (role + is_active + is_deleted) ────────────────────
   const { data: dbUser } = await supabase
     .from('users')
-    .select('role, account_status')
-    .eq('id', user.id)
+    .select('role, is_active, is_deleted')
+    .eq('supabase_uid', user.id)
     .maybeSingle();
 
-  // ── State 3: Account suspended ────────────────────────────────────────────
-  if (dbUser?.account_status === 'suspended') {
+  // ── State 3: Account inactive or deleted ──────────────────────────────────
+  if (!dbUser?.is_active || dbUser?.is_deleted) {
     await supabase.auth.signOut();
     return buildRedirect(
       `${appUrl}/auth?error=account_suspended`,
