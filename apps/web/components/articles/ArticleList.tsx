@@ -261,6 +261,15 @@ export default function ArticleList({ initialCategory = '' }: ArticleListProps) 
                 ))}
               </select>
             </div>
+            <button
+              onClick={() => syncUrl(category, search, readTime, sort)}
+              className="flex-shrink-0 inline-flex items-center justify-center gap-1.5 px-4 sm:px-6 py-2.5 rounded-xl bg-brand-blue hover:bg-brand-blue-dark text-white text-sm font-semibold transition-colors"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <span className="hidden sm:inline">SEARCH</span>
+            </button>
           </div>
         </div>
       </div>
