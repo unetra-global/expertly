@@ -4,6 +4,7 @@ import OpenAI from 'openai';
 import { SupabaseService } from '../../common/services/supabase.service';
 import { CacheService } from '../../common/services/cache.service';
 import { RedisService } from '../../common/services/redis.service';
+import { EmailService } from '../../common/services/email.service';
 import { AuthUser, PaginationMeta } from '@expertly/types';
 import { QueryMembersDto } from './dto/query-members.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
@@ -86,6 +87,7 @@ export class MembersService {
     private readonly cache: CacheService,
     private readonly redis: RedisService,
     private readonly config: ConfigService,
+    private readonly email: EmailService,
   ) {
     const apiKey = this.config.get<string>('OPENAI_API_KEY');
     if (apiKey) {
@@ -127,6 +129,17 @@ export class MembersService {
     const page = dto.page ?? 1;
     const offset = (page - 1) * limit;
 
+    // Guests: hard cap at 20 total results (spec: "MAX 20 results — sign in to see more")
+    if (!isAuth && offset >= 20) {
+      return {
+        data: [],
+        meta: { page, limit, total: 20, totalPages: 1, hasNext: false, hasPrev: page > 1, guestCap: true } as PaginationMeta & { guestCap: boolean },
+      };
+    }
+
+    // For guests on page 1, clamp range so we never return > 20 results
+    const guestClampedLimit = !isAuth ? Math.min(limit, 20 - offset) : limit;
+
     const cacheKey = buildListCacheKey(this.cache, { ...dto, limit });
 
     return this.cache.getOrFetch(
@@ -138,7 +151,7 @@ export class MembersService {
           .from('members')
           .select(fields, { count: 'exact' })
           .eq('membership_status', 'active')
-          .range(offset, offset + limit - 1);
+          .range(offset, offset + guestClampedLimit - 1);
 
         if (dto.search) {
           query = query.or(`headline.ilike.%${dto.search}%,designation.ilike.%${dto.search}%`);
@@ -251,10 +264,10 @@ export class MembersService {
       throw new NotFoundException('Member record not found');
     }
 
-    // Include notification preferences
+    // Include notification preferences (spec columns)
     const { data: prefs } = await this.supabase.adminClient
       .from('member_notification_preferences')
-      .select('email_on_consultation, email_on_article_comment, email_on_event_rsvp')
+      .select('consultation_requests, article_status, membership_reminders, regulatory_nudges, platform_updates')
       .eq('member_id', user.memberId)
       .single();
 
@@ -279,10 +292,6 @@ export class MembersService {
       updatePayload.is_verified = false;
       updatePayload.re_verification_requested_at = new Date().toISOString();
       updatePayload.re_verification_reason = `Fields updated: ${changedBadgeFields.join(', ')}`;
-      // TODO: Queue K11 re-verification email to member
-      this.logger.log(
-        `Member ${user.memberId} badge removed due to changes in: ${changedBadgeFields.join(', ')}`,
-      );
     }
 
     const { data, error } = await this.supabase.adminClient
@@ -293,6 +302,26 @@ export class MembersService {
       .single();
 
     if (error) throw error;
+
+    // Send K11 badge removal email (non-fatal)
+    if (changedBadgeFields.length > 0) {
+      const memberData = data as unknown as Record<string, unknown>;
+      const userJoin = memberData.users as Record<string, unknown> | null;
+      if (userJoin?.email) {
+        const firstName = String(userJoin.first_name ?? '');
+        const lastName = String(userJoin.last_name ?? '');
+        this.email.sendEmail(
+          'K11',
+          String(userJoin.email),
+          {
+            memberName: `${firstName} ${lastName}`.trim(),
+            reason: `Fields updated: ${changedBadgeFields.join(', ')}`,
+          },
+        ).catch((err: Error) =>
+          this.logger.warn(`K11 email failed for ${user.memberId}: ${err.message}`),
+        );
+      }
+    }
 
     // Invalidate cache
     const slug = (data as { slug?: string }).slug;
