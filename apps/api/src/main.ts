@@ -15,15 +15,24 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 const REQUIRED_ENV_VARS = [
   'SUPABASE_URL',
-  'SUPABASE_ANON_KEY',
   'SUPABASE_SERVICE_ROLE_KEY',
+  'SUPABASE_ANON_KEY',
+  'REDIS_HOST',
   'COOKIE_SECRET',
+  'OPENAI_API_KEY',
+  'RESEND_API_KEY',
+  'APIFY_API_TOKEN',
+  'NEXT_REVALIDATION_URL',
+  'NEXT_REVALIDATION_SECRET',
 ];
 
 function validateEnv(): void {
   const missing = REQUIRED_ENV_VARS.filter((key) => !process.env[key]);
   if (missing.length > 0) {
-    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+    throw new Error(`Missing env vars: ${missing.join(', ')}`);
+  }
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY === process.env.SUPABASE_ANON_KEY) {
+    throw new Error('SERVICE_ROLE_KEY must not equal ANON_KEY');
   }
 }
 
@@ -43,28 +52,28 @@ async function bootstrap(): Promise<void> {
     secret: process.env.COOKIE_SECRET,
   });
   await app.register(fastifyMultipart, {
-    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+    limits: { fileSize: 15 * 1024 * 1024 }, // 15MB
   });
   await app.register(fastifyHelmet, {
-    contentSecurityPolicy: false, // managed by Next.js
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        imgSrc: ["'self'", 'data:', 'blob:', '*.supabase.co', 'storage.expertly.net'],
+        fontSrc: ["'self'", 'fonts.googleapis.com', 'fonts.gstatic.com'],
+        frameSrc: ["'none'"],
+        connectSrc: ["'self'", '*.supabase.co'],
+      },
+    },
   });
 
   // CORS
-  const isDev = process.env.NODE_ENV !== 'production';
+  const isProd = process.env.NODE_ENV === 'production';
   app.enableCors({
-    origin: isDev
-      ? [
-          'http://localhost:3000',
-          'http://localhost:3001',
-          'http://localhost:3002',
-          'http://localhost:3003',
-          'http://localhost:3004',
-          'http://localhost:3005',
-        ]
-      : 'https://expertly.net',
+    origin: isProd
+      ? ['https://expertly.net', 'https://www.expertly.net']
+      : ['http://localhost:3000'],
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-revalidate-secret'],
+    maxAge: 86400,
   });
 
   // URI versioning: /api/v1/...

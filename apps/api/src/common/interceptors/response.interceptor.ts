@@ -18,6 +18,14 @@ function toCamelCase(str: string): string {
   return str.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase());
 }
 
+function normalizeDate(value: unknown): unknown {
+  if (typeof value === 'string') {
+    const iso = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value);
+    if (iso) return new Date(value).toISOString();
+  }
+  return value;
+}
+
 function deepCamelCase(obj: unknown): unknown {
   if (Array.isArray(obj)) {
     return obj.map(deepCamelCase);
@@ -25,11 +33,11 @@ function deepCamelCase(obj: unknown): unknown {
   if (obj !== null && typeof obj === 'object') {
     const result: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
-      result[toCamelCase(key)] = deepCamelCase(value);
+      result[toCamelCase(key)] = deepCamelCase(normalizeDate(value));
     }
     return result;
   }
-  return obj;
+  return normalizeDate(obj);
 }
 
 function isPaginated(data: unknown): data is PaginatedData<unknown> {
