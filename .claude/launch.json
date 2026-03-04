@@ -4,13 +4,13 @@
     {
       "name": "Expertly API",
       "runtimeExecutable": "sh",
-      "runtimeArgs": ["-c", "PORT=3002 npm --prefix apps/api run dev"],
+      "runtimeArgs": ["-c", "cd '/Users/shreyans/Personal/Projects/Unetra Global/expertly' && PORT=3002 npm --prefix apps/api run dev"],
       "port": 3002
     },
     {
       "name": "Expertly Web",
       "runtimeExecutable": "sh",
-      "runtimeArgs": ["-c", "npm --prefix apps/web run dev -- -p 3003"],
+      "runtimeArgs": ["-c", "cd '/Users/shreyans/Personal/Projects/Unetra Global/expertly' && npm --prefix apps/web run dev -- -p 3003"],
       "port": 3003
     }
   ]
