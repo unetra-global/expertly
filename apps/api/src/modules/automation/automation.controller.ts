@@ -7,18 +7,23 @@ import {
   UseGuards,
   ForbiddenException,
   NotFoundException,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { ConfigService } from '@nestjs/config';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { SupabaseService } from '../../common/services/supabase.service';
+import { RedisService } from '../../common/services/redis.service';
 import {
   QUEUE_NAMES,
   QUEUE_JOB_TYPES,
   getQueueConnection,
 } from '../../config/queue.config';
 import type { AuthUser } from '@expertly/types';
+
+const LINKEDIN_RATE_LIMIT_TTL = 3600; // 1 hour in seconds
 
 @Controller('automation')
 @UseGuards(JwtAuthGuard)
@@ -28,16 +33,32 @@ export class AutomationController {
   constructor(
     private readonly supabase: SupabaseService,
     private readonly config: ConfigService,
+    private readonly redis: RedisService,
   ) {
     this.linkedInQueue = new Queue(QUEUE_NAMES.LINKEDIN, {
       connection: getQueueConnection(config),
     });
   }
 
+  /** Check and set rate limit — throws 429 if already used within TTL */
+  private async checkLinkedInRateLimit(userId: string): Promise<void> {
+    const key = `expertly:linkedin:ratelimit:${userId}`;
+    const existing = await this.redis.client.get(key);
+    if (existing) {
+      throw new HttpException(
+        'Rate limit exceeded: LinkedIn import is limited to once per hour',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+    await this.redis.client.set(key, '1', 'EX', LINKEDIN_RATE_LIMIT_TTL);
+  }
+
   // ── POST /automation/linkedin-scrape ───────────────────────────────────────
 
   @Post('linkedin-scrape')
   async linkedInScrape(@CurrentUser() user: AuthUser) {
+    await this.checkLinkedInRateLimit(user.dbId);
+
     const sb = this.supabase.adminClient;
 
     // Get member's LinkedIn URL
@@ -85,6 +106,8 @@ export class AutomationController {
     @CurrentUser() user: AuthUser,
     @Body() body: { pdfUrl: string },
   ) {
+    await this.checkLinkedInRateLimit(user.dbId);
+
     const sb = this.supabase.adminClient;
 
     const { data: job, error } = await sb

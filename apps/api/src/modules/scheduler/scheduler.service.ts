@@ -57,8 +57,8 @@ export class SchedulerService implements OnModuleInit, OnModuleDestroy {
     const { data: members, error } = await sb
       .from('members')
       .select('id, slug, user_id, first_name, last_name, primary_service_id, country')
-      .lte('membership_expiry_at', new Date().toISOString().split('T')[0])
-      .eq('status', 'active') as unknown as {
+      .lte('membership_expiry_date', new Date().toISOString().split('T')[0])
+      .eq('membership_status', 'active') as unknown as {
         data: Array<{
           id: string;
           slug: string;
@@ -83,7 +83,7 @@ export class SchedulerService implements OnModuleInit, OnModuleDestroy {
         // Update membership status + user role
         await sb
           .from('members')
-          .update({ status: 'expired' })
+          .update({ membership_status: 'expired' })
           .eq('id', member.id);
 
         await sb
@@ -143,15 +143,15 @@ export class SchedulerService implements OnModuleInit, OnModuleDestroy {
 
     const { data: members } = await sb
       .from('members')
-      .select('id, user_id, first_name, last_name, membership_expiry_at')
-      .eq('membership_expiry_at', targetDateStr)
-      .eq('status', 'active') as unknown as {
+      .select('id, user_id, first_name, last_name, membership_expiry_date')
+      .eq('membership_expiry_date', targetDateStr)
+      .eq('membership_status', 'active') as unknown as {
         data: Array<{
           id: string;
           user_id: string;
           first_name: string | null;
           last_name: string | null;
-          membership_expiry_at: string;
+          membership_expiry_date: string;
         }> | null;
       };
 
@@ -175,7 +175,7 @@ export class SchedulerService implements OnModuleInit, OnModuleDestroy {
         await this.email.sendK13RenewalReminder({
           to: userData.email,
           memberName: [member.first_name, member.last_name].filter(Boolean).join(' ') || 'Member',
-          expiryDate: member.membership_expiry_at,
+          expiryDate: member.membership_expiry_date,
           daysUntilExpiry: 30,
         });
       } catch (err) {

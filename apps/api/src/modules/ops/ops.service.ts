@@ -251,22 +251,22 @@ export class OpsService {
     let q = sb
       .from('members')
       .select(
-        'id, first_name, last_name, slug, designation, status, is_verified, ' +
-          'is_featured, membership_tier, membership_expiry_at, created_at, ' +
-          'pending_service_id, pending_re_verification',
+        'id, first_name, last_name, slug, designation, membership_status, is_verified, ' +
+          'is_featured, member_tier, membership_expiry_date, created_at, ' +
+          'pending_service_change, re_verification_requested_at',
         { count: 'exact' },
       )
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
-    if (query.pendingReVerification) q = q.eq('pending_re_verification', true);
-    if (query.pendingServiceChange) q = q.not('pending_service_id', 'is', null);
+    if (query.pendingReVerification) q = q.not('re_verification_requested_at', 'is', null);
+    if (query.pendingServiceChange) q = q.not('pending_service_change', 'is', null);
     if (query.expiringDays) {
       const cutoff = new Date();
       cutoff.setDate(cutoff.getDate() + query.expiringDays);
       q = q
-        .gte('membership_expiry_at', new Date().toISOString())
-        .lte('membership_expiry_at', cutoff.toISOString());
+        .gte('membership_expiry_date', new Date().toISOString().split('T')[0])
+        .lte('membership_expiry_date', cutoff.toISOString().split('T')[0]);
     }
 
     const { data, count, error } = await q;
@@ -288,9 +288,9 @@ export class OpsService {
       .from('members')
       .select(
         'id, first_name, last_name, slug, designation, headline, bio, ' +
-          'status, is_verified, is_featured, membership_tier, membership_expiry_at, ' +
+          'membership_status, is_verified, is_featured, member_tier, membership_expiry_date, ' +
           'linkedin_url, profile_photo_url, country, city, ' +
-          'pending_service_id, pending_re_verification, user_id, created_at',
+          'pending_service_change, re_verification_requested_at, user_id, created_at',
       )
       .eq('id', id)
       .single();
@@ -391,9 +391,9 @@ export class OpsService {
         primary_service_id: a.primary_service_id,
         engagements: a.engagements,
         availability: a.availability,
-        membership_tier: a.membership_tier ?? 'budding_entrepreneur',
-        status: 'active',
-        membership_expiry_at: expiryAt,
+        member_tier: a.membership_tier ?? 'budding_entrepreneur',
+        membership_status: 'active',
+        membership_expiry_date: expiryAt,
         payment_received_at: body.paymentReceivedAt ?? new Date().toISOString(),
         payment_received_by: body.paymentReceivedBy ?? operator.dbId,
         activated_at: new Date().toISOString(),
@@ -540,7 +540,7 @@ export class OpsService {
   async suspendMember(id: string) {
     await this.supabase.adminClient
       .from('members')
-      .update({ status: 'suspended' })
+      .update({ membership_status: 'suspended' })
       .eq('id', id);
 
     await this.cache.delByPattern('expertly:members:*');
@@ -555,7 +555,7 @@ export class OpsService {
 
     await this.supabase.adminClient
       .from('members')
-      .update({ membership_tier: body.tier })
+      .update({ member_tier: body.tier })
       .eq('id', id);
 
     await this.cache.delByPattern('expertly:members:*');
@@ -569,6 +569,7 @@ export class OpsService {
       .eq('id', id);
 
     await this.cache.delByPattern('expertly:members:*');
+    await this.cache.delByPattern('expertly:homepage:*');
     return { message: 'Featured status updated' };
   }
 
@@ -721,7 +722,7 @@ export class OpsService {
 
     const { data: member } = await sb
       .from('members')
-      .select('id, first_name, last_name, user_id, membership_expiry_at, status')
+      .select('id, first_name, last_name, user_id, membership_expiry_date, membership_status')
       .eq('id', id)
       .single();
 
@@ -729,8 +730,8 @@ export class OpsService {
     const m = member as any;
 
     const years = body.renewalPeriodYears ?? 1;
-    const base = m.membership_expiry_at
-      ? new Date(m.membership_expiry_at)
+    const base = m.membership_expiry_date
+      ? new Date(m.membership_expiry_date)
       : new Date();
     base.setFullYear(base.getFullYear() + years);
     const newExpiry = base.toISOString();
@@ -738,8 +739,8 @@ export class OpsService {
     await sb
       .from('members')
       .update({
-        membership_expiry_at: newExpiry,
-        status: 'active',
+        membership_expiry_date: newExpiry,
+        membership_status: 'active',
         renewed_at: new Date().toISOString(),
         payment_received_at: body.paymentReceivedAt ?? new Date().toISOString(),
         payment_received_by: body.paymentReceivedBy ?? operator.dbId,

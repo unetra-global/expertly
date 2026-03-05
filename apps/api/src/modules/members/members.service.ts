@@ -223,7 +223,7 @@ export class MembersService {
     // Increment view count in Redis (flushed to DB by scheduler)
     const memberId = (result as { id?: string }).id;
     if (memberId) {
-      await this.redis.client.incr(`member:views:${memberId}`).catch((err: Error) =>
+      await this.redis.client.incr(`expertly:member:views:${memberId}`).catch((err: Error) =>
         this.logger.warn(`Failed to increment view count for ${memberId}: ${err.message}`),
       );
     }
@@ -329,6 +329,7 @@ export class MembersService {
       this.cache.del(this.cache.buildKey('members', 'profile', slug ?? '')),
       this.cache.delByPattern(this.cache.buildKey('members', 'list', '*')),
       this.cache.del(this.cache.buildKey('members', 'featured')),
+      this.cache.delByPattern('expertly:homepage:*'),
     ]);
 
     // ISR revalidate
