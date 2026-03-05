@@ -56,8 +56,8 @@ export class SchedulerService implements OnModuleInit, OnModuleDestroy {
 
     const { data: members, error } = await sb
       .from('members')
-      .select('id, slug, user_id, first_name, last_name, primary_service_id')
-      .lte('membership_expiry_date', new Date().toISOString().split('T')[0])
+      .select('id, slug, user_id, first_name, last_name, primary_service_id, country')
+      .lte('membership_expiry_at', new Date().toISOString().split('T')[0])
       .eq('status', 'active') as unknown as {
         data: Array<{
           id: string;
@@ -66,6 +66,7 @@ export class SchedulerService implements OnModuleInit, OnModuleDestroy {
           first_name: string | null;
           last_name: string | null;
           primary_service_id: string | null;
+          country: string | null;
         }> | null;
         error: unknown;
       };
@@ -90,9 +91,12 @@ export class SchedulerService implements OnModuleInit, OnModuleDestroy {
           .update({ role: 'user' })
           .eq('id', member.user_id);
 
-        // Release seat via RPC
-        if (member.primary_service_id) {
-          await sb.rpc('release_seat', { p_service_id: member.primary_service_id });
+        // Release seat via RPC (atomic, requires country)
+        if (member.primary_service_id && member.country) {
+          await sb.rpc('release_seat', {
+            p_service_id: member.primary_service_id,
+            p_country: member.country,
+          });
         }
 
         // Invalidate member caches
@@ -139,15 +143,15 @@ export class SchedulerService implements OnModuleInit, OnModuleDestroy {
 
     const { data: members } = await sb
       .from('members')
-      .select('id, user_id, first_name, last_name, membership_expiry_date')
-      .eq('membership_expiry_date', targetDateStr)
+      .select('id, user_id, first_name, last_name, membership_expiry_at')
+      .eq('membership_expiry_at', targetDateStr)
       .eq('status', 'active') as unknown as {
         data: Array<{
           id: string;
           user_id: string;
           first_name: string | null;
           last_name: string | null;
-          membership_expiry_date: string;
+          membership_expiry_at: string;
         }> | null;
       };
 
@@ -171,7 +175,7 @@ export class SchedulerService implements OnModuleInit, OnModuleDestroy {
         await this.email.sendK13RenewalReminder({
           to: userData.email,
           memberName: [member.first_name, member.last_name].filter(Boolean).join(' ') || 'Member',
-          expiryDate: member.membership_expiry_date,
+          expiryDate: member.membership_expiry_at,
           daysUntilExpiry: 30,
         });
       } catch (err) {
@@ -301,10 +305,10 @@ export class SchedulerService implements OnModuleInit, OnModuleDestroy {
         const articleId = key.split(':').pop();
         if (!articleId) continue;
 
-        await sb
-          .from('articles')
-          .update({ view_count: sb.rpc('increment', { x: count }) as unknown as number })
-          .eq('id', articleId);
+        await sb.rpc('increment_view_count', {
+          article_id: articleId,
+          increment: count,
+        });
 
         await client.del(key);
         flushed++;
