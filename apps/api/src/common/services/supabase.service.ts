@@ -38,8 +38,7 @@ export class SupabaseService implements OnModuleInit {
     }
 
     try {
-      await axios.post(url, { path }, {
-        headers: { 'x-revalidate-secret': secret },
+      await axios.post(url, { path, secret }, {
         timeout: 5000,
       });
       this.logger.debug(`Revalidated path: ${path}`);

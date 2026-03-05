@@ -21,7 +21,7 @@ export default async function OpsInnerLayout({
     const { data: dbUser } = await supabase
       .from('users')
       .select('role')
-      .eq('id', user.id)
+      .eq('supabase_uid', user.id)
       .maybeSingle();
     isAdmin = dbUser?.role === 'backend_admin';
   }

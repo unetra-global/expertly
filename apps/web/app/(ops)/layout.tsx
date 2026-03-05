@@ -24,7 +24,7 @@ export default async function OpsLayout({
   const { data: dbUser } = await supabase
     .from('users')
     .select('role')
-    .eq('id', user.id)
+    .eq('supabase_uid', user.id)
     .maybeSingle();
 
   const opsRoles = ['ops', 'backend_admin'];

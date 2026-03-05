@@ -18,18 +18,18 @@ export default async function Navbar() {
   if (user) {
     const { data: dbUser } = await supabase
       .from('users')
-      .select('role')
-      .eq('id', user.id)
+      .select('id, role')
+      .eq('supabase_uid', user.id)
       .maybeSingle();
 
     userRole = dbUser?.role ?? 'user';
 
-    // Optionally fetch member avatar
-    if (dbUser?.role === 'member') {
+    // Optionally fetch member avatar using internal user id
+    if (dbUser?.role === 'member' && dbUser?.id) {
       const { data: member } = await supabase
         .from('members')
         .select('profile_photo_url')
-        .eq('user_id', user.id)
+        .eq('user_id', dbUser.id)
         .maybeSingle();
       userAvatarUrl = member?.profile_photo_url ?? undefined;
     }
