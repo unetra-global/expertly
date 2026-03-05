@@ -95,7 +95,7 @@ export class OpsController {
   activateMember(
     @Param('id') id: string,
     @CurrentUser() user: AuthUser,
-    @Body() body: { paymentReceivedAt?: string; membershipExpiryAt?: string },
+    @Body() body: { paymentReceivedAt?: string; membershipExpiryAt?: string; paymentReceivedBy?: string },
   ) {
     return this.ops.activateMember(id, user, body);
   }
@@ -158,9 +158,10 @@ export class OpsController {
   @Patch('members/:id/renew')
   renewMembership(
     @Param('id') id: string,
-    @Body() body: { newExpiryAt?: string },
+    @CurrentUser() user: AuthUser,
+    @Body() body: { paymentReceivedAt?: string; renewalPeriodYears?: number; paymentReceivedBy?: string },
   ) {
-    return this.ops.renewMembership(id, body);
+    return this.ops.renewMembership(id, user, body);
   }
 
   // ── Articles ──────────────────────────────────────────────────────────────

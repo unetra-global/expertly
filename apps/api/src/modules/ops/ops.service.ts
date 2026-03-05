@@ -18,8 +18,14 @@ import {
   getQueueConnection,
 } from '../../config/queue.config';
 
-const LEGAL_DISCLAIMER =
-  '\n\n---\n*Disclaimer: This article is for informational purposes only and does not constitute legal, financial, or professional advice. Readers should consult a qualified professional before acting on any information contained herein. Expertly and the author accept no liability for decisions made in reliance on this content.*';
+const LEGAL_DISCLAIMER_HTML = `
+  <hr style="margin: 32px 0; border-color: #e5e7eb">
+  <p style="font-size: 13px; color: #6b7280; font-style: italic">
+    This article is for informational purposes only and does not
+    constitute professional advice. Always consult a qualified
+    professional before acting on any information herein.
+  </p>
+`;
 
 @Injectable()
 export class OpsService {
@@ -114,9 +120,9 @@ export class OpsService {
     if (!app) throw new NotFoundException('Application not found');
     const row = app as any;
 
-    if (!['submitted', 'pending'].includes(row.status)) {
+    if (!['submitted', 'under_review'].includes(row.status)) {
       throw new BadRequestException(
-        'Only submitted or pending applications can be approved',
+        'Only submitted or under_review applications can be approved',
       );
     }
 
@@ -292,7 +298,7 @@ export class OpsService {
   async activateMember(
     applicationId: string,
     operator: AuthUser,
-    body: { paymentReceivedAt?: string; membershipExpiryAt?: string },
+    body: { paymentReceivedAt?: string; membershipExpiryAt?: string; paymentReceivedBy?: string },
   ) {
     const sb = this.supabase.adminClient;
 
@@ -326,8 +332,8 @@ export class OpsService {
       );
     }
 
-    // Step 3: claim_seat
-    const seatClaimed = await this.claimSeat(a.primary_service_id);
+    // Step 3: claim_seat atomically via DB function
+    const seatClaimed = await this.claimSeat(a.primary_service_id, a.country ?? '');
     if (!seatClaimed) {
       throw new ConflictException(
         'No seats available for this service category. Create a seat first.',
@@ -381,10 +387,11 @@ export class OpsService {
         primary_service_id: a.primary_service_id,
         engagements: a.engagements,
         availability: a.availability,
-        membership_tier: a.membership_tier ?? 'associate',
+        membership_tier: a.membership_tier ?? 'budding_entrepreneur',
         status: 'active',
         membership_expiry_at: expiryAt,
         payment_received_at: body.paymentReceivedAt ?? new Date().toISOString(),
+        payment_received_by: body.paymentReceivedBy ?? operator.dbId,
         activated_at: new Date().toISOString(),
         activated_by: operator.dbId,
         is_verified: false,
@@ -482,44 +489,16 @@ export class OpsService {
     return { memberId, slug };
   }
 
-  private async claimSeat(serviceId: string): Promise<boolean> {
-    const sb = this.supabase.adminClient;
-
-    const { data: svc } = await sb
-      .from('services')
-      .select('category_id')
-      .eq('id', serviceId)
-      .single();
-
-    const categoryId = (svc as any)?.category_id;
-
-    // Try service-specific seat first, then category-level
-    for (const filter of [
-      { field: 'service_id', value: serviceId },
-      ...(categoryId ? [{ field: 'category_id', value: categoryId }] : []),
-    ]) {
-      const { data: seat } = await sb
-        .from('seats')
-        .select('id, capacity, claimed_count')
-        .eq(filter.field, filter.value)
-        .eq('is_active', true)
-        .order('claimed_count', { ascending: true })
-        .limit(1)
-        .maybeSingle();
-
-      if (!seat) continue;
-      const s = seat as any;
-      if (s.claimed_count >= s.capacity) continue;
-
-      await sb
-        .from('seats')
-        .update({ claimed_count: s.claimed_count + 1 })
-        .eq('id', s.id);
-
-      return true;
+  private async claimSeat(serviceId: string, country: string): Promise<boolean> {
+    const { data, error } = await this.supabase.adminClient.rpc('claim_seat', {
+      p_service_id: serviceId,
+      p_country: country,
+    });
+    if (error) {
+      this.logger.error('claim_seat RPC error', error);
+      return false;
     }
-
-    return false;
+    return !!data;
   }
 
   async verifyMember(id: string) {
@@ -565,9 +544,9 @@ export class OpsService {
   }
 
   async updateMemberTier(id: string, body: { tier: string }) {
-    const validTiers = ['associate', 'fellow', 'senior_fellow'];
+    const validTiers = ['budding_entrepreneur', 'seasoned_professional'];
     if (!validTiers.includes(body.tier)) {
-      throw new BadRequestException(`Invalid tier: ${body.tier}`);
+      throw new BadRequestException(`Invalid tier: ${body.tier}. Must be one of: ${validTiers.join(', ')}`);
     }
 
     await this.supabase.adminClient
@@ -729,27 +708,28 @@ export class OpsService {
     return { message: 'Service change rejected' };
   }
 
-  async renewMembership(id: string, body: { newExpiryAt?: string }) {
+  async renewMembership(
+    id: string,
+    operator: AuthUser,
+    body: { paymentReceivedAt?: string; renewalPeriodYears?: number; paymentReceivedBy?: string },
+  ) {
     const sb = this.supabase.adminClient;
 
     const { data: member } = await sb
       .from('members')
-      .select('id, first_name, last_name, user_id, membership_expiry_at')
+      .select('id, first_name, last_name, user_id, membership_expiry_at, status')
       .eq('id', id)
       .single();
 
     if (!member) throw new NotFoundException('Member not found');
     const m = member as any;
 
-    const newExpiry =
-      body.newExpiryAt ??
-      (() => {
-        const base = m.membership_expiry_at
-          ? new Date(m.membership_expiry_at)
-          : new Date();
-        base.setFullYear(base.getFullYear() + 1);
-        return base.toISOString();
-      })();
+    const years = body.renewalPeriodYears ?? 1;
+    const base = m.membership_expiry_at
+      ? new Date(m.membership_expiry_at)
+      : new Date();
+    base.setFullYear(base.getFullYear() + years);
+    const newExpiry = base.toISOString();
 
     await sb
       .from('members')
@@ -757,8 +737,17 @@ export class OpsService {
         membership_expiry_at: newExpiry,
         status: 'active',
         renewed_at: new Date().toISOString(),
+        payment_received_at: body.paymentReceivedAt ?? new Date().toISOString(),
+        payment_received_by: body.paymentReceivedBy ?? operator.dbId,
       })
       .eq('id', id);
+
+    // Step 3: If user role was downgraded to 'user' → restore to 'member'
+    await sb
+      .from('users')
+      .update({ role: 'member' })
+      .eq('id', m.user_id)
+      .eq('role', 'user');
 
     const { data: user } = await sb
       .from('users')
@@ -831,11 +820,11 @@ export class OpsService {
     if (!article) throw new NotFoundException('Article not found');
     const a = article as any;
 
-    if (a.status !== 'submitted') {
-      throw new BadRequestException('Only submitted articles can be approved');
+    if (!['submitted', 'under_review'].includes(a.status)) {
+      throw new BadRequestException('Only submitted or under_review articles can be approved');
     }
 
-    const newBody = (a.body ?? '') + LEGAL_DISCLAIMER;
+    const newBody = (a.body ?? '') + LEGAL_DISCLAIMER_HTML;
 
     await sb
       .from('articles')
@@ -881,6 +870,7 @@ export class OpsService {
     }
 
     await this.cache.delByPattern('expertly:articles:*');
+    await this.cache.delByPattern('expertly:homepage:*');
     return { message: 'Article approved and published' };
   }
 
