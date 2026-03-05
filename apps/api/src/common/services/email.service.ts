@@ -167,6 +167,10 @@ export class EmailService {
           to,
           applicantName: String(variables.applicantName ?? ''),
           applicationId: String(variables.applicationId ?? ''),
+          firstName: variables.firstName ? String(variables.firstName) : undefined,
+          lastName: variables.lastName ? String(variables.lastName) : undefined,
+          serviceAssigned: variables.serviceAssigned ? String(variables.serviceAssigned) : undefined,
+          tier: variables.tier ? String(variables.tier) : undefined,
         });
       case 'K3':
         return this.sendK3ApplicationRejected({
@@ -180,10 +184,10 @@ export class EmailService {
           applicantName: String(variables.applicantName ?? ''),
         });
       case 'K5':
-        return this.sendK5ApplicationReceived({
+        return this.sendK5SeatOpened({
           to,
           applicantName: String(variables.applicantName ?? ''),
-          applicationId: String(variables.applicationId ?? ''),
+          serviceName: String(variables.serviceName ?? ''),
         });
       case 'K6':
         return this.sendK6ConsultationReceived({
@@ -265,10 +269,9 @@ export class EmailService {
           memberSlug: String(variables.memberSlug ?? ''),
         });
       case 'K18':
-        return this.sendK18ServiceChangeRequested({
+        return this.sendK18UserWelcome({
           to,
-          memberName: String(variables.memberName ?? ''),
-          newServiceName: String(variables.newServiceName ?? ''),
+          firstName: String(variables.firstName ?? ''),
         });
       case 'K19':
         return this.sendK19ServiceChangeApproved({
@@ -336,11 +339,20 @@ export class EmailService {
     to: string;
     applicantName: string;
     applicationId: string;
+    firstName?: string;
+    lastName?: string;
+    serviceAssigned?: string;
+    tier?: string;
   }): Promise<void> {
     const bankName = this.config.get<string>('PAYMENT_BANK_NAME', 'Expertly Ltd Bank');
     const accountNumber = this.config.get<string>('PAYMENT_ACCOUNT_NUMBER', '');
     const sortCode = this.config.get<string>('PAYMENT_SORT_CODE', '');
     const amountUsd = this.config.get<string>('PAYMENT_AMOUNT_USD', '');
+
+    const referenceCode =
+      opts.firstName && opts.lastName
+        ? `EXPERTLY-${opts.firstName.toUpperCase()}-${opts.lastName.toUpperCase()}`
+        : opts.applicationId;
 
     const html = baseHtml(
       'Application Approved',
@@ -351,10 +363,10 @@ export class EmailService {
           `<strong>Bank:</strong> ${bankName}<br/>` +
             `<strong>Account Number:</strong> ${accountNumber}<br/>` +
             `<strong>Sort Code:</strong> ${sortCode}<br/>` +
-            `<strong>Amount (USD):</strong> $${amountUsd}<br/>` +
-            `<strong>Reference:</strong> ${opts.applicationId}`,
+            `<strong>Amount:</strong> $${amountUsd} USD<br/>` +
+            `<strong>Reference:</strong> ${referenceCode}`,
         ) +
-        p('Once payment is received, your account will be activated within 2 business days. Please use your Application ID as the payment reference.') +
+        p(`Please make payment of $${amountUsd} USD via bank transfer. Once payment is confirmed, our team will activate your account within 1 business day.`) +
         p('Welcome to Expertly!'),
     );
     await this.send({
@@ -417,25 +429,25 @@ export class EmailService {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // K5 — Application received acknowledgement (to applicant)
+  // K5 — Seat opened broadcast (to waitlisted applicants for that service)
   // ─────────────────────────────────────────────────────────────────────────
 
-  async sendK5ApplicationReceived(opts: {
+  async sendK5SeatOpened(opts: {
     to: string;
     applicantName: string;
-    applicationId: string;
+    serviceName: string;
   }): Promise<void> {
     const html = baseHtml(
-      'Application Received',
-      h2('We\'ve Received Your Application') +
+      'A Spot Has Opened',
+      h2(`Good news — a spot has opened for ${opts.serviceName}!`) +
         p(`Dear ${opts.applicantName},`) +
-        p('Thank you for submitting your application to Expertly. We have received it and our team will review it within 5–7 business days.') +
-        infoTable(infoRow('Application ID', opts.applicationId)) +
-        p('We will email you with an update as soon as a decision has been made. In the meantime, if you have any questions please email <a href="mailto:ops@expertly.global">ops@expertly.global</a>.'),
+        p(`Great news! A spot has become available for <strong>${opts.serviceName}</strong> on Expertly. You are invited to re-apply now.`) +
+        btn('Apply Now', `${this.appUrl}/apply`) +
+        p('Spots fill quickly — act soon!'),
     );
     await this.send({
       to: opts.to,
-      subject: `[Expertly] Application Received`,
+      subject: `[Expertly] Good news — a spot has opened for ${opts.serviceName}`,
       html,
       template: 'K5',
       variables: opts,
@@ -787,10 +799,35 @@ export class EmailService {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // K18 — Service change requested (to member, acknowledgement)
+  // K18 — User welcome on signup
   // ─────────────────────────────────────────────────────────────────────────
 
-  async sendK18ServiceChangeRequested(opts: {
+  async sendK18UserWelcome(opts: {
+    to: string;
+    firstName: string;
+  }): Promise<void> {
+    const html = baseHtml(
+      'Welcome to Expertly',
+      h2('Welcome to Expertly') +
+        p(`Dear ${opts.firstName},`) +
+        p('Thank you for joining Expertly — the professional network for finance and legal experts.') +
+        p('To get started, complete your application to become a verified member and connect with clients looking for your expertise.') +
+        btn('Start Your Application', `${this.appUrl}/apply`),
+    );
+    await this.send({
+      to: opts.to,
+      subject: `Welcome to Expertly`,
+      html,
+      template: 'K18',
+      variables: opts,
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Service change ACK — not a K-numbered template; sent on service change request
+  // ─────────────────────────────────────────────────────────────────────────
+
+  async sendServiceChangeAck(opts: {
     to: string;
     memberName: string;
     newServiceName: string;
@@ -806,7 +843,7 @@ export class EmailService {
       to: opts.to,
       subject: `[Expertly] Service Change Request Received`,
       html,
-      template: 'K18',
+      template: 'service_change_ack',
       variables: opts,
     });
   }

@@ -148,6 +148,10 @@ export class OpsService {
       to: (user as any)?.email ?? '',
       applicantName,
       applicationId: id,
+      firstName: row.first_name ?? undefined,
+      lastName: row.last_name ?? undefined,
+      serviceAssigned: body.serviceId,
+      tier: body.membershipTier,
     });
 
     return { message: 'Application approved' };
