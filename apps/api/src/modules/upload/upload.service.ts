@@ -37,13 +37,13 @@ export class UploadService {
       .webp({ quality: 85 })
       .toBuffer();
 
-    const path = `avatars/${userId}/profile.webp`;
+    const path = `${userId}/profile.webp`;
     const { error } = await this.supabase.adminClient.storage
-      .from('uploads')
+      .from('avatars')
       .upload(path, processed, { contentType: 'image/webp', upsert: true });
     if (error) throw error;
 
-    const { data } = this.supabase.adminClient.storage.from('uploads').getPublicUrl(path);
+    const { data } = this.supabase.adminClient.storage.from('avatars').getPublicUrl(path);
     return { url: data.publicUrl };
   }
 
@@ -65,13 +65,13 @@ export class UploadService {
       .webp({ quality: 85 })
       .toBuffer();
 
-    const path = `article-images/${contextId}/cover.webp`;
+    const path = `${contextId}/cover.webp`;
     const { error } = await this.supabase.adminClient.storage
-      .from('uploads')
+      .from('article-images')
       .upload(path, processed, { contentType: 'image/webp', upsert: true });
     if (error) throw error;
 
-    const { data } = this.supabase.adminClient.storage.from('uploads').getPublicUrl(path);
+    const { data } = this.supabase.adminClient.storage.from('article-images').getPublicUrl(path);
     return { url: data.publicUrl };
   }
 
@@ -91,13 +91,17 @@ export class UploadService {
 
     const ext = type.ext;
     const fileId = randomUUID();
-    const path = `documents/${userId}/${docType}/${fileId}.${ext}`;
+    const path = `${userId}/${docType}/${fileId}.${ext}`;
     const { error } = await this.supabase.adminClient.storage
-      .from('uploads')
+      .from('documents')
       .upload(path, buffer, { contentType: type.mime, upsert: false });
     if (error) throw error;
 
-    const { data } = this.supabase.adminClient.storage.from('uploads').getPublicUrl(path);
-    return { url: data.publicUrl };
+    // Documents are private — return a signed URL (1 year expiry)
+    const { data: signedData, error: signErr } = await this.supabase.adminClient.storage
+      .from('documents')
+      .createSignedUrl(path, 60 * 60 * 24 * 365);
+    if (signErr || !signedData) throw signErr ?? new Error('Failed to create signed URL');
+    return { url: signedData.signedUrl };
   }
 }
