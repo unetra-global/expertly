@@ -1,4 +1,5 @@
 import {
+  ArrayMaxSize,
   IsArray,
   IsOptional,
   IsString,
@@ -27,7 +28,9 @@ export class CreateArticleDto {
 
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(5)
   @IsString({ each: true })
+  @MaxLength(30, { each: true })
   tags?: string[];
 
   @IsOptional()

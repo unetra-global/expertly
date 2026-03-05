@@ -8,11 +8,11 @@ import {
   Patch,
   Post,
   Query,
-  Req,
   Res,
+  SetMetadata,
   UseGuards,
 } from '@nestjs/common';
-import { FastifyRequest, FastifyReply } from 'fastify';
+import { FastifyReply } from 'fastify';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -73,6 +73,7 @@ export class ArticlesController {
   @Post('generate')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('member')
+  @SetMetadata('timeout', 120_000)
   async generate(
     @Body() dto: GenerateArticleDto,
     @Res() reply: FastifyReply,
@@ -88,9 +89,9 @@ export class ArticlesController {
     void reply.raw.setHeader('Connection', 'keep-alive');
     void reply.raw.setHeader('X-Accel-Buffering', 'no');
 
-    // Sanitize Q&A inputs
+    // Sanitize Q&A inputs — slice to 500 chars per spec
     const sanitizedQa = dto.qa.map((item) => ({
-      question: sanitizeQaInput(item.question, 200),
+      question: sanitizeQaInput(item.question, 500),
       answer: sanitizeQaInput(item.answer, 500),
     }));
 

@@ -18,4 +18,8 @@ export class GenerateArticleDto {
   @IsOptional()
   @IsUUID()
   categoryId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  serviceId?: string;
 }

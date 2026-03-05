@@ -264,7 +264,7 @@ export class ArticlesService {
         body: sanitizedBody,
         excerpt,
         cover_image_url: dto.featuredImageUrl ?? null,
-        tags: dto.tags ?? [],
+        tags: (dto.tags ?? []).map((t) => t.toLowerCase()),
         category_id: dto.categoryId ?? null,
         service_id: dto.serviceId ?? null,
         word_count: words,
@@ -310,7 +310,7 @@ export class ArticlesService {
 
     if (dto.categoryId !== undefined) payload.category_id = dto.categoryId;
     if (dto.serviceId !== undefined) payload.service_id = dto.serviceId;
-    if (dto.tags !== undefined) payload.tags = dto.tags;
+    if (dto.tags !== undefined) payload.tags = dto.tags.map((t) => t.toLowerCase());
     if (dto.featuredImageUrl !== undefined) payload.cover_image_url = dto.featuredImageUrl;
 
     const { data, error } = await this.supabase.adminClient
@@ -358,6 +358,9 @@ export class ArticlesService {
     const wordCount = existing.word_count ?? 0;
     if (wordCount < 300) {
       throw new BadRequestException('Article must be at least 300 words');
+    }
+    if (wordCount > 5000) {
+      throw new BadRequestException('Article must not exceed 5000 words');
     }
 
     // Validate cover image
