@@ -393,6 +393,7 @@ export class OpsService {
         availability: a.availability,
         member_tier: a.membership_tier ?? 'budding_entrepreneur',
         membership_status: 'active',
+        membership_start_date: new Date().toISOString().split('T')[0],
         membership_expiry_date: expiryAt,
         payment_received_at: body.paymentReceivedAt ?? new Date().toISOString(),
         payment_received_by: body.paymentReceivedBy ?? operator.dbId,
@@ -861,11 +862,12 @@ export class OpsService {
       articleSlug: a.slug,
     });
 
-    // Queue embedding
-    await this.aiQueue.add(QUEUE_JOB_TYPES.GENERATE_EMBEDDING, {
-      entityType: 'article',
-      entityId: id,
-    });
+    // Queue embedding with high priority (1) per spec
+    await this.aiQueue.add(
+      QUEUE_JOB_TYPES.GENERATE_EMBEDDING,
+      { entityType: 'article', entityId: id },
+      { priority: 1 },
+    );
 
     // ISR revalidate
     try {
