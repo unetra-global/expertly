@@ -101,6 +101,7 @@ export default async function ArticleSlugPage({ params }: PageProps) {
         backHref="/articles"
         backLabel="Back to Articles"
         description="Sign in to read full articles, access expert insights, and engage with professional content."
+        returnTo={`/articles/${params.slug}`}
       />
     );
   }

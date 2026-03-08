@@ -89,11 +89,21 @@ export default async function MemberSlugPage({ params }: PageProps) {
   } = await supabase.auth.getUser();
 
   if (!user) {
+    const displayName =
+      member.users?.fullName ||
+      [member.users?.firstName, member.users?.lastName].filter(Boolean).join(' ') ||
+      null;
+
     return (
       <AuthWall
         backHref="/members"
         backLabel="Back to Members"
-        description="Sign in to view full member profiles, contact details, and professional credentials."
+        description={
+          displayName
+            ? `Sign in to view the full profile of ${displayName}, including their experience, services, and contact details.`
+            : 'Sign in to view full member profiles, contact details, and professional credentials.'
+        }
+        returnTo={`/members/${params.slug}`}
       />
     );
   }

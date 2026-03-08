@@ -4,13 +4,17 @@ interface AuthWallProps {
   backHref?: string;
   backLabel?: string;
   description?: string;
+  returnTo?: string;
 }
 
 export function AuthWall({
   backHref = '/members',
   backLabel = 'Back to Members',
   description = 'Sign in to view full member profiles, contact details, and professional credentials.',
+  returnTo,
 }: AuthWallProps) {
+  const signInHref = returnTo ? `/auth?returnTo=${encodeURIComponent(returnTo)}` : '/auth';
+
   return (
     <div className="min-h-[70vh] flex flex-col items-center justify-center px-4 py-16">
       <div className="w-20 h-20 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center mb-6">
@@ -39,7 +43,7 @@ export function AuthWall({
 
       <div className="flex items-center gap-3">
         <Link
-          href="/auth"
+          href={signInHref}
           className="inline-flex items-center justify-center px-6 py-2.5 rounded-xl bg-brand-blue hover:bg-brand-blue-dark text-white font-semibold text-sm transition-colors"
         >
           Sign In
