@@ -16,12 +16,14 @@ const COUNTRIES = [
 
 const FORMAT_LABELS: Record<string, string> = {
   online: 'Online',
+  virtual: 'Online',
   in_person: 'In Person',
   hybrid: 'Hybrid',
 };
 
 const FORMAT_COLORS: Record<string, string> = {
   online: 'bg-blue-50 border-blue-100 text-blue-700',
+  virtual: 'bg-blue-50 border-blue-100 text-blue-700',
   in_person: 'bg-green-50 border-green-100 text-green-700',
   hybrid: 'bg-purple-50 border-purple-100 text-purple-700',
 };
@@ -107,10 +109,10 @@ function EventCard({ event }: { event: EventListItem }) {
   const day = startDate.toLocaleDateString('en-GB', { day: '2-digit' });
   const month = startDate.toLocaleDateString('en-GB', { month: 'short' });
   const time = startDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
-  const format = event.format ?? 'online';
+  const format = event.eventFormat ?? 'online';
   const formatLabel = FORMAT_LABELS[format] ?? format;
   const formatColor = FORMAT_COLORS[format] ?? 'bg-gray-50 border-gray-100 text-gray-600';
-  const location = event.format === 'online' ? 'Online' : [event.city, event.country].filter(Boolean).join(', ');
+  const location = (format === 'online' || format === 'virtual') ? 'Online' : [event.city, event.country].filter(Boolean).join(', ');
 
   return (
     <Link
@@ -130,9 +132,9 @@ function EventCard({ event }: { event: EventListItem }) {
             {formatLabel}
           </span>
         </div>
-        {event.shortDescription && (
+        {event.description && (
           <p className="text-xs text-brand-text-secondary leading-relaxed line-clamp-2 mb-2">
-            {event.shortDescription}
+            {event.description}
           </p>
         )}
         <div className="flex flex-wrap items-center gap-3 text-xs text-brand-text-muted">
@@ -211,8 +213,8 @@ export default function EventsClient({ initialFilters }: EventsClientProps) {
     ...(debouncedSearch && { q: debouncedSearch }),
     ...(country && { country }),
     ...(format && { format }),
-    ...(selectedDate && { date: selectedDate }),
-    ...(sort && { sort }),
+    sort: sort || 'date_asc',
+    // date filter is local-only (not supported by API yet)
   };
 
   const { data, isLoading, isError } = useQuery<PaginatedResponse<EventListItem>>({

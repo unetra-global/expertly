@@ -3,7 +3,7 @@ import { dehydrate, HydrationBoundary } from '@tanstack/react-query';
 import { getQueryClient } from '@/lib/queryClient';
 import { queryKeys } from '@/hooks/queryKeys';
 import EventsClient from '@/components/events/EventsClient';
-import type { EventListItem, PaginatedResponse } from '@/types/api';
+import type { EventListItem, PaginatedResponse, PaginationMeta } from '@/types/api';
 
 export const revalidate = 300;
 
@@ -13,29 +13,24 @@ export const metadata: Metadata = {
     'Discover upcoming finance and legal events. Conferences, webinars, and networking opportunities for professionals.',
 };
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002') + '/api/v1';
 
 async function fetchEventsServer(
   filters: Record<string, string>,
 ): Promise<PaginatedResponse<EventListItem> | null> {
   const params = new URLSearchParams({ upcoming: 'true', limit: '20', page: '1', ...filters });
   try {
-    const res = await fetch(`${API}/events?${params.toString()}`, {
+    const res = await fetch(`${API_BASE}/events?${params.toString()}`, {
       next: { revalidate: 300 },
     });
     if (!res.ok) return null;
     const json = (await res.json()) as {
       success: boolean;
-      data?: PaginatedResponse<EventListItem> | { data: EventListItem[] };
+      data?: EventListItem[];
+      meta?: PaginationMeta;
     };
-    if (!json.data) return null;
-    // Handle paginated response
-    if ('meta' in json.data) return json.data as PaginatedResponse<EventListItem>;
-    // Handle legacy array-in-data response
-    if ('data' in json.data) {
-      return { data: (json.data as { data: EventListItem[] }).data, meta: { total: 0, page: 1, limit: 20, totalPages: 1 } };
-    }
-    return null;
+    if (!json.data || !json.meta) return null;
+    return { data: json.data, meta: json.meta };
   } catch {
     return null;
   }

@@ -193,8 +193,8 @@ export default function ProfileEditor({ profile }: Props) {
 
   // ── Basic Info Section ───────────────────────────────────────────────────────
 
-  const [firstName, setFirstName] = useState(profile.user?.firstName ?? '');
-  const [lastName, setLastName] = useState(profile.user?.lastName ?? '');
+  const [firstName, setFirstName] = useState(profile.users?.firstName ?? '');
+  const [lastName, setLastName] = useState(profile.users?.lastName ?? '');
   const [designation, setDesignation] = useState(profile.designation ?? '');
   const [headline, setHeadline] = useState(profile.headline ?? '');
   const [bio, setBio] = useState(profile.bio ?? '');
@@ -391,7 +391,7 @@ export default function ProfileEditor({ profile }: Props) {
               <img src={photoUrl} alt="Profile" className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-brand-text-muted text-2xl font-bold">
-                {(profile.user?.firstName?.[0] ?? '?').toUpperCase()}
+                {(profile.users?.firstName?.[0] ?? '?').toUpperCase()}
               </div>
             )}
           </div>
@@ -527,10 +527,10 @@ export default function ProfileEditor({ profile }: Props) {
       {/* Services — view only, change request */}
       <div className="bg-white rounded-xl shadow-card p-6">
         <h2 className="text-base font-semibold text-brand-text mb-4">Services</h2>
-        {profile.primaryService && (
+        {profile.services && (
           <div className="mb-3">
             <span className="text-xs font-medium text-brand-text-muted uppercase tracking-wide">Primary</span>
-            <p className="text-sm text-brand-text mt-0.5 font-medium">{profile.primaryService.name}</p>
+            <p className="text-sm text-brand-text mt-0.5 font-medium">{profile.services.name}</p>
           </div>
         )}
         {(profile.secondaryServices?.length ?? 0) > 0 && (

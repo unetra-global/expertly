@@ -8,13 +8,9 @@ export interface HomepageEvent {
   endDate?: string;
   location?: string;
   isVirtual?: boolean;
-  organizer?: {
-    user?: {
-      firstName?: string;
-      lastName?: string;
-      fullName?: string;
-    };
-  };
+  eventFormat?: string;
+  city?: string;
+  country?: string;
 }
 
 interface UpcomingEventsSectionProps {
@@ -31,7 +27,8 @@ function formatEventDate(dateStr: string): string {
 }
 
 function EventCard({ event }: { event: HomepageEvent }) {
-  const format = event.isVirtual ? 'Online' : 'In-person';
+  const isOnline = event.isVirtual || event.eventFormat === 'virtual' || event.eventFormat === 'online';
+  const format = isOnline ? 'Online' : 'In-person';
 
   return (
     <Link
@@ -42,12 +39,12 @@ function EventCard({ event }: { event: HomepageEvent }) {
       <div className="flex items-center justify-between mb-3">
         <span
           className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-            event.isVirtual
+            isOnline
               ? 'bg-blue-50 text-blue-700 border border-blue-100'
               : 'bg-green-50 text-green-700 border border-green-100'
           }`}
         >
-          <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${event.isVirtual ? 'bg-blue-500' : 'bg-green-500'}`} />
+          <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${isOnline ? 'bg-blue-500' : 'bg-green-500'}`} />
           {format}
         </span>
       </div>

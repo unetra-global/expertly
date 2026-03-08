@@ -6,11 +6,11 @@ import type { MemberFullProfile } from '@/types/api';
 
 export const revalidate = 600;
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api/v1';
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002') + '/api/v1';
 
 async function fetchMember(slug: string): Promise<MemberFullProfile | null> {
   try {
-    const res = await fetch(`${API}/members/${slug}`, {
+    const res = await fetch(`${API_BASE}/members/${slug}`, {
       next: { revalidate: 600 },
     });
     if (res.status === 404) return null;
@@ -34,18 +34,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!member) return { title: 'Member Not Found | Expertly' };
 
   const displayName =
-    member.user.fullName ||
-    [member.user.firstName, member.user.lastName].filter(Boolean).join(' ') ||
+    member.users?.fullName ||
+    [member.users?.firstName, member.users?.lastName].filter(Boolean).join(' ') ||
     'Expert';
 
   const description =
     member.headline ??
-    [member.designation, member.primaryService?.name, member.country]
+    [member.designation, member.services?.name, member.country]
       .filter(Boolean)
       .join(' · ');
 
   return {
-    title: `${displayName} — ${member.designation ?? member.primaryService?.name ?? 'Expert'} | Expertly`,
+    title: `${displayName} — ${member.designation ?? member.services?.name ?? 'Expert'} | Expertly`,
     description,
     openGraph: {
       title: displayName,

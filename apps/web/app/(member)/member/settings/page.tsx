@@ -169,7 +169,7 @@ export default function SettingsPage() {
         categories.map((cat) => ({
           categoryId: cat.id,
           categoryName: cat.name,
-          isSubscribed: cat.id === profile?.primaryService?.category?.id,
+          isSubscribed: cat.id === profile?.services?.category?.id,
           frequency: 'weekly' as const,
         })),
       );

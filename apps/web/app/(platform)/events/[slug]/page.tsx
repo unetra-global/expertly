@@ -5,11 +5,11 @@ import type { EventFull } from '@/types/api';
 
 export const revalidate = 300;
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api/v1';
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002') + '/api/v1';
 
 async function fetchEvent(slug: string): Promise<EventFull | null> {
   try {
-    const res = await fetch(`${API}/events/${slug}`, {
+    const res = await fetch(`${API_BASE}/events/${slug}`, {
       next: { revalidate: 300 },
     });
     if (res.status === 404) return null;
@@ -30,10 +30,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!event) return { title: 'Event Not Found | Expertly' };
   return {
     title: `${event.title} | Expertly Events`,
-    description: event.shortDescription ?? event.description?.slice(0, 160),
+    description: event.description?.slice(0, 160),
     openGraph: {
       title: event.title,
-      description: event.shortDescription ?? event.description?.slice(0, 160),
+      description: event.description?.slice(0, 160),
       images: event.coverImageUrl ? [{ url: event.coverImageUrl }] : [],
     },
   };
@@ -41,12 +41,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 const FORMAT_LABELS: Record<string, string> = {
   online: 'Online',
+  virtual: 'Online',
   in_person: 'In Person',
   hybrid: 'Hybrid',
 };
 
 const FORMAT_COLORS: Record<string, string> = {
   online: 'bg-blue-50 border-blue-100 text-blue-700',
+  virtual: 'bg-blue-50 border-blue-100 text-blue-700',
   in_person: 'bg-green-50 border-green-100 text-green-700',
   hybrid: 'bg-purple-50 border-purple-100 text-purple-700',
 };
@@ -79,14 +81,14 @@ export default async function EventSlugPage({ params }: PageProps) {
       }) + ' UTC'
     : null;
 
-  const format = event.format ?? 'online';
+  const format = event.eventFormat ?? 'online';
   const formatLabel = FORMAT_LABELS[format] ?? format;
   const formatColor = FORMAT_COLORS[format] ?? 'bg-gray-50 border-gray-100 text-gray-600';
 
   const location =
-    event.format === 'online'
+    (format === 'online' || format === 'virtual')
       ? 'Online Event'
-      : [event.venue, event.city, event.country].filter(Boolean).join(', ');
+      : [event.venueName, event.city, event.country].filter(Boolean).join(', ');
 
   return (
     <>
@@ -120,8 +122,8 @@ export default async function EventSlugPage({ params }: PageProps) {
               <h1 className="text-2xl sm:text-3xl font-bold text-white leading-tight mb-2">
                 {event.title}
               </h1>
-              {event.shortDescription && (
-                <p className="text-white/60 text-base">{event.shortDescription}</p>
+              {event.description && (
+                <p className="text-white/60 text-base">{event.description}</p>
               )}
             </div>
 

@@ -15,7 +15,7 @@ const ARTICLE_FIELDS =
 
 const EVENT_FIELDS =
   'id, title, slug, description, cover_image_url, start_date, end_date, ' +
-  'location, is_virtual, status';
+  'location, is_virtual, event_format, city, country, status';
 
 interface HomepageData {
   featuredMembers: unknown[];
@@ -54,7 +54,7 @@ export class HomepageService {
           this.supabase.adminClient
             .from('events')
             .select(EVENT_FIELDS)
-            .eq('status', 'published')
+            .or('is_published.eq.true,status.eq.published')
             .gt('start_date', new Date().toISOString())
             .order('start_date', { ascending: true })
             .limit(4),

@@ -5,11 +5,11 @@ import type { ArticleFull } from '@/types/api';
 
 export const revalidate = 300;
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api/v1';
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002') + '/api/v1';
 
 async function fetchArticle(slug: string): Promise<ArticleFull | null> {
   try {
-    const res = await fetch(`${API}/articles/${slug}`, {
+    const res = await fetch(`${API_BASE}/articles/${slug}`, {
       next: { revalidate: 300 },
     });
     if (res.status === 404) return null;
@@ -23,7 +23,7 @@ async function fetchArticle(slug: string): Promise<ArticleFull | null> {
 
 async function fetchRelatedArticles(articleId: string): Promise<ArticleFull[]> {
   try {
-    const res = await fetch(`${API}/articles/${articleId}/related`, {
+    const res = await fetch(`${API_BASE}/articles/${articleId}/related`, {
       next: { revalidate: 300 },
     });
     if (!res.ok) return [];

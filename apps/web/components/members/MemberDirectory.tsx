@@ -89,12 +89,11 @@ export default function MemberDirectory({
   }, [searchParams]);
 
   const activeFilters: Record<string, string> = {
-    ...(service && { service }),
+    ...(service && { serviceId: service }),
     ...(country && { country }),
-    ...(debouncedSearch && { q: debouncedSearch }),
+    ...(debouncedSearch && { search: debouncedSearch }),
     ...(minYears && { minYearsExperience: minYears }),
     ...(maxHourly < MAX_HOURLY_MAX && { maxHourlyRate: String(maxHourly) }),
-    ...(sort && { sort }),
     limit: isAuthenticated ? '12' : '20',
     page: String(page),
   };

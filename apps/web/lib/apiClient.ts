@@ -81,8 +81,15 @@ async function request<T>(
     }
 
     if (retryResp.status === 204) return undefined as unknown as T;
-    const retryJson = await retryResp.json() as { data?: T };
-    return ('data' in retryJson ? retryJson.data : retryJson) as T;
+    const retryJson = await retryResp.json() as { data?: T; meta?: unknown };
+    if ('data' in retryJson) {
+      if ('meta' in retryJson) {
+        const { data: d, meta } = retryJson as { data: unknown; meta: unknown };
+        return { data: d, meta } as unknown as T;
+      }
+      return retryJson.data as T;
+    }
+    return retryJson as unknown as T;
   }
 
   if (!resp.ok) {
@@ -98,10 +105,14 @@ async function request<T>(
   // 204 No Content
   if (resp.status === 204) return undefined as unknown as T;
 
-  const json = await resp.json() as { data?: T };
+  const json = await resp.json() as { data?: T; meta?: unknown };
 
-  // Unwrap envelope
+  // Unwrap envelope — preserve { data, meta } for paginated responses
   if (json && typeof json === 'object' && 'data' in json) {
+    if ('meta' in json) {
+      const { data: d, meta } = json as { data: unknown; meta: unknown };
+      return { data: d, meta } as unknown as T;
+    }
     return json.data as T;
   }
 

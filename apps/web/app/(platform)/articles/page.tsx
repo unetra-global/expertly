@@ -3,7 +3,7 @@ import { dehydrate, HydrationBoundary } from '@tanstack/react-query';
 import { getQueryClient } from '@/lib/queryClient';
 import { queryKeys } from '@/hooks/queryKeys';
 import ArticleList from '@/components/articles/ArticleList';
-import type { ArticleListItem, PaginatedResponse } from '@/types/api';
+import type { ArticleListItem, PaginatedResponse, PaginationMeta } from '@/types/api';
 
 export const revalidate = 300;
 
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     'Read expert insights and analysis from verified finance and legal professionals on the Expertly network.',
 };
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api/v1';
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002') + '/api/v1';
 
 async function fetchArticlesServer(
   filters: Record<string, string>,
@@ -25,15 +25,17 @@ async function fetchArticlesServer(
     ...filters,
   });
   try {
-    const res = await fetch(`${API}/articles?${params.toString()}`, {
+    const res = await fetch(`${API_BASE}/articles?${params.toString()}`, {
       next: { revalidate: 300 },
     });
     if (!res.ok) return null;
     const json = (await res.json()) as {
       success: boolean;
-      data?: PaginatedResponse<ArticleListItem>;
+      data?: ArticleListItem[];
+      meta?: PaginationMeta;
     };
-    return json.data ?? null;
+    if (!json.data || !json.meta) return null;
+    return { data: json.data, meta: json.meta };
   } catch {
     return null;
   }

@@ -107,14 +107,18 @@ export interface MemberListItem {
   id: string;
   slug: string;
   profilePhotoUrl?: string;
+  avatarUrl?: string;
   designation?: string;
   city?: string;
   country?: string;
   isVerified?: boolean;
   memberTier?: string;
   firmName?: string;
-  primaryService?: MemberPrimaryService;
-  user: MemberUser;
+  primaryServiceId?: string;
+  /** Supabase join — plural because of the FK relationship name */
+  users?: { firstName?: string; lastName?: string; fullName?: string };
+  /** Joined primary service */
+  services?: { id?: string; name?: string; category?: { id?: string; name?: string } };
   // Authenticated-only fields (omitted by API for guests)
   headline?: string;
   yearsOfExperience?: number;
@@ -184,18 +188,20 @@ export interface EventListItem {
   id: string;
   slug: string;
   title: string;
-  shortDescription?: string;
   description?: string;
-  format?: string; // 'online' | 'in_person' | 'hybrid'
+  /** DB column: event_format → camelCased to eventFormat */
+  eventFormat?: string; // 'online' | 'in_person' | 'hybrid'
+  eventType?: string;
   country?: string;
   city?: string;
-  venue?: string;
+  /** DB column: venue_name → camelCased to venueName */
+  venueName?: string;
   startDate: string;
   endDate?: string;
   registrationUrl?: string;
   coverImageUrl?: string;
   isPublished?: boolean;
-  regions?: string[];
+  isFeatured?: boolean;
   tags?: string[];
 }
 

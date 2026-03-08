@@ -11,11 +11,13 @@ export interface MemberCardData {
   country?: string;
   isVerified?: boolean;
   memberTier?: string;
-  primaryService?: {
+  /** Joined primary service — Supabase returns table name 'services' */
+  services?: {
     name?: string;
     category?: { name?: string };
   };
-  user?: {
+  /** Joined user — Supabase returns table name 'users' */
+  users?: {
     firstName?: string;
     lastName?: string;
     fullName?: string;
@@ -38,13 +40,13 @@ export function MemberCard({
   variant = 'teaser',
 }: MemberCardProps) {
   const displayName =
-    member.user?.fullName ||
-    [member.user?.firstName, member.user?.lastName].filter(Boolean).join(' ') ||
+    member.users?.fullName ||
+    [member.users?.firstName, member.users?.lastName].filter(Boolean).join(' ') ||
     'Expert';
 
   const location = [member.city, member.country].filter(Boolean).join(', ');
 
-  const serviceName = member.primaryService?.name;
+  const serviceName = member.services?.name;
 
   const initials = displayName
     .split(' ')

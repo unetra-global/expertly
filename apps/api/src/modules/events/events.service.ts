@@ -10,8 +10,8 @@ const EVENT_DETAIL_TTL = 600; // 10 min
 // NEVER select embedding column
 const EVENT_LIST_FIELDS =
   'id, title, slug, description, cover_image_url, start_date, end_date, ' +
-  'location, is_virtual, virtual_url, capacity, status, speakers, ' +
-  'created_at, updated_at';
+  'country, city, venue_name, event_format, is_published, is_featured, ' +
+  'registration_url, capacity, tags, event_type';
 
 @Injectable()
 export class EventsService {
@@ -26,11 +26,12 @@ export class EventsService {
     const page = dto.page ?? 1;
     const limit = Math.min(dto.limit ?? 20, 50);
     const offset = (page - 1) * limit;
+    const sortAsc = dto.sort !== 'date_desc';
 
     const cacheKey = this.cache.buildKey(
       'events',
       'list',
-      `p${page}l${limit}${dto.upcoming ?? ''}`,
+      `p${page}l${limit}${dto.upcoming ?? ''}${dto.q ?? ''}${dto.country ?? ''}${dto.format ?? ''}${dto.sort ?? ''}`,
     );
 
     return this.cache.getOrFetch(
@@ -39,12 +40,26 @@ export class EventsService {
         let query = this.supabase.adminClient
           .from('events')
           .select(EVENT_LIST_FIELDS, { count: 'exact' })
-          .in('status', ['published', 'completed'])
           .range(offset, offset + limit - 1)
-          .order('start_date', { ascending: true });
+          .order('start_date', { ascending: sortAsc });
+
+        // Status filter: show published events (use is_published if set, fallback to status)
+        query = query.or('is_published.eq.true,status.eq.published');
 
         if (dto.upcoming) {
           query = query.gt('start_date', new Date().toISOString());
+        }
+
+        if (dto.q) {
+          query = query.ilike('title', `%${dto.q}%`);
+        }
+
+        if (dto.country) {
+          query = query.eq('country', dto.country);
+        }
+
+        if (dto.format) {
+          query = query.eq('event_format', dto.format);
         }
 
         const { data, error, count } = await query;
@@ -78,7 +93,7 @@ export class EventsService {
           .from('events')
           .select(EVENT_LIST_FIELDS)
           .eq('slug', slug)
-          .in('status', ['published', 'completed'])
+          .or('is_published.eq.true,status.eq.published')
           .maybeSingle();
         if (error) throw error;
         return data;

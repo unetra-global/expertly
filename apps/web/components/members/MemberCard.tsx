@@ -25,7 +25,7 @@ function VerifiedBadge() {
 }
 
 function TierBadge({ tier }: { tier: string }) {
-  const isSeasoned = tier.toLowerCase() === 'seasoned';
+  const isSeasoned = tier.toLowerCase().includes('seasoned');
   return (
     <span className={cn(
       'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold',
@@ -33,15 +33,15 @@ function TierBadge({ tier }: { tier: string }) {
         ? 'bg-amber-50 border-amber-200 text-amber-700'
         : 'bg-gray-50 border-gray-200 text-gray-600'
     )}>
-      {isSeasoned ? '★' : '◆'} {tier}
+      {isSeasoned ? '★' : '◆'} {isSeasoned ? 'Seasoned Pro' : 'Rising Expert'}
     </span>
   );
 }
 
 export function MemberCard({ member, variant = 'teaser', onConsult, className }: MemberCardProps) {
   const displayName =
-    member.user.fullName ||
-    [member.user.firstName, member.user.lastName].filter(Boolean).join(' ') ||
+    member.users?.fullName ||
+    [member.users?.firstName, member.users?.lastName].filter(Boolean).join(' ') ||
     'Expert';
 
   const initials = displayName
@@ -107,9 +107,9 @@ export function MemberCard({ member, variant = 'teaser', onConsult, className }:
 
           {/* Service + Location row */}
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            {member.primaryService?.name && (
+            {member.services?.name && (
               <span className="inline-flex items-center rounded-full bg-brand-blue-subtle border border-blue-100 px-2.5 py-0.5 text-xs font-medium text-brand-blue">
-                {member.primaryService.name}
+                {member.services.name}
               </span>
             )}
             {location && (

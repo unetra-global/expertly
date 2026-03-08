@@ -42,8 +42,8 @@ export function ConsultationModal({ member, onClose }: ConsultationModalProps) {
   if (!member) return null;
 
   const displayName =
-    member.user.fullName ||
-    [member.user.firstName, member.user.lastName].filter(Boolean).join(' ') ||
+    member.users?.fullName ||
+    [member.users?.firstName, member.users?.lastName].filter(Boolean).join(' ') ||
     'this expert';
 
   async function handleSubmit(e: React.FormEvent) {

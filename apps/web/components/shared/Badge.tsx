@@ -45,20 +45,23 @@ interface TierBadgeProps {
 }
 
 const TIER_STYLES: Record<string, string> = {
-  seasoned:
-    'bg-amber-50 text-amber-700 border-amber-200',
-  budding:
-    'bg-gray-50 text-gray-600 border-gray-200',
+  seasoned: 'bg-amber-50 text-amber-700 border-amber-200',
+  seasoned_professional: 'bg-amber-50 text-amber-700 border-amber-200',
+  budding: 'bg-gray-50 text-gray-600 border-gray-200',
+  rising_expert: 'bg-gray-50 text-gray-600 border-gray-200',
 };
 
 const TIER_LABELS: Record<string, string> = {
-  seasoned: 'Seasoned',
-  budding: 'Budding',
+  seasoned: 'Seasoned Pro',
+  seasoned_professional: 'Seasoned Pro',
+  budding: 'Rising Expert',
+  rising_expert: 'Rising Expert',
 };
 
 export function TierBadge({ tier, className, size = 'md' }: TierBadgeProps) {
-  const styles = TIER_STYLES[tier] ?? 'bg-gray-50 text-gray-600 border-gray-200';
-  const label = TIER_LABELS[tier] ?? tier;
+  const normTier = tier?.toLowerCase() ?? '';
+  const styles = TIER_STYLES[normTier] ?? 'bg-gray-50 text-gray-600 border-gray-200';
+  const label = TIER_LABELS[normTier] ?? tier;
 
   return (
     <span

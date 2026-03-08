@@ -1,4 +1,4 @@
-import { IsBoolean, IsNumber, IsOptional, Min, Max } from 'class-validator';
+import { IsBoolean, IsNumber, IsOptional, IsString, Min, Max } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 
 export class QueryEventsDto {
@@ -19,4 +19,20 @@ export class QueryEventsDto {
   @Transform(({ value }) => value === 'true' || value === true)
   @IsBoolean()
   upcoming?: boolean;
+
+  @IsOptional()
+  @IsString()
+  q?: string;
+
+  @IsOptional()
+  @IsString()
+  country?: string;
+
+  @IsOptional()
+  @IsString()
+  format?: string;
+
+  @IsOptional()
+  @IsString()
+  sort?: string; // 'date_asc' | 'date_desc'
 }

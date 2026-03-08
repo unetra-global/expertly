@@ -17,11 +17,7 @@ const REQUIRED_ENV_VARS = [
   'SUPABASE_URL',
   'SUPABASE_SERVICE_ROLE_KEY',
   'SUPABASE_ANON_KEY',
-  'REDIS_HOST',
   'COOKIE_SECRET',
-  'OPENAI_API_KEY',
-  'RESEND_API_KEY',
-  'APIFY_API_TOKEN',
   'NEXT_REVALIDATION_URL',
   'NEXT_REVALIDATION_SECRET',
 ];
@@ -30,6 +26,10 @@ function validateEnv(): void {
   const missing = REQUIRED_ENV_VARS.filter((key) => !process.env[key]);
   if (missing.length > 0) {
     throw new Error(`Missing env vars: ${missing.join(', ')}`);
+  }
+  // Require either REDIS_URL or REDIS_HOST
+  if (!process.env['REDIS_URL'] && !process.env['REDIS_HOST']) {
+    throw new Error('Missing env vars: REDIS_URL or REDIS_HOST is required');
   }
   if (process.env.SUPABASE_SERVICE_ROLE_KEY === process.env.SUPABASE_ANON_KEY) {
     throw new Error('SERVICE_ROLE_KEY must not equal ANON_KEY');
@@ -71,7 +71,7 @@ async function bootstrap(): Promise<void> {
   app.enableCors({
     origin: isProd
       ? ['https://expertly.net', 'https://www.expertly.net']
-      : ['http://localhost:3000'],
+      : ['http://localhost:3000', 'http://localhost:3003'],
     credentials: true,
     maxAge: 86400,
   });

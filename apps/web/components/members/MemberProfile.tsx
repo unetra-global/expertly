@@ -38,19 +38,19 @@ export function MemberProfile({ member, isAuthenticated }: MemberProfileProps) {
   const [consultOpen, setConsultOpen] = useState(false);
 
   const displayName =
-    member.user.fullName ||
-    [member.user.firstName, member.user.lastName].filter(Boolean).join(' ') ||
+    member.users?.fullName ||
+    [member.users?.firstName, member.users?.lastName].filter(Boolean).join(' ') ||
     'Expert';
 
   const initials = displayName
     .split(' ')
-    .map((w) => w[0])
+    .map((w: string) => w[0])
     .join('')
     .slice(0, 2)
     .toUpperCase();
 
   const location = [member.city, member.country].filter(Boolean).join(', ');
-  const isSeasoned = member.memberTier?.toLowerCase() === 'seasoned';
+  const isSeasoned = member.memberTier?.toLowerCase().includes('seasoned') ?? false;
   const hasFeeRange = isSeasoned && (member.feeRangeMin || member.feeRangeMax);
 
   return (
@@ -88,7 +88,7 @@ export function MemberProfile({ member, isAuthenticated }: MemberProfileProps) {
                 )}
                 {member.memberTier && (
                   <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${isSeasoned ? 'bg-amber-400/20 border-amber-400/30 text-amber-200' : 'bg-white/10 border-white/20 text-white/70'}`}>
-                    {member.memberTier}
+                    {member.memberTier.toLowerCase().includes('seasoned') ? 'Seasoned Pro' : member.memberTier.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
                   </span>
                 )}
               </div>
@@ -114,12 +114,12 @@ export function MemberProfile({ member, isAuthenticated }: MemberProfileProps) {
                     {location}
                   </span>
                 )}
-                {member.primaryService?.name && (
+                {member.services?.name && (
                   <span className="flex items-center gap-1.5">
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                     </svg>
-                    {member.primaryService.name}
+                    {member.services.name}
                   </span>
                 )}
               </div>
@@ -153,12 +153,12 @@ export function MemberProfile({ member, isAuthenticated }: MemberProfileProps) {
             )}
 
             {/* Services */}
-            {(member.primaryService || (member.secondaryServices ?? []).length > 0) && (
+            {(member.services || (member.secondaryServices ?? []).length > 0) && (
               <section>
                 <SectionHeading>Services</SectionHeading>
                 <div className="flex flex-wrap gap-2">
-                  {member.primaryService && (
-                    <Tag>{member.primaryService.name}</Tag>
+                  {member.services && (
+                    <Tag>{member.services.name}</Tag>
                   )}
                   {(member.secondaryServices ?? []).map((s) => (
                     <GrayTag key={s.id}>{s.name}</GrayTag>
