@@ -67,10 +67,10 @@ export function MemberCard({ member, variant = 'teaser', onConsult, className }:
             <img
               src={member.profilePhotoUrl}
               alt={displayName}
-              className="w-16 h-16 rounded-xl object-cover border border-gray-100 group-hover:border-brand-blue/20 transition-colors"
+              className="w-16 h-16 rounded-full object-cover border-2 border-gray-100 group-hover:border-brand-blue/30 transition-colors"
             />
           ) : (
-            <div className="w-16 h-16 rounded-xl bg-brand-navy flex items-center justify-center text-white font-semibold text-lg flex-shrink-0">
+            <div className="w-16 h-16 rounded-full bg-brand-navy flex items-center justify-center text-white font-semibold text-lg flex-shrink-0">
               {initials}
             </div>
           )}
@@ -93,15 +93,12 @@ export function MemberCard({ member, variant = 'teaser', onConsult, className }:
               )}
             </div>
 
-            {/* Desktop: View Profile */}
+            {/* Desktop: View Profile button */}
             <Link
               href={`/members/${member.slug}`}
-              className="hidden sm:inline-flex items-center gap-1 text-xs font-semibold text-brand-navy hover:text-brand-blue transition-colors whitespace-nowrap flex-shrink-0"
+              className="hidden sm:inline-flex items-center gap-1 text-xs font-semibold text-white bg-brand-blue hover:bg-brand-blue-dark rounded-lg px-3 py-1.5 transition-colors whitespace-nowrap flex-shrink-0"
             >
-              View profile
-              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+              View Profile
             </Link>
           </div>
 

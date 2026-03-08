@@ -16,6 +16,10 @@ const READ_TIME_OPTIONS = [
   { label: '> 10 mins', value: 'long' },
 ];
 
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, '').replace(/&[a-z]+;/gi, ' ').replace(/\s+/g, ' ').trim();
+}
+
 function ArticleCard({ article }: { article: ArticleListItem }) {
   const authorName =
     article.author?.user.fullName ||
@@ -26,12 +30,16 @@ function ArticleCard({ article }: { article: ArticleListItem }) {
     ? new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(article.publishedAt))
     : null;
 
+  const rawExcerpt = article.excerpt ?? '';
+  const excerpt = rawExcerpt.includes('<') ? stripHtml(rawExcerpt) : rawExcerpt;
+
   return (
     <Link
       href={`/articles/${article.slug}`}
-      className="group bg-white rounded-2xl border border-gray-100 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200 overflow-hidden flex flex-col"
+      className="group bg-white rounded-2xl border border-gray-100 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200 overflow-hidden flex"
     >
-      <div className="aspect-[16/9] bg-brand-surface overflow-hidden">
+      {/* Thumbnail */}
+      <div className="w-32 sm:w-40 flex-shrink-0 bg-brand-surface overflow-hidden">
         {article.featuredImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -40,41 +48,55 @@ function ArticleCard({ article }: { article: ArticleListItem }) {
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-navy to-brand-navy-light">
-            <svg className="h-10 w-10 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-navy to-brand-navy-light min-h-[120px]">
+            <svg className="h-8 w-8 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           </div>
         )}
       </div>
-      <div className="flex-1 flex flex-col p-4 sm:p-5">
-        {article.serviceCategory && (
-          <span className="inline-flex items-center self-start rounded-full bg-brand-blue-subtle border border-blue-100 px-2.5 py-0.5 text-xs font-medium text-brand-blue mb-3">
-            {article.serviceCategory.name}
-          </span>
-        )}
-        <h3 className="font-semibold text-brand-navy text-base leading-snug group-hover:text-brand-blue transition-colors line-clamp-2 mb-2">
+
+      {/* Content */}
+      <div className="flex-1 flex flex-col p-4 sm:p-5 min-w-0">
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
+          {article.serviceCategory && (
+            <span className="inline-flex items-center rounded-full bg-brand-blue-subtle border border-blue-100 px-2.5 py-0.5 text-xs font-medium text-brand-blue">
+              {article.serviceCategory.name}
+            </span>
+          )}
+          {article.readTimeMinutes && (
+            <span className="flex items-center gap-1 text-xs text-brand-text-muted ml-auto">
+              <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {article.readTimeMinutes} min read
+            </span>
+          )}
+        </div>
+        <h3 className="font-semibold text-brand-navy text-sm sm:text-base leading-snug group-hover:text-brand-blue transition-colors line-clamp-2 mb-1.5">
           {article.title}
         </h3>
-        {article.excerpt && (
-          <p className="text-sm text-brand-text-secondary leading-relaxed line-clamp-3 mb-4 flex-1">
-            {article.excerpt}
+        {excerpt && (
+          <p className="text-xs text-brand-text-secondary leading-relaxed line-clamp-2 mb-3 flex-1">
+            {excerpt}
           </p>
         )}
-        <div className="flex items-center gap-2 pt-3 border-t border-gray-50 mt-auto">
+        <div className="flex items-center gap-2 pt-2 border-t border-gray-50 mt-auto">
           {article.author?.profilePhotoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={article.author.profilePhotoUrl} alt={authorName} className="w-6 h-6 rounded-full object-cover flex-shrink-0" />
+            <img src={article.author.profilePhotoUrl} alt={authorName} className="w-7 h-7 rounded-full object-cover flex-shrink-0 border border-gray-100" />
           ) : (
-            <div className="w-6 h-6 rounded-full bg-brand-navy flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
+            <div className="w-7 h-7 rounded-full bg-brand-navy flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
               {authorName[0]}
             </div>
           )}
-          <div className="flex items-center gap-1.5 text-xs text-brand-text-muted min-w-0">
-            <span className="truncate font-medium text-brand-text-secondary">{authorName}</span>
-            {publishedDate && <><span className="flex-shrink-0">·</span><span className="flex-shrink-0">{publishedDate}</span></>}
-            {article.readTimeMinutes && <><span className="flex-shrink-0">·</span><span className="flex-shrink-0">{article.readTimeMinutes} min</span></>}
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-brand-text-secondary truncate leading-tight">{authorName}</p>
+            {article.author?.designation && (
+              <p className="text-xs text-gray-400 truncate leading-tight">{article.author.designation}</p>
+            )}
           </div>
+          {publishedDate && <span className="text-xs text-brand-text-muted ml-auto flex-shrink-0">{publishedDate}</span>}
         </div>
       </div>
     </Link>
@@ -301,6 +323,7 @@ export default function ArticleList({ initialCategory = '' }: ArticleListProps) 
                   <span className="inline-block w-24 h-4 bg-gray-100 rounded animate-pulse" />
                 ) : (
                   <>
+                    Showing{' '}
                     <span className="font-semibold text-brand-navy">{totalResults.toLocaleString()}</span>
                     {' '}article{totalResults !== 1 ? 's' : ''}
                     {category && ` in ${category}`}
@@ -322,16 +345,19 @@ export default function ArticleList({ initialCategory = '' }: ArticleListProps) 
                     </span>
                   )}
                 </button>
-                <select
-                  value={sort}
-                  onChange={(e) => { setSort(e.target.value); setPage(1); }}
-                  className="text-sm text-brand-text border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-brand-blue appearance-none cursor-pointer"
-                >
-                  <option value="">Newest</option>
-                  <option value="oldest">Oldest</option>
-                  <option value="read_time_asc">Shortest</option>
-                  <option value="read_time_desc">Longest</option>
-                </select>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm text-brand-text-muted hidden sm:inline">Sort by:</span>
+                  <select
+                    value={sort}
+                    onChange={(e) => { setSort(e.target.value); setPage(1); }}
+                    className="text-sm text-brand-text border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-brand-blue appearance-none cursor-pointer"
+                  >
+                    <option value="">Newest</option>
+                    <option value="oldest">Oldest</option>
+                    <option value="read_time_asc">Shortest</option>
+                    <option value="read_time_desc">Longest</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -342,11 +368,11 @@ export default function ArticleList({ initialCategory = '' }: ArticleListProps) 
             )}
 
             {isLoading && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+              <div className="flex flex-col gap-4">
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="bg-white rounded-2xl border border-gray-100 overflow-hidden animate-pulse">
-                    <div className="aspect-[16/9] bg-gray-100" />
-                    <div className="p-5 space-y-2">
+                  <div key={i} className="bg-white rounded-2xl border border-gray-100 overflow-hidden animate-pulse flex">
+                    <div className="w-32 sm:w-40 bg-gray-100 flex-shrink-0 min-h-[120px]" />
+                    <div className="flex-1 p-5 space-y-2">
                       <div className="h-3 bg-gray-100 rounded w-1/3" />
                       <div className="h-4 bg-gray-100 rounded w-full" />
                       <div className="h-4 bg-gray-100 rounded w-3/4" />
@@ -371,7 +397,7 @@ export default function ArticleList({ initialCategory = '' }: ArticleListProps) 
                     )}
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+                  <div className="flex flex-col gap-4">
                     {articles.map((article) => (
                       <ArticleCard key={article.id} article={article} />
                     ))}

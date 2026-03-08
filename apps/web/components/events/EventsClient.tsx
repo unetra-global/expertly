@@ -106,56 +106,73 @@ function MiniCalendar({ selectedDate, onSelect }: { selectedDate: string; onSele
 
 function EventCard({ event }: { event: EventListItem }) {
   const startDate = new Date(event.startDate);
+  const endDate = event.endDate ? new Date(event.endDate) : null;
   const day = startDate.toLocaleDateString('en-GB', { day: '2-digit' });
-  const month = startDate.toLocaleDateString('en-GB', { month: 'short' });
-  const time = startDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
+  const month = startDate.toLocaleDateString('en-GB', { month: 'short' }).toUpperCase();
   const format = event.eventFormat ?? 'online';
   const formatLabel = FORMAT_LABELS[format] ?? format;
   const formatColor = FORMAT_COLORS[format] ?? 'bg-gray-50 border-gray-100 text-gray-600';
   const location = (format === 'online' || format === 'virtual') ? 'Online' : [event.city, event.country].filter(Boolean).join(', ');
 
   return (
-    <Link
-      href={`/events/${event.slug}`}
-      className="group bg-white rounded-2xl border border-gray-100 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200 overflow-hidden flex"
-    >
-      <div className="bg-brand-blue w-16 sm:w-20 flex-shrink-0 flex flex-col items-center justify-center py-5 px-2">
-        <span className="text-2xl sm:text-3xl font-bold text-white leading-none tabular-nums">{day}</span>
-        <span className="text-xs font-semibold uppercase tracking-widest text-blue-100 mt-1">{month}</span>
-      </div>
-      <div className="flex-1 min-w-0 p-4 sm:p-5">
-        <div className="flex items-start justify-between gap-2 mb-1.5">
-          <h3 className="font-semibold text-brand-navy text-sm sm:text-base leading-snug group-hover:text-brand-blue transition-colors line-clamp-2">
-            {event.title}
-          </h3>
-          <span className={`flex-shrink-0 inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${formatColor}`}>
-            {formatLabel}
-          </span>
-        </div>
-        {event.description && (
-          <p className="text-xs text-brand-text-secondary leading-relaxed line-clamp-2 mb-2">
-            {event.description}
-          </p>
-        )}
-        <div className="flex flex-wrap items-center gap-3 text-xs text-brand-text-muted">
-          <span className="flex items-center gap-1">
-            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            {time} UTC
-          </span>
-          {location && (
-            <span className="flex items-center gap-1">
-              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              {location}
+    <div className="group bg-white rounded-2xl border border-gray-100 shadow-card hover:shadow-card-hover transition-all duration-200 overflow-hidden flex">
+      {/* Date block */}
+      <div className="w-16 sm:w-20 flex-shrink-0 flex flex-col items-center justify-center py-5 px-2 bg-gray-50 border-r border-gray-100">
+        <span className="text-2xl sm:text-3xl font-bold text-brand-navy leading-none tabular-nums">{day}</span>
+        <span className="text-xs font-semibold uppercase tracking-widest text-brand-text-muted mt-1">{month}</span>
+        {endDate && (
+          <>
+            <span className="text-xs text-gray-300 my-1">TO</span>
+            <span className="text-base font-bold text-brand-navy leading-none tabular-nums">
+              {endDate.toLocaleDateString('en-GB', { day: '2-digit' })}
             </span>
+            <span className="text-xs font-semibold uppercase tracking-widest text-brand-text-muted mt-1">
+              {endDate.toLocaleDateString('en-GB', { month: 'short' }).toUpperCase()}
+            </span>
+          </>
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 min-w-0 p-4 sm:p-5 flex items-center gap-4">
+        <div className="flex-1 min-w-0">
+          <Link href={`/events/${event.slug}`}>
+            <h3 className="font-semibold text-brand-navy text-sm sm:text-base leading-snug group-hover:text-brand-blue transition-colors line-clamp-2 mb-1.5">
+              {event.title}
+            </h3>
+          </Link>
+          {event.description && (
+            <p className="text-xs text-brand-text-secondary leading-relaxed line-clamp-2 mb-2">
+              {event.description}
+            </p>
           )}
+          <div className="flex flex-wrap items-center gap-2 text-xs text-brand-text-muted">
+            {location && (
+              <span className="flex items-center gap-1">
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                {location}
+              </span>
+            )}
+            <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${formatColor}`}>
+              {formatLabel}
+            </span>
+          </div>
+        </div>
+
+        {/* View Details button */}
+        <div className="flex-shrink-0 hidden sm:block">
+          <Link
+            href={`/events/${event.slug}`}
+            className="inline-flex items-center justify-center px-4 py-2 rounded-lg border border-brand-blue text-xs font-bold text-brand-blue hover:bg-brand-blue hover:text-white transition-colors uppercase tracking-wide whitespace-nowrap"
+          >
+            View Details
+          </Link>
         </div>
       </div>
-    </Link>
+    </div>
   );
 }
 
@@ -389,8 +406,9 @@ export default function EventsClient({ initialFilters }: EventsClientProps) {
                   <span className="inline-block w-24 h-4 bg-gray-100 rounded animate-pulse" />
                 ) : (
                   <>
+                    Showing{' '}
                     <span className="font-semibold text-brand-navy">{totalResults.toLocaleString()}</span>
-                    {' '}upcoming event{totalResults !== 1 ? 's' : ''}
+                    {' '}event{totalResults !== 1 ? 's' : ''}
                   </>
                 )}
               </p>
@@ -409,14 +427,17 @@ export default function EventsClient({ initialFilters }: EventsClientProps) {
                     </span>
                   )}
                 </button>
-                <select
-                  value={sort}
-                  onChange={(e) => { setSort(e.target.value); setPage(1); }}
-                  className="text-sm text-brand-text border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-brand-blue appearance-none cursor-pointer"
-                >
-                  <option value="date_asc">Soonest</option>
-                  <option value="date_desc">Latest</option>
-                </select>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm text-brand-text-muted hidden sm:inline">Sort by:</span>
+                  <select
+                    value={sort}
+                    onChange={(e) => { setSort(e.target.value); setPage(1); }}
+                    className="text-sm text-brand-text border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-brand-blue appearance-none cursor-pointer"
+                  >
+                    <option value="date_asc">Date (Soonest)</option>
+                    <option value="date_desc">Latest</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -461,7 +482,7 @@ export default function EventsClient({ initialFilters }: EventsClientProps) {
                     )}
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-4">
                     {events.map((event) => <EventCard key={event.id} event={event} />)}
                   </div>
                 )}

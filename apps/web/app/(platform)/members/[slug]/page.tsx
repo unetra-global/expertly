@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase-server';
 import { MemberProfile } from '@/components/members/MemberProfile';
+import { AuthWall } from '@/components/shared/AuthWall';
 import type { MemberFullProfile } from '@/types/api';
 
 export const revalidate = 600;
@@ -87,5 +88,15 @@ export default async function MemberSlugPage({ params }: PageProps) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  return <MemberProfile member={member} isAuthenticated={!!user} />;
+  if (!user) {
+    return (
+      <AuthWall
+        backHref="/members"
+        backLabel="Back to Members"
+        description="Sign in to view full member profiles, contact details, and professional credentials."
+      />
+    );
+  }
+
+  return <MemberProfile member={member} isAuthenticated={true} />;
 }

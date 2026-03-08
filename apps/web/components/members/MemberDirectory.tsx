@@ -132,19 +132,22 @@ export default function MemberDirectory({
     <>
       {/* CATEGORY */}
       <div>
-        <label className="block text-xs font-bold text-brand-navy uppercase tracking-wider mb-2">
-          Category
-        </label>
-        <select
-          value={service}
-          onChange={(e) => { setService(e.target.value); setPage(1); }}
-          className="w-full px-3 py-2.5 text-sm text-brand-text bg-brand-surface border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue appearance-none cursor-pointer"
-        >
-          <option value="">All Categories</option>
+        <p className="text-xs font-bold text-brand-navy uppercase tracking-wider mb-2">Category</p>
+        <div className="space-y-2.5">
           {(taxonomyData ?? []).map((s) => (
-            <option key={s.id} value={s.name}>{s.name}</option>
+            <label key={s.id} className="flex items-center gap-3 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={service === s.name}
+                onChange={() => { setService(service === s.name ? '' : s.name); setPage(1); }}
+                className="h-4 w-4 accent-brand-blue cursor-pointer rounded"
+              />
+              <span className="text-sm text-brand-text group-hover:text-brand-navy transition-colors">
+                {s.name}
+              </span>
+            </label>
           ))}
-        </select>
+        </div>
       </div>
 
       {/* COUNTRY (mobile sheet only shows this here) */}
@@ -320,9 +323,9 @@ export default function MemberDirectory({
                   <span className="inline-block w-24 h-4 bg-gray-100 rounded animate-pulse" />
                 ) : (
                   <>
+                    Showing{' '}
                     <span className="font-semibold text-brand-navy">{totalResults.toLocaleString()}</span>
                     {' '}professional{totalResults !== 1 ? 's' : ''}
-                    {hasFilters && ' found'}
                   </>
                 )}
               </p>
@@ -343,16 +346,19 @@ export default function MemberDirectory({
                   )}
                 </button>
                 {/* Sort dropdown */}
-                <select
-                  value={sort}
-                  onChange={(e) => { setSort(e.target.value); setPage(1); }}
-                  className="text-sm text-brand-text border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-brand-blue appearance-none cursor-pointer"
-                >
-                  <option value="">Relevance</option>
-                  <option value="fee_asc">Fee: Low–High</option>
-                  <option value="fee_desc">Fee: High–Low</option>
-                  <option value="experience_desc">Most Experienced</option>
-                </select>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm text-brand-text-muted hidden sm:inline">Sort by:</span>
+                  <select
+                    value={sort}
+                    onChange={(e) => { setSort(e.target.value); setPage(1); }}
+                    className="text-sm text-brand-text border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-brand-blue appearance-none cursor-pointer"
+                  >
+                    <option value="">Relevance</option>
+                    <option value="fee_asc">Fee: Low–High</option>
+                    <option value="fee_desc">Fee: High–Low</option>
+                    <option value="experience_desc">Most Experienced</option>
+                  </select>
+                </div>
               </div>
             </div>
 

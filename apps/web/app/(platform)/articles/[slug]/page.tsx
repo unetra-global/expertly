@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { createServerClient } from '@/lib/supabase-server';
 import { ArticleDetail } from '@/components/articles/ArticleDetail';
+import { AuthWall } from '@/components/shared/AuthWall';
 import type { ArticleFull } from '@/types/api';
 
 export const revalidate = 300;
@@ -85,8 +87,23 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function ArticleSlugPage({ params }: PageProps) {
-  const article = await fetchArticle(params.slug);
+  const supabase = createServerClient();
+  const [article, { data: { user } }] = await Promise.all([
+    fetchArticle(params.slug),
+    supabase.auth.getUser(),
+  ]);
+
   if (!article) notFound();
+
+  if (!user) {
+    return (
+      <AuthWall
+        backHref="/articles"
+        backLabel="Back to Articles"
+        description="Sign in to read full articles, access expert insights, and engage with professional content."
+      />
+    );
+  }
 
   const related = await fetchRelatedArticles(article.id);
 
