@@ -27,8 +27,9 @@ function validateEnv(): void {
   if (missing.length > 0) {
     throw new Error(`Missing env vars: ${missing.join(', ')}`);
   }
+  const redisDisabled = process.env['REDIS_DISABLED'] === 'true';
   // Require either REDIS_URL or REDIS_HOST
-  if (!process.env['REDIS_URL'] && !process.env['REDIS_HOST']) {
+  if (!redisDisabled && !process.env['REDIS_URL'] && !process.env['REDIS_HOST']) {
     throw new Error('Missing env vars: REDIS_URL or REDIS_HOST is required');
   }
   if (process.env.SUPABASE_SERVICE_ROLE_KEY === process.env.SUPABASE_ANON_KEY) {
@@ -68,10 +69,25 @@ async function bootstrap(): Promise<void> {
 
   // CORS
   const isProd = process.env.NODE_ENV === 'production';
+  const prodOrigins = ['https://expertly.net', 'https://www.expertly.net'];
+  const isLocalDevOrigin = (origin: string): boolean =>
+    /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+
   app.enableCors({
-    origin: isProd
-      ? ['https://expertly.net', 'https://www.expertly.net']
-      : ['http://localhost:3000', 'http://localhost:3003'],
+    origin: (origin, callback) => {
+      // Allow non-browser / server-to-server calls without Origin header.
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      if (isProd) {
+        callback(null, prodOrigins.includes(origin));
+        return;
+      }
+
+      callback(null, isLocalDevOrigin(origin));
+    },
     credentials: true,
     maxAge: 86400,
   });
@@ -95,7 +111,8 @@ async function bootstrap(): Promise<void> {
   app.useGlobalFilters(new HttpExceptionFilter());
 
   const port = parseInt(process.env.PORT ?? '3001', 10);
-  await app.listen(port, '0.0.0.0');
+  // Bind dual-stack so localhost resolution to ::1 or 127.0.0.1 both work in dev.
+  await app.listen(port, '::');
   logger.log(`API running on http://localhost:${port}`);
 }
 

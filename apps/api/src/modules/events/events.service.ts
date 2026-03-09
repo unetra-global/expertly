@@ -13,6 +13,35 @@ const EVENT_LIST_FIELDS =
   'country, city, venue_name, event_format, is_published, is_featured, ' +
   'registration_url, capacity, tags, event_type';
 
+function getCountryAliases(country: string): string[] {
+  const normalized = country.trim().toLowerCase();
+  const aliases = new Set<string>([country.trim()]);
+
+  if (normalized === 'united kingdom' || normalized === 'uk') {
+    aliases.add('United Kingdom');
+    aliases.add('UK');
+  }
+
+  if (
+    normalized === 'united states' ||
+    normalized === 'united states of america' ||
+    normalized === 'usa' ||
+    normalized === 'us'
+  ) {
+    aliases.add('United States');
+    aliases.add('United States of America');
+    aliases.add('USA');
+    aliases.add('US');
+  }
+
+  if (normalized === 'united arab emirates' || normalized === 'uae') {
+    aliases.add('United Arab Emirates');
+    aliases.add('UAE');
+  }
+
+  return Array.from(aliases);
+}
+
 @Injectable()
 export class EventsService {
   constructor(
@@ -31,7 +60,7 @@ export class EventsService {
     const cacheKey = this.cache.buildKey(
       'events',
       'list',
-      `p${page}l${limit}${dto.upcoming ?? ''}${dto.q ?? ''}${dto.country ?? ''}${dto.format ?? ''}${dto.sort ?? ''}`,
+      `p${page}l${limit}${dto.upcoming ?? ''}${dto.q ?? ''}${dto.country ?? ''}${dto.format ?? ''}${dto.sort ?? ''}${dto.startDateFrom ?? ''}${dto.startDateTo ?? ''}${dto.date ?? ''}`,
     );
 
     return this.cache.getOrFetch(
@@ -55,11 +84,32 @@ export class EventsService {
         }
 
         if (dto.country) {
-          query = query.eq('country', dto.country);
+          const aliases = getCountryAliases(dto.country);
+          if (aliases.length === 1) {
+            query = query.ilike('country', `%${aliases[0]}%`);
+          } else {
+            const countryFilters = aliases
+              .map((alias) => `country.ilike.%${alias.replace(/[,]/g, ' ')}%`)
+              .join(',');
+            query = query.or(countryFilters);
+          }
         }
 
         if (dto.format) {
-          query = query.eq('event_format', dto.format);
+          if (dto.format === 'online') {
+            query = query.in('event_format', ['online', 'virtual']);
+          } else {
+            query = query.eq('event_format', dto.format);
+          }
+        }
+
+        const startDateFrom = dto.startDateFrom ?? dto.date;
+        const startDateTo = dto.startDateTo ?? dto.date;
+        if (startDateFrom) {
+          query = query.gte('start_date', `${startDateFrom}T00:00:00.000Z`);
+        }
+        if (startDateTo) {
+          query = query.lte('start_date', `${startDateTo}T23:59:59.999Z`);
         }
 
         const { data, error, count } = await query;

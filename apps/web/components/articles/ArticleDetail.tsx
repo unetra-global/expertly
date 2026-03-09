@@ -48,7 +48,7 @@ export function ArticleDetail({ article, related }: ArticleDetailProps) {
               <>
                 <span>/</span>
                 <Link
-                  href={`/articles?category=${encodeURIComponent(article.serviceCategory.name)}`}
+                  href="/articles"
                   className="hover:text-brand-blue transition-colors"
                 >
                   {article.serviceCategory.name}

@@ -28,80 +28,6 @@ const FORMAT_COLORS: Record<string, string> = {
   hybrid: 'bg-purple-50 border-purple-100 text-purple-700',
 };
 
-// ── Mini Calendar ─────────────────────────────────────────────────────────────
-
-const DAY_HEADERS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-
-function MiniCalendar({ selectedDate, onSelect }: { selectedDate: string; onSelect: (date: string) => void }) {
-  const today = new Date();
-  const [viewYear, setViewYear] = useState(today.getFullYear());
-  const [viewMonth, setViewMonth] = useState(today.getMonth());
-
-  const firstDay = new Date(viewYear, viewMonth, 1).getDay();
-  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-
-  function prevMonth() {
-    if (viewMonth === 0) { setViewMonth(11); setViewYear((y) => y - 1); }
-    else setViewMonth((m) => m - 1);
-  }
-  function nextMonth() {
-    if (viewMonth === 11) { setViewMonth(0); setViewYear((y) => y + 1); }
-    else setViewMonth((m) => m + 1);
-  }
-
-  function toDateStr(day: number) {
-    return `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-  }
-
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-3">
-        <button onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors" aria-label="Previous month">
-          <svg className="h-4 w-4 text-brand-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-        <span className="text-xs font-semibold text-brand-navy">{MONTHS[viewMonth]} {viewYear}</span>
-        <button onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors" aria-label="Next month">
-          <svg className="h-4 w-4 text-brand-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-      </div>
-      <div className="grid grid-cols-7 mb-1">
-        {DAY_HEADERS.map((d) => (
-          <div key={d} className="text-center text-xs text-brand-text-muted font-medium py-0.5">{d}</div>
-        ))}
-      </div>
-      <div className="grid grid-cols-7 gap-y-0.5">
-        {Array.from({ length: firstDay }).map((_, i) => <div key={`e-${i}`} />)}
-        {Array.from({ length: daysInMonth }).map((_, i) => {
-          const day = i + 1;
-          const dateStr = toDateStr(day);
-          const isSelected = dateStr === selectedDate;
-          const isToday = dateStr === todayStr;
-          return (
-            <button
-              key={day}
-              onClick={() => onSelect(isSelected ? '' : dateStr)}
-              className={`text-xs py-1 rounded-md font-medium transition-colors ${
-                isSelected ? 'bg-brand-blue text-white'
-                : isToday ? 'bg-brand-blue-subtle text-brand-blue border border-brand-blue/30'
-                : 'text-brand-text hover:bg-gray-100'
-              }`}
-            >
-              {day}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 // ── Event Card ────────────────────────────────────────────────────────────────
 
 function EventCard({ event }: { event: EventListItem }) {
@@ -185,12 +111,14 @@ interface EventsClientProps {
 export default function EventsClient({ initialFilters }: EventsClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const searchParamsKey = searchParams.toString();
 
   const [search, setSearch] = useState(initialFilters.q ?? '');
   const [debouncedSearch, setDebouncedSearch] = useState(initialFilters.q ?? '');
   const [country, setCountry] = useState(initialFilters.country ?? '');
   const [format, setFormat] = useState(initialFilters.format ?? '');
-  const [selectedDate, setSelectedDate] = useState(initialFilters.date ?? '');
+  const [startDateFrom, setStartDateFrom] = useState(initialFilters.startDateFrom ?? '');
+  const [startDateTo, setStartDateTo] = useState(initialFilters.startDateTo ?? '');
   const [sort, setSort] = useState(initialFilters.sort ?? 'date_asc');
   const [page, setPage] = useState(1);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -200,28 +128,32 @@ export default function EventsClient({ initialFilters }: EventsClientProps) {
     return () => clearTimeout(timer);
   }, [search]);
 
-  const syncUrl = useCallback((q: string, c: string, f: string, d: string, so: string) => {
+  const syncUrl = useCallback((q: string, c: string, f: string, from: string, to: string, so: string) => {
     const params = new URLSearchParams();
     if (q) params.set('q', q);
     if (c) params.set('country', c);
     if (f) params.set('format', f);
-    if (d) params.set('date', d);
+    if (from) params.set('startDateFrom', from);
+    if (to) params.set('startDateTo', to);
     if (so && so !== 'date_asc') params.set('sort', so);
-    router.push(`/events${params.size ? `?${params.toString()}` : ''}`, { scroll: false });
-  }, [router]);
+    const next = params.toString();
+    if (next === searchParamsKey) return;
+    router.push(`/events${next ? `?${next}` : ''}`, { scroll: false });
+  }, [router, searchParamsKey]);
 
   useEffect(() => {
-    syncUrl(debouncedSearch, country, format, selectedDate, sort);
-  }, [debouncedSearch, country, format, selectedDate, sort, syncUrl]);
+    syncUrl(debouncedSearch, country, format, startDateFrom, startDateTo, sort);
+  }, [debouncedSearch, country, format, startDateFrom, startDateTo, sort, syncUrl]);
 
   useEffect(() => {
     setSearch(searchParams.get('q') ?? '');
     setCountry(searchParams.get('country') ?? '');
     setFormat(searchParams.get('format') ?? '');
-    setSelectedDate(searchParams.get('date') ?? '');
+    setStartDateFrom(searchParams.get('startDateFrom') ?? '');
+    setStartDateTo(searchParams.get('startDateTo') ?? '');
     setSort(searchParams.get('sort') ?? 'date_asc');
     setPage(1);
-  }, [searchParams]);
+  }, [searchParamsKey, searchParams]);
 
   const activeFilters: Record<string, string> = {
     upcoming: 'true',
@@ -230,8 +162,9 @@ export default function EventsClient({ initialFilters }: EventsClientProps) {
     ...(debouncedSearch && { q: debouncedSearch }),
     ...(country && { country }),
     ...(format && { format }),
+    ...(startDateFrom && { startDateFrom }),
+    ...(startDateTo && { startDateTo }),
     sort: sort || 'date_asc',
-    // date filter is local-only (not supported by API yet)
   };
 
   const { data, isLoading, isError } = useQuery<PaginatedResponse<EventListItem>>({
@@ -246,15 +179,17 @@ export default function EventsClient({ initialFilters }: EventsClientProps) {
   const events = data?.data ?? [];
   const meta = data?.meta;
   const totalResults = meta?.total ?? events.length;
-  const hasFilters = !!(debouncedSearch || country || format || selectedDate);
-  const activeFilterCount = [country, format, selectedDate].filter(Boolean).length;
+  const hasDateRange = !!(startDateFrom || startDateTo);
+  const hasFilters = !!(debouncedSearch || country || format || hasDateRange);
+  const activeFilterCount = [country, format, hasDateRange ? 'dateRange' : ''].filter(Boolean).length;
 
   function clearFilters() {
     setSearch('');
     setDebouncedSearch('');
     setCountry('');
     setFormat('');
-    setSelectedDate('');
+    setStartDateFrom('');
+    setStartDateTo('');
     setSort('date_asc');
     setPage(1);
   }
@@ -289,18 +224,38 @@ export default function EventsClient({ initialFilters }: EventsClientProps) {
         </select>
       </div>
 
-      {/* EVENT DATE — mini calendar */}
+      {/* EVENT DATE RANGE */}
       <div>
         <p className="text-xs font-bold text-brand-navy uppercase tracking-wider mb-3">Event Date</p>
-        {selectedDate && (
-          <div className="flex items-center justify-between mb-2 px-1">
-            <span className="text-xs text-brand-blue font-medium">
-              {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-            </span>
-            <button onClick={() => setSelectedDate('')} className="text-xs text-brand-text-muted hover:text-red-500 transition-colors">✕</button>
-          </div>
-        )}
-        <MiniCalendar selectedDate={selectedDate} onSelect={(d) => { setSelectedDate(d); setPage(1); }} />
+        <div className="grid grid-cols-2 gap-2">
+          <label className="text-xs text-brand-text-muted">
+            From
+            <input
+              type="date"
+              value={startDateFrom}
+              max={startDateTo || undefined}
+              onChange={(e) => {
+                const nextFrom = e.target.value;
+                setStartDateFrom(nextFrom);
+                if (nextFrom && startDateTo && startDateTo < nextFrom) {
+                  setStartDateTo(nextFrom);
+                }
+                setPage(1);
+              }}
+              className="mt-1 w-full rounded-lg border border-gray-200 px-2 py-1.5 text-sm text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-blue"
+            />
+          </label>
+          <label className="text-xs text-brand-text-muted">
+            To
+            <input
+              type="date"
+              value={startDateTo}
+              min={startDateFrom || undefined}
+              onChange={(e) => { setStartDateTo(e.target.value); setPage(1); }}
+              className="mt-1 w-full rounded-lg border border-gray-200 px-2 py-1.5 text-sm text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-blue"
+            />
+          </label>
+        </div>
       </div>
 
       {/* Host an Event CTA */}
@@ -368,7 +323,7 @@ export default function EventsClient({ initialFilters }: EventsClientProps) {
               </select>
             </div>
             <button
-              onClick={() => syncUrl(search, country, format, selectedDate, sort)}
+              onClick={() => syncUrl(search, country, format, startDateFrom, startDateTo, sort)}
               className="flex-shrink-0 inline-flex items-center justify-center gap-1.5 px-4 sm:px-6 py-2.5 rounded-xl bg-brand-blue hover:bg-brand-blue-dark text-white text-sm font-semibold transition-colors"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>

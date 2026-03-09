@@ -84,19 +84,24 @@ function ArticleCard({ article }: { article: ArticleListItem }) {
         <div className="flex items-center gap-2 pt-2 border-t border-gray-50 mt-auto">
           {article.author?.profilePhotoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={article.author.profilePhotoUrl} alt={authorName} className="w-7 h-7 rounded-full object-cover flex-shrink-0 border border-gray-100" />
+            <img src={article.author.profilePhotoUrl} alt={authorName} className="w-8 h-8 rounded-full object-cover flex-shrink-0 border border-gray-100" />
           ) : (
-            <div className="w-7 h-7 rounded-full bg-brand-navy flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
+            <div className="w-8 h-8 rounded-full bg-brand-navy flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
               {authorName[0]}
             </div>
           )}
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="text-xs font-medium text-brand-text-secondary truncate leading-tight">{authorName}</p>
-            {article.author?.designation && (
-              <p className="text-xs text-gray-400 truncate leading-tight">{article.author.designation}</p>
+            {(article.author?.designation || article.author?.city || article.author?.country) && (
+              <p className="text-xs text-gray-400 truncate leading-tight">
+                {[
+                  article.author?.designation,
+                  [article.author?.city, article.author?.country].filter(Boolean).join(', '),
+                ].filter(Boolean).join(' · ')}
+              </p>
             )}
           </div>
-          {publishedDate && <span className="text-xs text-brand-text-muted ml-auto flex-shrink-0">{publishedDate}</span>}
+          {publishedDate && <span className="text-xs text-brand-text-muted flex-shrink-0">{publishedDate}</span>}
         </div>
       </div>
     </Link>
@@ -104,14 +109,19 @@ function ArticleCard({ article }: { article: ArticleListItem }) {
 }
 
 interface ArticleListProps {
-  initialCategory?: string;
+  initialServiceId?: string;
+  isMember?: boolean;
 }
 
-export default function ArticleList({ initialCategory = '' }: ArticleListProps) {
+export default function ArticleList({
+  initialServiceId = '',
+  isMember = false,
+}: ArticleListProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const searchParamsKey = searchParams.toString();
 
-  const [category, setCategory] = useState(initialCategory);
+  const [serviceId, setServiceId] = useState(initialServiceId);
   const [readTime, setReadTime] = useState('');
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -119,9 +129,9 @@ export default function ArticleList({ initialCategory = '' }: ArticleListProps) 
   const [page, setPage] = useState(1);
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  const { data: categoriesData } = useQuery<Array<{ id: string; name: string }>>({
-    queryKey: queryKeys.taxonomy.categories(),
-    queryFn: () => apiClient.get('/taxonomy/categories'),
+  const { data: servicesData } = useQuery<Array<{ id: string; name: string; slug?: string }>>({
+    queryKey: queryKeys.taxonomy.services(),
+    queryFn: () => apiClient.get('/taxonomy/services'),
     staleTime: 3600 * 1000,
   });
 
@@ -130,26 +140,58 @@ export default function ArticleList({ initialCategory = '' }: ArticleListProps) 
     return () => clearTimeout(timer);
   }, [search]);
 
-  const syncUrl = useCallback((cat: string, q: string, rt: string, so: string) => {
+  useEffect(() => {
+    if (!serviceId || !servicesData?.length) return;
+    const existsById = servicesData.some((s) => s.id === serviceId);
+    if (existsById) return;
+    const normalized = serviceId.trim().toLowerCase();
+    const mapped = servicesData.find((s) =>
+      s.name.trim().toLowerCase() === normalized ||
+      s.slug?.trim().toLowerCase() === normalized,
+    );
+    if (mapped) {
+      setServiceId(mapped.id);
+    }
+  }, [serviceId, servicesData]);
+
+  const resolvedServiceId =
+    serviceId && (servicesData ?? []).some((s) => s.id === serviceId) ? serviceId : '';
+  const isWaitingForServiceTaxonomy = !!serviceId && !resolvedServiceId && servicesData === undefined;
+  const isResolvingLegacyService = !!serviceId && !resolvedServiceId && !!servicesData?.length;
+
+  const syncUrl = useCallback((svcId: string, q: string, rt: string, so: string) => {
     const params = new URLSearchParams();
-    if (cat) params.set('category', cat);
+    if (svcId) params.set('serviceId', svcId);
     if (q) params.set('q', q);
     if (rt) params.set('readTime', rt);
     if (so) params.set('sort', so);
-    router.push(`/articles${params.size ? `?${params.toString()}` : ''}`, { scroll: false });
-  }, [router]);
+    const next = params.toString();
+    if (next === searchParamsKey) return;
+    router.push(`/articles${next ? `?${next}` : ''}`, { scroll: false });
+  }, [router, searchParamsKey]);
 
   useEffect(() => {
-    syncUrl(category, debouncedSearch, readTime, sort);
-  }, [category, debouncedSearch, readTime, sort, syncUrl]);
+    if (isWaitingForServiceTaxonomy || isResolvingLegacyService) {
+      return;
+    }
+    syncUrl(resolvedServiceId, debouncedSearch, readTime, sort);
+  }, [
+    resolvedServiceId,
+    isWaitingForServiceTaxonomy,
+    isResolvingLegacyService,
+    debouncedSearch,
+    readTime,
+    sort,
+    syncUrl,
+  ]);
 
   useEffect(() => {
-    setCategory(searchParams.get('category') ?? '');
+    setServiceId(searchParams.get('serviceId') ?? searchParams.get('service') ?? '');
     setSearch(searchParams.get('q') ?? '');
     setReadTime(searchParams.get('readTime') ?? '');
     setSort(searchParams.get('sort') ?? '');
     setPage(1);
-  }, [searchParams]);
+  }, [searchParamsKey, searchParams]);
 
   const readTimeFilter: Record<string, string> = {};
   if (readTime === 'short') readTimeFilter.maxReadTime = '5';
@@ -160,7 +202,7 @@ export default function ArticleList({ initialCategory = '' }: ArticleListProps) 
     status: 'published',
     limit: '9',
     page: String(page),
-    ...(category && { category }),
+    ...(resolvedServiceId && { serviceId: resolvedServiceId }),
     ...(debouncedSearch && { q: debouncedSearch }),
     ...(sort && { sort }),
     ...readTimeFilter,
@@ -178,11 +220,12 @@ export default function ArticleList({ initialCategory = '' }: ArticleListProps) 
   const articles = data?.data ?? [];
   const meta = data?.meta;
   const totalResults = meta?.total ?? articles.length;
-  const hasFilters = !!(category || debouncedSearch || readTime);
-  const activeFilterCount = [category, readTime].filter(Boolean).length;
+  const selectedServiceName = (servicesData ?? []).find((service) => service.id === resolvedServiceId)?.name ?? '';
+  const hasFilters = !!(resolvedServiceId || debouncedSearch || readTime);
+  const activeFilterCount = [resolvedServiceId, readTime].filter(Boolean).length;
 
   function clearFilters() {
-    setCategory('');
+    setServiceId('');
     setSearch('');
     setReadTime('');
     setSort('');
@@ -191,19 +234,19 @@ export default function ArticleList({ initialCategory = '' }: ArticleListProps) 
 
   const filterControls = (
     <>
-      {/* CATEGORY */}
+      {/* SERVICE */}
       <div>
         <label className="block text-xs font-bold text-brand-navy uppercase tracking-wider mb-2">
-          Category
+          Service
         </label>
         <select
-          value={category}
-          onChange={(e) => { setCategory(e.target.value); setPage(1); }}
+          value={resolvedServiceId}
+          onChange={(e) => { setServiceId(e.target.value); setPage(1); }}
           className="w-full px-3 py-2.5 text-sm text-brand-text bg-brand-surface border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue appearance-none cursor-pointer"
         >
-          <option value="">All Categories</option>
-          {(categoriesData ?? []).map((cat) => (
-            <option key={cat.id} value={cat.name}>{cat.name}</option>
+          <option value="">All Services</option>
+          {(servicesData ?? []).map((service) => (
+            <option key={service.id} value={service.id}>{service.name}</option>
           ))}
         </select>
       </div>
@@ -216,7 +259,6 @@ export default function ArticleList({ initialCategory = '' }: ArticleListProps) 
             <label key={opt.value} className="flex items-center gap-3 cursor-pointer group">
               <input
                 type="radio"
-                name="readTime"
                 value={opt.value}
                 checked={readTime === opt.value}
                 onChange={() => { setReadTime(opt.value); setPage(1); }}
@@ -235,10 +277,10 @@ export default function ArticleList({ initialCategory = '' }: ArticleListProps) 
           Publish articles and grow your professional brand on Expertly.
         </p>
         <Link
-          href="/auth?tab=signup"
+          href={isMember ? '/member/articles/new' : '/auth?tab=signup'}
           className="inline-flex items-center justify-center w-full text-xs font-semibold text-brand-blue bg-white hover:bg-blue-50 rounded-lg px-3 py-2 transition-colors"
         >
-          Start Writing
+          {isMember ? 'Write Article' : 'Start Writing'}
         </Link>
       </div>
     </>
@@ -249,11 +291,26 @@ export default function ArticleList({ initialCategory = '' }: ArticleListProps) 
       {/* Page header */}
       <div className="bg-brand-navy">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
-          <p className="section-label mb-2">Knowledge Hub</p>
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white">Expert Insights &amp; Articles</h1>
-          <p className="mt-2 text-white/60 text-sm sm:text-base max-w-xl">
-            Insights and analysis from verified finance and legal professionals.
-          </p>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="section-label mb-2">Knowledge Hub</p>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white">Expert Insights &amp; Articles</h1>
+              <p className="mt-2 text-white/60 text-sm sm:text-base max-w-xl">
+                Insights and analysis from verified finance and legal professionals.
+              </p>
+            </div>
+            {isMember && (
+              <Link
+                href="/member/articles/new"
+                className="flex-shrink-0 inline-flex items-center gap-2 bg-brand-blue hover:bg-brand-blue-dark text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors mt-1"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Write Article
+              </Link>
+            )}
+          </div>
 
           {/* Top search bar */}
           <div className="mt-5 bg-white rounded-2xl shadow-lg p-2 flex gap-2 max-w-3xl">
@@ -269,22 +326,8 @@ export default function ArticleList({ initialCategory = '' }: ArticleListProps) 
                 className="w-full pl-9 pr-4 py-2.5 text-sm text-gray-800 bg-transparent rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue"
               />
             </div>
-            {/* Category dropdown — desktop only */}
-            <div className="hidden sm:flex items-center">
-              <div className="w-px bg-gray-200 self-stretch my-1 mr-2" />
-              <select
-                value={category}
-                onChange={(e) => { setCategory(e.target.value); setPage(1); }}
-                className="pl-4 pr-8 py-2.5 text-sm text-gray-800 bg-transparent rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue appearance-none cursor-pointer w-44"
-              >
-                <option value="">All Categories</option>
-                {(categoriesData ?? []).map((cat) => (
-                  <option key={cat.id} value={cat.name}>{cat.name}</option>
-                ))}
-              </select>
-            </div>
             <button
-              onClick={() => syncUrl(category, search, readTime, sort)}
+              onClick={() => syncUrl(resolvedServiceId, search, readTime, sort)}
               className="flex-shrink-0 inline-flex items-center justify-center gap-1.5 px-4 sm:px-6 py-2.5 rounded-xl bg-brand-blue hover:bg-brand-blue-dark text-white text-sm font-semibold transition-colors"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -326,7 +369,7 @@ export default function ArticleList({ initialCategory = '' }: ArticleListProps) 
                     Showing{' '}
                     <span className="font-semibold text-brand-navy">{totalResults.toLocaleString()}</span>
                     {' '}article{totalResults !== 1 ? 's' : ''}
-                    {category && ` in ${category}`}
+                    {selectedServiceName && ` for ${selectedServiceName}`}
                   </>
                 )}
               </p>
@@ -388,7 +431,7 @@ export default function ArticleList({ initialCategory = '' }: ArticleListProps) 
                   <div className="rounded-2xl bg-white border border-gray-100 p-12 text-center">
                     <p className="text-base font-semibold text-brand-navy mb-1">No articles yet</p>
                     <p className="text-sm text-brand-text-muted">
-                      {category ? `No articles in ${category} yet.` : 'Check back soon for expert insights.'}
+                      {selectedServiceName ? `No articles for ${selectedServiceName} yet.` : 'Check back soon for expert insights.'}
                     </p>
                     {hasFilters && (
                       <button onClick={clearFilters} className="mt-4 text-sm font-medium text-brand-blue hover:underline">

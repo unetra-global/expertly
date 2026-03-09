@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 import { X, Sparkles, RotateCcw, ChevronRight } from 'lucide-react';
 import { getBrowserClient } from '@/lib/supabase';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001') + '/api/v1';
 
 // ── Questions ─────────────────────────────────────────────────────────────────
 
@@ -23,6 +23,26 @@ interface GeneratedResult {
   tags: string[];
 }
 
+function normalizeGeneratedResult(input: unknown): GeneratedResult {
+  const obj = (input ?? {}) as {
+    title?: unknown;
+    body?: unknown;
+    tags?: unknown;
+  };
+
+  const title = typeof obj.title === 'string' ? obj.title.trim() : '';
+  const body = typeof obj.body === 'string' ? obj.body.trim() : '';
+  const tags = Array.isArray(obj.tags)
+    ? obj.tags.filter((tag): tag is string => typeof tag === 'string').map((tag) => tag.trim()).filter(Boolean).slice(0, 5)
+    : [];
+
+  if (!title || !body) {
+    throw new Error('AI response is missing title/body content.');
+  }
+
+  return { title, body, tags };
+}
+
 // ── Main Component ─────────────────────────────────────────────────────────────
 
 interface Props {
@@ -35,7 +55,6 @@ export default function AIGeneratePanel({ categoryId, onGenerated, onClose }: Pr
   const [answers, setAnswers] = useState<string[]>(DEFAULT_QUESTIONS.map(() => ''));
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [streamedText, setStreamedText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -46,7 +65,6 @@ export default function AIGeneratePanel({ categoryId, onGenerated, onClose }: Pr
     setError(null);
     setIsGenerating(true);
     setProgress(0);
-    setStreamedText('');
 
     const qa = DEFAULT_QUESTIONS.map((question, i) => ({
       question,
@@ -73,18 +91,28 @@ export default function AIGeneratePanel({ categoryId, onGenerated, onClose }: Pr
           'Authorization': `Bearer ${token}`,
           'Accept': 'text/event-stream',
         },
-        body: JSON.stringify({ qa, categoryId }),
+        body: JSON.stringify({ qa, ...(categoryId ? { categoryId } : {}) }),
         signal: abortRef.current.signal,
       });
 
-      if (!resp.ok || !resp.body) {
-        throw new Error('Generation failed. Please try again.');
+      if (!resp.ok) {
+        let bodyText = '';
+        try {
+          bodyText = (await resp.text()).trim();
+        } catch {
+          bodyText = '';
+        }
+        const extra = bodyText ? ` ${bodyText.slice(0, 240)}` : '';
+        throw new Error(`Generation failed (${resp.status} ${resp.statusText}).${extra}`);
+      }
+
+      if (!resp.body) {
+        throw new Error('Generation failed: empty response stream.');
       }
 
       const reader = resp.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
-      let accumulated = '';
       let progressTick = 0;
 
       while (true) {
@@ -100,47 +128,65 @@ export default function AIGeneratePanel({ categoryId, onGenerated, onClose }: Pr
           const payload = line.slice(6).trim();
           if (!payload || payload === '[DONE]') continue;
 
+          let parsed: {
+            type?: string;
+            token?: string;
+            data?: GeneratedResult;
+            message?: string;
+          } | null = null;
+
           try {
-            const parsed = JSON.parse(payload) as {
+            parsed = JSON.parse(payload) as {
               type?: string;
               token?: string;
               data?: GeneratedResult;
+              message?: string;
             };
-
-            if (parsed.type === 'done' && parsed.data) {
-              // Final structured result
-              setProgress(100);
-              setIsGenerating(false);
-              onGenerated(parsed.data);
-              onClose();
-              return;
-            }
-
-            if (parsed.token) {
-              accumulated += parsed.token;
-              setStreamedText(accumulated);
-              progressTick = Math.min(95, progressTick + 0.5);
-              setProgress(Math.round(progressTick));
-            }
           } catch {
-            // token might be raw text, not JSON
-            if (payload) {
-              accumulated += payload;
-              setStreamedText(accumulated);
+            parsed = null;
+          }
+
+          if (!parsed) continue;
+
+          if (parsed.type === 'done' && parsed.data) {
+            // Final structured result
+            setProgress(100);
+            setIsGenerating(false);
+            const safeResult = normalizeGeneratedResult(parsed.data);
+            try {
+              onGenerated(safeResult);
+              onClose();
+            } catch (applyErr) {
+              const applyMessage = applyErr instanceof Error ? applyErr.message : 'Unable to apply generated article to editor.';
+              throw new Error(`Generated article received, but failed to apply: ${applyMessage}`);
             }
+            return;
+          }
+
+          if (parsed.type === 'error') {
+            throw new Error(parsed.message ?? 'AI generation failed');
+          }
+
+          if (parsed.token) {
+            progressTick = Math.min(95, progressTick + 0.5);
+            setProgress(Math.round(progressTick));
           }
         }
       }
 
-      // Stream ended without done event — use accumulated text
-      if (accumulated) {
-        setIsGenerating(false);
-        setProgress(100);
-      }
+      throw new Error('AI generation was interrupted before completion. Please try again.');
     } catch (err) {
       if ((err as Error).name === 'AbortError') return;
-      setError('AI generation failed. Please try again or write your article manually.');
-      setStreamedText('');
+      const isFetchNetworkError =
+        err instanceof TypeError && /failed to fetch/i.test(err.message);
+      const message = isFetchNetworkError
+        ? 'Could not connect to AI service. Ensure API is running at http://localhost:3001 and that you are opening the app on localhost/127.0.0.1.'
+        : err instanceof Error
+          ? err.message
+          : 'AI generation failed. Please try again.';
+      // Keep this log to troubleshoot SSE failures in production-like envs.
+      console.error('AIGeneratePanel.handleGenerate failed', err);
+      setError(message);
       setIsGenerating(false);
       setProgress(0);
     }
@@ -149,7 +195,6 @@ export default function AIGeneratePanel({ categoryId, onGenerated, onClose }: Pr
   const handleCancel = () => {
     abortRef.current?.abort();
     setIsGenerating(false);
-    setStreamedText('');
     setProgress(0);
   };
 
@@ -175,8 +220,7 @@ export default function AIGeneratePanel({ categoryId, onGenerated, onClose }: Pr
         <div className="flex-1 overflow-y-auto px-6 py-5">
           {isGenerating ? (
             <div className="space-y-4">
-              <p className="text-sm font-medium text-brand-text">Generating your article…</p>
-              {/* Progress bar */}
+              <p className="text-sm font-medium text-brand-text">Writing your article…</p>
               <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-brand-blue rounded-full transition-all duration-300"
@@ -184,13 +228,9 @@ export default function AIGeneratePanel({ categoryId, onGenerated, onClose }: Pr
                 />
               </div>
               <p className="text-xs text-brand-text-muted">{progress}% complete</p>
-              {/* Streaming preview */}
-              {streamedText && (
-                <div className="mt-4 p-4 bg-brand-surface rounded-lg border border-slate-200">
-                  <p className="text-xs font-medium text-brand-text-muted mb-2 uppercase tracking-wide">Preview</p>
-                  <p className="text-sm text-brand-text whitespace-pre-wrap line-clamp-10">{streamedText}</p>
-                </div>
-              )}
+              <p className="text-xs text-brand-text-muted">
+                This usually takes 15–30 seconds. You can edit everything before submitting.
+              </p>
             </div>
           ) : error ? (
             <div className="space-y-4">

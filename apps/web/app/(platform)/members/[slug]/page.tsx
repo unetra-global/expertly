@@ -9,10 +9,11 @@ export const revalidate = 600;
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002') + '/api/v1';
 
-async function fetchMember(slug: string): Promise<MemberFullProfile | null> {
+async function fetchMember(slug: string, token?: string): Promise<MemberFullProfile | null> {
   try {
     const res = await fetch(`${API_BASE}/members/${slug}`, {
-      next: { revalidate: 600 },
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      ...(token ? { cache: 'no-store' } : { next: { revalidate: 600 } }),
     });
     if (res.status === 404) return null;
     if (!res.ok) return null;
@@ -77,21 +78,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function MemberSlugPage({ params }: PageProps) {
-  const [member, supabase] = await Promise.all([
-    fetchMember(params.slug),
-    Promise.resolve(createServerClient()),
-  ]);
-
-  if (!member) notFound();
-
+  const supabase = createServerClient();
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
-  if (!user) {
+  if (!session) {
+    // Fetch teaser (no token) just to get the display name for the AuthWall
+    const teaserMember = await fetchMember(params.slug);
+    if (!teaserMember) notFound();
+
     const displayName =
-      member.users?.fullName ||
-      [member.users?.firstName, member.users?.lastName].filter(Boolean).join(' ') ||
+      teaserMember.users?.fullName ||
+      [teaserMember.users?.firstName, teaserMember.users?.lastName].filter(Boolean).join(' ') ||
       null;
 
     return (
@@ -107,6 +106,10 @@ export default async function MemberSlugPage({ params }: PageProps) {
       />
     );
   }
+
+  // Authenticated — fetch full profile with token
+  const member = await fetchMember(params.slug, session.access_token);
+  if (!member) notFound();
 
   return <MemberProfile member={member} isAuthenticated={true} />;
 }

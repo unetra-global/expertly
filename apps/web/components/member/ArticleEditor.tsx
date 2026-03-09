@@ -188,7 +188,16 @@ export default function ArticleEditor({ articleId: initialArticleId }: Props) {
     content: '',
     editorProps: {
       attributes: {
-        class: 'prose prose-sm max-w-none focus:outline-none min-h-[400px] p-4',
+        class: [
+          'prose prose-sm max-w-none',
+          'prose-headings:text-brand-navy prose-headings:font-bold prose-headings:leading-snug',
+          'prose-p:text-brand-text-secondary prose-p:leading-relaxed',
+          'prose-strong:text-brand-navy',
+          'prose-a:text-brand-blue prose-a:no-underline',
+          'prose-blockquote:border-brand-blue prose-blockquote:text-brand-text-secondary prose-blockquote:not-italic',
+          'prose-ul:text-brand-text-secondary prose-ol:text-brand-text-secondary',
+          'focus:outline-none min-h-[400px] p-4',
+        ].join(' '),
       },
     },
   });

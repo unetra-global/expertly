@@ -41,6 +41,11 @@ interface PageProps {
   searchParams: Record<string, string | string[] | undefined>;
 }
 
+function isUuid(value: string | undefined): value is string {
+  if (!value) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
 export default async function MembersPage({ searchParams }: PageProps) {
   // Resolve auth state server-side to determine card variant
   const supabase = createServerClient();
@@ -49,10 +54,14 @@ export default async function MembersPage({ searchParams }: PageProps) {
   } = await supabase.auth.getUser();
 
   const sp = searchParams as Record<string, string>;
+  const serviceId = isUuid(sp.serviceId) ? sp.serviceId : undefined;
   const filters: Record<string, string> = {
-    ...(sp.serviceId && { serviceId: sp.serviceId }),
+    ...(serviceId && { serviceId }),
     ...(sp.country && { country: sp.country }),
-    ...(sp.search && { search: sp.search }),
+    ...((sp.search || sp.q) && { search: sp.search ?? sp.q }),
+    ...(sp.minYears && { minYearsExperience: sp.minYears }),
+    ...(sp.maxHourly && { maxHourlyRate: sp.maxHourly }),
+    ...(sp.sort && { sort: sp.sort }),
     limit: '20',
     page: '1',
   };

@@ -1,12 +1,14 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { getBrowserClient } from '@/lib/supabase';
 
 type AuthTab = 'signin' | 'signup';
+type AuthMethod = 'linkedin' | 'email';
 
 export default function AuthPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
 
   // Honour ?tab=signup from e.g. "Become a Member" nav link or ?tab=signin
@@ -14,7 +16,11 @@ export default function AuthPage() {
     searchParams.get('tab') === 'signup' ? 'signup' : 'signin';
 
   const [tab, setTab] = useState<AuthTab>(initialTab);
+  const [method, setMethod] = useState<AuthMethod>('linkedin');
   const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [formError, setFormError] = useState<string | null>(null);
   const redirectedRef = useRef(false);
 
   const error = searchParams.get('error');
@@ -27,6 +33,13 @@ export default function AuthPage() {
       sessionStorage.setItem('returnTo', returnTo);
     }
   }, [searchParams]);
+
+  // Reset form state when switching tabs or methods
+  useEffect(() => {
+    setFormError(null);
+    setEmail('');
+    setPassword('');
+  }, [tab, method]);
 
   async function handleLinkedInAuth(intent: AuthTab) {
     if (redirectedRef.current) return;
@@ -57,6 +70,52 @@ export default function AuthPage() {
         scopes: 'openid profile email',
       },
     });
+  }
+
+  async function handleEmailAuth(intent: AuthTab) {
+    setFormError(null);
+    if (!email.trim() || !password) {
+      setFormError('Please enter your email and password.');
+      return;
+    }
+
+    setLoading(true);
+    const supabase = getBrowserClient();
+
+    if (intent === 'signin') {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+
+      if (signInError) {
+        setLoading(false);
+        if (signInError.message.toLowerCase().includes('invalid login')) {
+          setFormError('Incorrect email or password. Please try again.');
+        } else {
+          setFormError(signInError.message);
+        }
+        return;
+      }
+    } else {
+      const { error: signUpError } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+      });
+
+      if (signUpError) {
+        setLoading(false);
+        if (signUpError.message.toLowerCase().includes('already registered')) {
+          setFormError('An account with this email already exists. Please sign in.');
+        } else {
+          setFormError(signUpError.message);
+        }
+        return;
+      }
+    }
+
+    // Redirect to server route that checks role/application and routes accordingly
+    router.push('/auth/redirect');
   }
 
   const errorMessage =
@@ -168,9 +227,9 @@ export default function AuthPage() {
 
             <div className="px-8 py-8">
               {/* Error banner */}
-              {errorMessage && (
+              {(errorMessage || formError) && (
                 <div className="mb-6 rounded-lg bg-red-50 border border-red-200 p-4 text-sm text-red-700">
-                  {errorMessage}
+                  {errorMessage ?? formError}
                 </div>
               )}
 
@@ -180,30 +239,92 @@ export default function AuthPage() {
                   <h1 className="text-xl font-bold text-brand-navy mb-1">
                     Welcome back
                   </h1>
-                  <p className="text-sm text-gray-500 mb-8">
+                  <p className="text-sm text-gray-500 mb-6">
                     Sign in to your Expertly account to continue.
                   </p>
 
-                  <button
-                    onClick={() => void handleLinkedInAuth('signin')}
-                    disabled={loading}
-                    className="w-full flex items-center justify-center gap-3 rounded-xl bg-[#0077B5] hover:bg-[#006097] active:bg-[#005580] text-white font-semibold py-3.5 px-6 transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
-                  >
-                    {loading ? (
-                      <>
-                        <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                        </svg>
-                        <span>Redirecting to LinkedIn…</span>
-                      </>
-                    ) : (
-                      <>
-                        <LinkedInIcon />
-                        <span>Continue with LinkedIn</span>
-                      </>
-                    )}
-                  </button>
+                  {/* Method toggle */}
+                  <div className="flex rounded-lg border border-gray-200 p-0.5 mb-6 bg-gray-50">
+                    <button
+                      onClick={() => setMethod('linkedin')}
+                      className={`flex-1 py-2 text-xs font-semibold rounded-md transition-all ${
+                        method === 'linkedin'
+                          ? 'bg-white text-brand-navy shadow-sm'
+                          : 'text-gray-400 hover:text-gray-600'
+                      }`}
+                    >
+                      LinkedIn
+                    </button>
+                    <button
+                      onClick={() => setMethod('email')}
+                      className={`flex-1 py-2 text-xs font-semibold rounded-md transition-all ${
+                        method === 'email'
+                          ? 'bg-white text-brand-navy shadow-sm'
+                          : 'text-gray-400 hover:text-gray-600'
+                      }`}
+                    >
+                      Email
+                    </button>
+                  </div>
+
+                  {method === 'linkedin' ? (
+                    <button
+                      onClick={() => void handleLinkedInAuth('signin')}
+                      disabled={loading}
+                      className="w-full flex items-center justify-center gap-3 rounded-xl bg-[#0077B5] hover:bg-[#006097] active:bg-[#005580] text-white font-semibold py-3.5 px-6 transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
+                    >
+                      {loading ? (
+                        <>
+                          <Spinner />
+                          <span>Redirecting to LinkedIn…</span>
+                        </>
+                      ) : (
+                        <>
+                          <LinkedInIcon />
+                          <span>Continue with LinkedIn</span>
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <form
+                      onSubmit={(e) => { e.preventDefault(); void handleEmailAuth('signin'); }}
+                      className="space-y-4"
+                    >
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                          Email address
+                        </label>
+                        <input
+                          type="email"
+                          autoComplete="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="you@example.com"
+                          className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-brand-navy placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue transition"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                          Password
+                        </label>
+                        <input
+                          type="password"
+                          autoComplete="current-password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="••••••••"
+                          className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-brand-navy placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue transition"
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={loading}
+                        className="w-full flex items-center justify-center gap-2 rounded-xl bg-brand-blue hover:bg-brand-blue-dark text-white font-semibold py-3.5 px-6 transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
+                      >
+                        {loading ? <><Spinner /><span>Signing in…</span></> : 'Sign in with Email'}
+                      </button>
+                    </form>
+                  )}
 
                   <p className="mt-6 text-sm text-center text-gray-500">
                     Don&apos;t have an account?{' '}
@@ -223,36 +344,100 @@ export default function AuthPage() {
                   <h1 className="text-xl font-bold text-brand-navy mb-1">
                     Join Expertly
                   </h1>
-                  <p className="text-sm text-gray-500 mb-8">
+                  <p className="text-sm text-gray-500 mb-6">
                     Create your account and apply for verified membership.
                   </p>
 
-                  <button
-                    onClick={() => void handleLinkedInAuth('signup')}
-                    disabled={loading}
-                    className="w-full flex items-center justify-center gap-3 rounded-xl bg-[#0077B5] hover:bg-[#006097] active:bg-[#005580] text-white font-semibold py-3.5 px-6 transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
-                  >
-                    {loading ? (
-                      <>
-                        <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                        </svg>
-                        <span>Redirecting to LinkedIn…</span>
-                      </>
-                    ) : (
-                      <>
-                        <LinkedInIcon />
-                        <span>Sign up with LinkedIn</span>
-                      </>
-                    )}
-                  </button>
-
-                  {/* Info box */}
-                  <div className="mt-5 rounded-xl bg-brand-blue-subtle border border-blue-100 px-4 py-3 text-xs text-blue-700 leading-relaxed">
-                    <strong>How it works:</strong> After connecting with LinkedIn, new
-                    members complete a short application. Membership is verified by our team.
+                  {/* Method toggle */}
+                  <div className="flex rounded-lg border border-gray-200 p-0.5 mb-6 bg-gray-50">
+                    <button
+                      onClick={() => setMethod('linkedin')}
+                      className={`flex-1 py-2 text-xs font-semibold rounded-md transition-all ${
+                        method === 'linkedin'
+                          ? 'bg-white text-brand-navy shadow-sm'
+                          : 'text-gray-400 hover:text-gray-600'
+                      }`}
+                    >
+                      LinkedIn
+                    </button>
+                    <button
+                      onClick={() => setMethod('email')}
+                      className={`flex-1 py-2 text-xs font-semibold rounded-md transition-all ${
+                        method === 'email'
+                          ? 'bg-white text-brand-navy shadow-sm'
+                          : 'text-gray-400 hover:text-gray-600'
+                      }`}
+                    >
+                      Email
+                    </button>
                   </div>
+
+                  {method === 'linkedin' ? (
+                    <>
+                      <button
+                        onClick={() => void handleLinkedInAuth('signup')}
+                        disabled={loading}
+                        className="w-full flex items-center justify-center gap-3 rounded-xl bg-[#0077B5] hover:bg-[#006097] active:bg-[#005580] text-white font-semibold py-3.5 px-6 transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
+                      >
+                        {loading ? (
+                          <>
+                            <Spinner />
+                            <span>Redirecting to LinkedIn…</span>
+                          </>
+                        ) : (
+                          <>
+                            <LinkedInIcon />
+                            <span>Sign up with LinkedIn</span>
+                          </>
+                        )}
+                      </button>
+
+                      {/* Info box */}
+                      <div className="mt-5 rounded-xl bg-brand-blue-subtle border border-blue-100 px-4 py-3 text-xs text-blue-700 leading-relaxed">
+                        <strong>How it works:</strong> After connecting with LinkedIn, new
+                        members complete a short application. Membership is verified by our team.
+                      </div>
+                    </>
+                  ) : (
+                    <form
+                      onSubmit={(e) => { e.preventDefault(); void handleEmailAuth('signup'); }}
+                      className="space-y-4"
+                    >
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                          Email address
+                        </label>
+                        <input
+                          type="email"
+                          autoComplete="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="you@example.com"
+                          className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-brand-navy placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue transition"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                          Password
+                        </label>
+                        <input
+                          type="password"
+                          autoComplete="new-password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="••••••••"
+                          className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-brand-navy placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue transition"
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={loading}
+                        className="w-full flex items-center justify-center gap-2 rounded-xl bg-brand-blue hover:bg-brand-blue-dark text-white font-semibold py-3.5 px-6 transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
+                      >
+                        {loading ? <><Spinner /><span>Creating account…</span></> : 'Create Account with Email'}
+                      </button>
+                    </form>
+                  )}
 
                   <p className="mt-5 text-sm text-center text-gray-500">
                     Already have an account?{' '}
@@ -278,6 +463,15 @@ export default function AuthPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function Spinner() {
+  return (
+    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+    </svg>
   );
 }
 

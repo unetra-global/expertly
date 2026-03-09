@@ -7,7 +7,6 @@ import Link from 'next/link';
 import { apiClient } from '@/lib/apiClient';
 import { queryKeys } from '@/hooks/queryKeys';
 import { MemberCard } from './MemberCard';
-import { ConsultationModal } from './ConsultationModal';
 import { FilterSheet } from '@/components/ui/FilterSheet';
 import type { MemberListItem, PaginatedResponse } from '@/types/api';
 
@@ -37,8 +36,9 @@ export default function MemberDirectory({
 }: MemberDirectoryProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const searchParamsKey = searchParams.toString();
 
-  const [service, setService] = useState(initialFilters.service ?? '');
+  const [service, setService] = useState(initialFilters.serviceId ?? initialFilters.service ?? '');
   const [country, setCountry] = useState(initialFilters.country ?? '');
   const [search, setSearch] = useState(initialFilters.q ?? '');
   const [debouncedSearch, setDebouncedSearch] = useState(initialFilters.q ?? '');
@@ -47,9 +47,8 @@ export default function MemberDirectory({
   const [sort, setSort] = useState(initialFilters.sort ?? '');
   const [page, setPage] = useState(1);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [consultMember, setConsultMember] = useState<MemberListItem | null>(null);
 
-  const { data: taxonomyData } = useQuery<Array<{ id: string; name: string; category?: { name: string } }>>({
+  const { data: taxonomyData } = useQuery<Array<{ id: string; name: string; slug?: string; category?: { name: string } }>>({
     queryKey: queryKeys.taxonomy.services(),
     queryFn: () => apiClient.get('/taxonomy/services'),
     staleTime: 3600 * 1000,
@@ -63,37 +62,70 @@ export default function MemberDirectory({
     return () => clearTimeout(timer);
   }, [search]);
 
+  useEffect(() => {
+    if (!service || !taxonomyData?.length) return;
+    const existsById = taxonomyData.some((s) => s.id === service);
+    if (existsById) return;
+    const normalized = service.trim().toLowerCase();
+    const mapped = taxonomyData.find((s) =>
+      s.name.trim().toLowerCase() === normalized ||
+      s.slug?.trim().toLowerCase() === normalized,
+    );
+    if (mapped) {
+      setService(mapped.id);
+    }
+  }, [service, taxonomyData]);
+
+  const hasServiceById = !!service && (taxonomyData ?? []).some((s) => s.id === service);
+  const resolvedServiceId = hasServiceById ? service : '';
+  const isWaitingForTaxonomy = !!service && !hasServiceById && taxonomyData === undefined;
+  const isResolvingLegacyService = !!service && !hasServiceById && !!taxonomyData?.length;
+
   const syncUrl = useCallback((s: string, c: string, q: string, my: string, mh: number, so: string) => {
     const params = new URLSearchParams();
-    if (s) params.set('service', s);
+    if (s) params.set('serviceId', s);
     if (c) params.set('country', c);
     if (q) params.set('q', q);
     if (my) params.set('minYears', my);
     if (mh < MAX_HOURLY_MAX) params.set('maxHourly', String(mh));
     if (so) params.set('sort', so);
-    router.push(`/members${params.size ? `?${params.toString()}` : ''}`, { scroll: false });
-  }, [router]);
+    const next = params.toString();
+    if (next === searchParamsKey) return;
+    router.push(`/members${next ? `?${next}` : ''}`, { scroll: false });
+  }, [router, searchParamsKey]);
 
   useEffect(() => {
-    syncUrl(service, country, debouncedSearch, minYears, maxHourly, sort);
-  }, [service, country, debouncedSearch, minYears, maxHourly, sort, syncUrl]);
+    if (isWaitingForTaxonomy || isResolvingLegacyService) return;
+    syncUrl(resolvedServiceId, country, debouncedSearch, minYears, maxHourly, sort);
+  }, [
+    resolvedServiceId,
+    isWaitingForTaxonomy,
+    isResolvingLegacyService,
+    country,
+    debouncedSearch,
+    minYears,
+    maxHourly,
+    sort,
+    syncUrl,
+  ]);
 
   useEffect(() => {
-    setService(searchParams.get('service') ?? '');
+    setService(searchParams.get('serviceId') ?? searchParams.get('service') ?? '');
     setCountry(searchParams.get('country') ?? '');
     setSearch(searchParams.get('q') ?? '');
     setMinYears(searchParams.get('minYears') ?? '');
     setMaxHourly(Number(searchParams.get('maxHourly') ?? MAX_HOURLY_MAX));
     setSort(searchParams.get('sort') ?? '');
     setPage(1);
-  }, [searchParams]);
+  }, [searchParamsKey, searchParams]);
 
   const activeFilters: Record<string, string> = {
-    ...(service && { serviceId: service }),
+    ...(resolvedServiceId && { serviceId: resolvedServiceId }),
     ...(country && { country }),
     ...(debouncedSearch && { search: debouncedSearch }),
     ...(minYears && { minYearsExperience: minYears }),
     ...(maxHourly < MAX_HOURLY_MAX && { maxHourlyRate: String(maxHourly) }),
+    ...(sort && { sort }),
     limit: isAuthenticated ? '12' : '20',
     page: String(page),
   };
@@ -110,8 +142,8 @@ export default function MemberDirectory({
   const members = data?.data ?? [];
   const meta = data?.meta;
   const totalResults = meta?.total ?? members.length;
-  const hasFilters = !!(service || country || debouncedSearch || minYears || maxHourly < MAX_HOURLY_MAX);
-  const activeFilterCount = [service, country, minYears, maxHourly < MAX_HOURLY_MAX ? 'hourly' : ''].filter(Boolean).length;
+  const hasFilters = !!(resolvedServiceId || country || debouncedSearch || minYears || maxHourly < MAX_HOURLY_MAX);
+  const activeFilterCount = [resolvedServiceId, country, minYears, maxHourly < MAX_HOURLY_MAX ? 'hourly' : ''].filter(Boolean).length;
 
   function clearFilters() {
     setService('');
@@ -138,8 +170,8 @@ export default function MemberDirectory({
             <label key={s.id} className="flex items-center gap-3 cursor-pointer group">
               <input
                 type="checkbox"
-                checked={service === s.name}
-                onChange={() => { setService(service === s.name ? '' : s.name); setPage(1); }}
+                checked={service === s.id}
+                onChange={() => { setService(service === s.id ? '' : s.id); setPage(1); }}
                 className="h-4 w-4 accent-brand-blue cursor-pointer rounded"
               />
               <span className="text-sm text-brand-text group-hover:text-brand-navy transition-colors">
@@ -177,7 +209,6 @@ export default function MemberDirectory({
             <label key={opt.value} className="flex items-center gap-3 cursor-pointer group">
               <input
                 type="radio"
-                name="minYears"
                 value={opt.value}
                 checked={minYears === opt.value}
                 onChange={() => { setMinYears(opt.value); setPage(1); }}
@@ -281,7 +312,7 @@ export default function MemberDirectory({
               </div>
             </div>
             <button
-              onClick={() => syncUrl(service, country, search, minYears, maxHourly, sort)}
+              onClick={() => syncUrl(resolvedServiceId, country, search, minYears, maxHourly, sort)}
               className="flex-shrink-0 inline-flex items-center justify-center gap-1.5 px-4 sm:px-6 py-2.5 rounded-xl bg-brand-blue hover:bg-brand-blue-dark text-white text-sm font-semibold transition-colors"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -410,7 +441,6 @@ export default function MemberDirectory({
                         key={member.id}
                         member={member}
                         variant={isAuthenticated ? 'full' : 'teaser'}
-                        onConsult={isAuthenticated ? (m) => setConsultMember(m) : undefined}
                       />
                     ))}
                   </div>
@@ -479,7 +509,6 @@ export default function MemberDirectory({
         {filterControls}
       </FilterSheet>
 
-      <ConsultationModal member={consultMember} onClose={() => setConsultMember(null)} />
     </>
   );
 }

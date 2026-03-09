@@ -33,7 +33,7 @@ export default function HeroSection() {
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     const params = new URLSearchParams();
-    if (profession) params.set('service', profession);
+    if (profession) params.set('q', profession);
     if (country) params.set('country', country);
     router.push(`/members${params.toString() ? `?${params.toString()}` : ''}`);
   }

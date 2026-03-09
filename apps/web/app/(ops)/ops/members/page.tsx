@@ -34,13 +34,15 @@ export default function MembersPage() {
 
   const filters = filter ? { filter } : {};
 
-  const { data: members = [], isLoading } = useQuery({
+  const { data: response, isLoading } = useQuery({
     queryKey: queryKeys.ops.members(filters),
     queryFn: () => {
       const qs = filter ? `?filter=${filter}` : '';
-      return apiClient.get<OpsMember[]>(`/ops/members${qs}`);
+      return apiClient.get<{ data: OpsMember[]; meta: { total: number } }>(`/ops/members${qs}`);
     },
   });
+
+  const members = response?.data ?? [];
 
   const handleFilterChange = (val: string) => {
     setFilter(val);

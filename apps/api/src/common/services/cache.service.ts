@@ -7,6 +7,7 @@ const LOCK_TTL = 30;     // 30 seconds lock for stampede protection
 @Injectable()
 export class CacheService {
   private readonly logger = new Logger(CacheService.name);
+  private readonly cacheDisabled = process.env['CACHE_DISABLED'] === 'true';
 
   constructor(private readonly redis: RedisService) {}
 
@@ -15,7 +16,8 @@ export class CacheService {
   }
 
   async get<T>(key: string): Promise<T | null> {
-    const val = await this.redis.client.get(key);
+    if (this.cacheDisabled) return null;
+    const val = await this.redis.get(key);
     if (!val) return null;
     try {
       return JSON.parse(val) as T;
@@ -25,17 +27,20 @@ export class CacheService {
   }
 
   async set<T>(key: string, value: T, ttl = DEFAULT_TTL): Promise<void> {
-    await this.redis.client.set(key, JSON.stringify(value), 'EX', ttl);
+    if (this.cacheDisabled) return;
+    await this.redis.set(key, JSON.stringify(value), 'EX', ttl);
   }
 
   async del(key: string): Promise<void> {
-    await this.redis.client.del(key);
+    if (this.cacheDisabled) return;
+    await this.redis.del(key);
   }
 
   async delByPattern(pattern: string): Promise<void> {
-    const keys = await this.redis.client.keys(pattern);
+    if (this.cacheDisabled) return;
+    const keys = await this.redis.keys(pattern);
     if (keys.length > 0) {
-      await this.redis.client.del(...keys);
+      await this.redis.del(...keys);
       this.logger.debug(`Deleted ${keys.length} keys matching pattern: ${pattern}`);
     }
   }
@@ -49,6 +54,10 @@ export class CacheService {
     fetcher: () => Promise<T>,
     ttl = DEFAULT_TTL,
   ): Promise<T> {
+    if (this.cacheDisabled || this.redis.isDisabled()) {
+      return fetcher();
+    }
+
     // Try cache first
     const cached = await this.get<T>(key);
     if (cached !== null) return cached;
@@ -56,7 +65,7 @@ export class CacheService {
     // Acquire lock
     const lockKey = `lock:${key}`;
     const lockToken = `${Date.now()}-${Math.random()}`;
-    const acquired = await this.redis.client.set(lockKey, lockToken, 'EX', LOCK_TTL, 'NX');
+    const acquired = await this.redis.set(lockKey, lockToken, 'EX', LOCK_TTL, 'NX');
 
     if (acquired === 'OK') {
       try {
@@ -65,9 +74,9 @@ export class CacheService {
         return value;
       } finally {
         // Release lock only if we own it
-        const current = await this.redis.client.get(lockKey);
+        const current = await this.redis.get(lockKey);
         if (current === lockToken) {
-          await this.redis.client.del(lockKey);
+          await this.redis.del(lockKey);
         }
       }
     }

@@ -1,4 +1,4 @@
-import { IsEnum, IsNumber, IsOptional, IsUUID, Min, Max } from 'class-validator';
+import { IsEnum, IsIn, IsNumber, IsOptional, IsString, IsUUID, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class QueryArticlesDto {
@@ -26,4 +26,28 @@ export class QueryArticlesDto {
   @IsOptional()
   @IsUUID()
   serviceId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  memberId?: string;
+
+  @IsOptional()
+  @IsString()
+  q?: string;
+
+  @IsOptional()
+  @IsIn(['newest', 'oldest', 'read_time_asc', 'read_time_desc'])
+  sort?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  minReadTime?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  maxReadTime?: number;
 }

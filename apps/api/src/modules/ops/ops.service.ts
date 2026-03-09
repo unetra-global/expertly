@@ -95,7 +95,7 @@ export class OpsService {
           'linkedin_url, profile_photo_url, firm_name, firm_size, country, city, ' +
           'consultation_fee_min_usd, consultation_fee_max_usd, qualifications, credentials, ' +
           'work_experience, education, primary_service_id, secondary_service_ids, ' +
-          'engagements, availability, membership_tier, submitted_at, reviewed_at, ' +
+          'engagements, availability, submitted_at, reviewed_at, ' +
           'rejection_reason, re_application_eligible_at, created_at, updated_at',
       )
       .eq('id', id)
@@ -131,7 +131,6 @@ export class OpsService {
       .update({
         status: 'approved',
         primary_service_id: body.serviceId,
-        membership_tier: body.membershipTier,
         reviewed_at: new Date().toISOString(),
       })
       .eq('id', id);
@@ -251,9 +250,10 @@ export class OpsService {
     let q = sb
       .from('members')
       .select(
-        'id, first_name, last_name, slug, designation, membership_status, is_verified, ' +
+        'id, slug, designation, membership_status, is_verified, country, ' +
           'is_featured, member_tier, membership_expiry_date, created_at, ' +
-          'pending_service_change, re_verification_requested_at',
+          'pending_service_change, re_verification_requested_at, ' +
+          'user:users!user_id(first_name, last_name)',
         { count: 'exact' },
       )
       .order('created_at', { ascending: false })
@@ -272,8 +272,16 @@ export class OpsService {
     const { data, count, error } = await q;
     if (error) throw new BadRequestException(error.message);
 
+    // Flatten user.first_name / user.last_name to top level
+    type MemberRow = { user: { first_name: string; last_name: string } | null; [key: string]: unknown };
+    const flat = (data as unknown as MemberRow[] ?? []).map(({ user, ...m }) => ({
+      ...m,
+      first_name: user?.first_name ?? '',
+      last_name: user?.last_name ?? '',
+    }));
+
     return {
-      data: data ?? [],
+      data: flat,
       meta: {
         total: count ?? 0,
         page,
@@ -287,16 +295,23 @@ export class OpsService {
     const { data, error } = await this.supabase.adminClient
       .from('members')
       .select(
-        'id, first_name, last_name, slug, designation, headline, bio, ' +
+        'id, slug, designation, headline, bio, ' +
           'membership_status, is_verified, is_featured, member_tier, membership_expiry_date, ' +
           'linkedin_url, profile_photo_url, country, city, ' +
-          'pending_service_change, re_verification_requested_at, user_id, created_at',
+          'pending_service_change, re_verification_requested_at, user_id, created_at, ' +
+          'user:users!user_id(first_name, last_name)',
       )
       .eq('id', id)
       .single();
 
     if (error || !data) throw new NotFoundException('Member not found');
-    return data;
+
+    const { user, ...m } = data as unknown as { user: { first_name: string; last_name: string } | null; [key: string]: unknown };
+    return {
+      ...m,
+      first_name: user?.first_name ?? '',
+      last_name: user?.last_name ?? '',
+    };
   }
 
   async activateMember(
@@ -314,7 +329,7 @@ export class OpsService {
           'linkedin_url, profile_photo_url, firm_name, country, city, ' +
           'consultation_fee_min_usd, consultation_fee_max_usd, qualifications, ' +
           'credentials, work_experience, education, primary_service_id, ' +
-          'secondary_service_ids, engagements, availability, membership_tier',
+          'secondary_service_ids, engagements, availability',
       )
       .eq('id', applicationId)
       .single();
@@ -391,7 +406,7 @@ export class OpsService {
         primary_service_id: a.primary_service_id,
         engagements: a.engagements,
         availability: a.availability,
-        member_tier: a.membership_tier ?? 'budding_entrepreneur',
+        member_tier: 'standard',
         membership_status: 'active',
         membership_start_date: new Date().toISOString().split('T')[0],
         membership_expiry_date: expiryAt,

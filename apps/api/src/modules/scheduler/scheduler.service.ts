@@ -202,14 +202,14 @@ export class SchedulerService implements OnModuleInit, OnModuleDestroy {
 
     // Idempotency check — skip if already queued this week
     const lockKey = `expertly:digest:lock:${weekStart}`;
-    const alreadySent = await this.redis.client.get(lockKey);
+    const alreadySent = await this.redis.get(lockKey);
     if (alreadySent) {
       this.logger.log(`Weekly digest for ${weekStart} already dispatched — skipping`);
       return;
     }
 
     // Mark as dispatched before queuing (7-day TTL)
-    await this.redis.client.set(lockKey, '1', 'EX', 7 * 86400);
+    await this.redis.set(lockKey, '1', 'EX', 7 * 86400);
 
     // Get digest data
     const { data: digestRows } = await sb.rpc('get_digest_data', {
@@ -254,23 +254,22 @@ export class SchedulerService implements OnModuleInit, OnModuleDestroy {
   // ─────────────────────────────────────────────────────────────────────────────
   @Cron('*/15 * * * *')
   async flushViewCounts(): Promise<void> {
-    const client = this.redis.client;
     const sb = this.supabase.adminClient;
 
     // Find all view count keys
-    const memberKeys = await client.keys('expertly:member:views:*');
-    const articleKeys = await client.keys('expertly:article:views:*');
+    const memberKeys = await this.redis.keys('expertly:member:views:*');
+    const articleKeys = await this.redis.keys('expertly:article:views:*');
 
     let flushed = 0;
 
     // Flush member view counts
     for (const key of memberKeys) {
       try {
-        const val = await client.get(key);
+        const val = await this.redis.get(key);
         if (!val) continue;
         const count = parseInt(val, 10);
         if (isNaN(count) || count <= 0) {
-          await client.del(key);
+          await this.redis.del(key);
           continue;
         }
 
@@ -283,7 +282,7 @@ export class SchedulerService implements OnModuleInit, OnModuleDestroy {
           p_count: count,
         });
 
-        await client.del(key);
+        await this.redis.del(key);
         flushed++;
       } catch (err) {
         this.logger.warn(`Failed to flush member view key ${key}: ${(err as Error).message}`);
@@ -293,11 +292,11 @@ export class SchedulerService implements OnModuleInit, OnModuleDestroy {
     // Flush article view counts
     for (const key of articleKeys) {
       try {
-        const val = await client.get(key);
+        const val = await this.redis.get(key);
         if (!val) continue;
         const count = parseInt(val, 10);
         if (isNaN(count) || count <= 0) {
-          await client.del(key);
+          await this.redis.del(key);
           continue;
         }
 
@@ -310,7 +309,7 @@ export class SchedulerService implements OnModuleInit, OnModuleDestroy {
           increment: count,
         });
 
-        await client.del(key);
+        await this.redis.del(key);
         flushed++;
       } catch (err) {
         this.logger.warn(`Failed to flush article view key ${key}: ${(err as Error).message}`);

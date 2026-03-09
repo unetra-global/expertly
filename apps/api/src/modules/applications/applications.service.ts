@@ -17,7 +17,7 @@ const APPLICATION_SELECT =
   'linkedin_url, profile_photo_url, firm_name, firm_size, country, city, ' +
   'consultation_fee_min_usd, consultation_fee_max_usd, qualifications, credentials, ' +
   'work_experience, education, primary_service_id, secondary_service_ids, ' +
-  'engagements, availability, creation_mode, submitted_at, linkedin_prefill, ' +
+  'engagements, availability, creation_mode, submitted_at, ' +
   're_application_eligible_at, created_at, updated_at';
 
 type ApplicationRow = {

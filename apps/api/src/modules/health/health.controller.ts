@@ -55,8 +55,8 @@ export class HealthController {
 
   private async checkCache(): Promise<'ok' | 'error'> {
     try {
-      const result = await this.redis.client.ping();
-      return result === 'PONG' ? 'ok' : 'error';
+      const result = await this.redis.ping();
+      return result === 'PONG' || result === 'DISABLED' ? 'ok' : 'error';
     } catch {
       return 'error';
     }

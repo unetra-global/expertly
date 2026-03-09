@@ -43,14 +43,14 @@ export class AutomationController {
   /** Check and set rate limit — throws 429 if already used within TTL */
   private async checkLinkedInRateLimit(userId: string): Promise<void> {
     const key = `expertly:linkedin:ratelimit:${userId}`;
-    const existing = await this.redis.client.get(key);
+    const existing = await this.redis.get(key);
     if (existing) {
       throw new HttpException(
         'Rate limit exceeded: LinkedIn import is limited to once per hour',
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }
-    await this.redis.client.set(key, '1', 'EX', LINKEDIN_RATE_LIMIT_TTL);
+    await this.redis.set(key, '1', 'EX', LINKEDIN_RATE_LIMIT_TTL);
   }
 
   // ── POST /automation/linkedin-scrape ───────────────────────────────────────

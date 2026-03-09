@@ -26,6 +26,12 @@ export const QUEUE_JOB_TYPES = {
 export type QueueJobType = (typeof QUEUE_JOB_TYPES)[keyof typeof QUEUE_JOB_TYPES];
 
 export function getQueueConnection(config: ConfigService): ConnectionOptions {
+  if (config.get<string>('REDIS_DISABLED') === 'true') {
+    // Queue workers/producers are effectively disabled in this mode.
+    // Use a local endpoint to avoid consuming Upstash requests.
+    return { host: '127.0.0.1', port: 6379 } as ConnectionOptions;
+  }
+
   const url = config.get<string>('REDIS_URL');
   const tls = config.get<string>('REDIS_TLS') === 'true';
 

@@ -1,4 +1,4 @@
-import { IsBoolean, IsNumber, IsOptional, IsString, Min, Max } from 'class-validator';
+import { IsBoolean, IsDateString, IsNumber, IsOptional, IsString, Min, Max } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 
 export class QueryEventsDto {
@@ -35,4 +35,17 @@ export class QueryEventsDto {
   @IsOptional()
   @IsString()
   sort?: string; // 'date_asc' | 'date_desc'
+
+  @IsOptional()
+  @IsDateString()
+  startDateFrom?: string;
+
+  @IsOptional()
+  @IsDateString()
+  startDateTo?: string;
+
+  // Backward compatibility for older clients that sent a single date.
+  @IsOptional()
+  @IsDateString()
+  date?: string;
 }

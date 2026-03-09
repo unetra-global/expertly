@@ -67,12 +67,44 @@ function buildListCacheKey(cache: CacheService, dto: QueryMembersDto): string {
     dto.country ? `c${dto.country}` : '',
     dto.serviceId ? `svc${dto.serviceId}` : '',
     dto.memberTier ? `t${dto.memberTier}` : '',
+    dto.minYearsExperience !== undefined ? `y${dto.minYearsExperience}` : '',
+    dto.maxHourlyRate !== undefined ? `hr${dto.maxHourlyRate}` : '',
+    dto.sort ? `o${dto.sort}` : '',
     dto.isVerified !== undefined ? `v${String(dto.isVerified)}` : '',
   ]
     .filter(Boolean)
     .join('_');
 
   return cache.buildKey('members', 'list', parts);
+}
+
+function getCountryAliases(country: string): string[] {
+  const normalized = country.trim().toLowerCase();
+  const aliases = new Set<string>([country.trim()]);
+
+  if (normalized === 'united kingdom' || normalized === 'uk') {
+    aliases.add('United Kingdom');
+    aliases.add('UK');
+  }
+
+  if (
+    normalized === 'united states' ||
+    normalized === 'united states of america' ||
+    normalized === 'usa' ||
+    normalized === 'us'
+  ) {
+    aliases.add('United States');
+    aliases.add('United States of America');
+    aliases.add('USA');
+    aliases.add('US');
+  }
+
+  if (normalized === 'united arab emirates' || normalized === 'uae') {
+    aliases.add('United Arab Emirates');
+    aliases.add('UAE');
+  }
+
+  return Array.from(aliases);
 }
 
 // ─── Service ──────────────────────────────────────────────────────────────────
@@ -157,7 +189,15 @@ export class MembersService {
           query = query.or(`headline.ilike.%${dto.search}%,designation.ilike.%${dto.search}%`);
         }
         if (dto.country) {
-          query = query.eq('country', dto.country);
+          const aliases = getCountryAliases(dto.country);
+          if (aliases.length === 1) {
+            query = query.ilike('country', `%${aliases[0]}%`);
+          } else {
+            const countryFilters = aliases
+              .map((alias) => `country.ilike.%${alias.replace(/[,]/g, ' ')}%`)
+              .join(',');
+            query = query.or(countryFilters);
+          }
         }
         if (dto.serviceId) {
           query = query.eq('primary_service_id', dto.serviceId);
@@ -165,8 +205,29 @@ export class MembersService {
         if (dto.memberTier) {
           query = query.eq('member_tier', dto.memberTier);
         }
+        if (dto.minYearsExperience !== undefined) {
+          query = query.gte('years_of_experience', dto.minYearsExperience);
+        }
+        if (dto.maxHourlyRate !== undefined) {
+          query = query.lte('consultation_fee_min_usd', dto.maxHourlyRate);
+        }
         if (dto.isVerified !== undefined) {
           query = query.eq('is_verified', dto.isVerified);
+        }
+
+        switch (dto.sort) {
+          case 'fee_asc':
+            query = query.order('consultation_fee_min_usd', { ascending: true });
+            break;
+          case 'fee_desc':
+            query = query.order('consultation_fee_min_usd', { ascending: false });
+            break;
+          case 'experience_desc':
+            query = query.order('years_of_experience', { ascending: false });
+            break;
+          default:
+            query = query.order('is_featured', { ascending: false });
+            break;
         }
 
         const { data, error, count } = await query;
@@ -223,9 +284,7 @@ export class MembersService {
     // Increment view count in Redis (flushed to DB by scheduler)
     const memberId = (result as { id?: string }).id;
     if (memberId) {
-      await this.redis.client.incr(`expertly:member:views:${memberId}`).catch((err: Error) =>
-        this.logger.warn(`Failed to increment view count for ${memberId}: ${err.message}`),
-      );
+      await this.redis.incr(`expertly:member:views:${memberId}`);
     }
 
     return result;

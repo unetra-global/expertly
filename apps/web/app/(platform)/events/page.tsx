@@ -46,7 +46,8 @@ export default async function EventsPage({ searchParams }: PageProps) {
     ...(sp.q && { q: sp.q }),
     ...(sp.country && { country: sp.country }),
     ...(sp.format && { format: sp.format }),
-    ...(sp.date && { date: sp.date }),
+    ...(sp.startDateFrom && { startDateFrom: sp.startDateFrom }),
+    ...(sp.startDateTo && { startDateTo: sp.startDateTo }),
     ...(sp.sort && { sort: sp.sort }),
   };
 

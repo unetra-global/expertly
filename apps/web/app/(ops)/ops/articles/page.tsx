@@ -37,13 +37,15 @@ export default function ArticlesPage() {
 
   const filters = status ? { status } : {};
 
-  const { data: articles = [], isLoading } = useQuery({
+  const { data: response, isLoading } = useQuery({
     queryKey: queryKeys.ops.articles(filters),
     queryFn: () => {
       const qs = status ? `?status=${status}` : '';
-      return apiClient.get<OpsArticle[]>(`/ops/articles${qs}`);
+      return apiClient.get<{ data: OpsArticle[]; meta: { total: number } }>(`/ops/articles${qs}`);
     },
   });
+
+  const articles = response?.data ?? [];
 
   const handleStatusChange = (val: string) => {
     setStatus(val);

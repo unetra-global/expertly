@@ -38,13 +38,15 @@ export default function ApplicationsPage() {
 
   const filters = status ? { status } : {};
 
-  const { data: applications = [], isLoading } = useQuery({
+  const { data: response, isLoading } = useQuery({
     queryKey: queryKeys.ops.applications(filters),
     queryFn: () => {
       const qs = status ? `?status=${status}` : '';
-      return apiClient.get<OpsApplication[]>(`/ops/applications${qs}`);
+      return apiClient.get<{ data: OpsApplication[]; meta: { total: number } }>(`/ops/applications${qs}`);
     },
   });
+
+  const applications = response?.data ?? [];
 
   const handleStatusChange = (val: string) => {
     setStatus(val);

@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsInt, IsBoolean, IsUUID, Min, Max } from 'class-validator';
+import { IsOptional, IsString, IsInt, IsBoolean, IsUUID, Min, Max, IsIn } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 
 export class QueryMembersDto {
@@ -30,6 +30,22 @@ export class QueryMembersDto {
   @IsOptional()
   @IsString()
   memberTier?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Type(() => Number)
+  minYearsExperience?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Type(() => Number)
+  maxHourlyRate?: number;
+
+  @IsOptional()
+  @IsIn(['fee_asc', 'fee_desc', 'experience_desc'])
+  sort?: string;
 
   @IsOptional()
   @IsBoolean()

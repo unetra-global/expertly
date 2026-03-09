@@ -28,13 +28,22 @@ import { ArticleAiSearchDto } from './dto/ai-search.dto';
 const ARTICLE_TTL = 300; // 5 min
 
 // NEVER select the embedding column
-const ARTICLE_LIST_FIELDS =
-  'id, title, slug, excerpt, cover_image_url, tags, read_time, published_at, ' +
+
+// Flat fields (member portal, admin — no join needed)
+const ARTICLE_FLAT_FIELDS =
+  'id, title, slug, excerpt, cover_image_url, featured_image_url, tags, read_time, read_time_minutes, published_at, ' +
   'status, word_count, category_id, service_id, creation_mode, submitted_at, ' +
   'author_id, created_at, updated_at';
 
-const ARTICLE_FULL_FIELDS =
-  ARTICLE_LIST_FIELDS + ', body';
+const ARTICLE_FLAT_FULL_FIELDS = ARTICLE_FLAT_FIELDS + ', body';
+
+// Public select — includes author profile + service category joins for listing/detail pages
+const ARTICLE_PUBLIC_SELECT =
+  ARTICLE_FLAT_FIELDS + ', ' +
+  'author:members!author_id(id, slug, designation, city, country, profile_photo_url, user:users!user_id(first_name, last_name, full_name)), ' +
+  'service_category:service_categories!category_id(id, name)';
+
+const ARTICLE_PUBLIC_FULL_SELECT = ARTICLE_PUBLIC_SELECT + ', body';
 
 type ArticleRow = {
   id: string;
@@ -86,8 +95,12 @@ export class ArticlesService {
     const isMember = user?.role === 'member';
 
     // Build cache key for public published list
-    const cacheKey = !isMember
-      ? this.cache.buildKey('articles', 'list', `p${page}l${limit}${dto.categoryId ?? ''}${dto.serviceId ?? ''}`)
+    const cacheKey = !isMember && !dto.memberId
+      ? this.cache.buildKey(
+        'articles',
+        'list',
+        `p${page}l${limit}${dto.categoryId ?? ''}${dto.serviceId ?? ''}${dto.q ?? ''}${dto.sort ?? ''}${dto.minReadTime ?? ''}${dto.maxReadTime ?? ''}`,
+      )
       : null;
 
     if (cacheKey) {
@@ -97,17 +110,16 @@ export class ArticlesService {
 
     let query = this.supabase.adminClient
       .from('articles')
-      .select(ARTICLE_LIST_FIELDS, { count: 'exact' })
-      .range(offset, offset + limit - 1)
-      .order('published_at', { ascending: false });
+      .select(ARTICLE_PUBLIC_SELECT, { count: 'exact' })
+      .range(offset, offset + limit - 1);
 
     if (isMember && user?.memberId) {
       // Members see their own articles at any status
       query = query.eq('author_id', user.memberId);
-      if (dto.status) {
-        query = query.eq('status', dto.status);
-      }
-    } else {
+        if (dto.status) {
+          query = query.eq('status', dto.status);
+        }
+      } else {
       // Guests/users see only published articles
       query = query.eq('status', 'published');
     }
@@ -117,6 +129,38 @@ export class ArticlesService {
     }
     if (dto.serviceId) {
       query = query.eq('service_id', dto.serviceId);
+    }
+    if (dto.memberId) {
+      query = query.eq('author_id', dto.memberId);
+    }
+    if (dto.q) {
+      query = query.or(`title.ilike.%${dto.q}%,excerpt.ilike.%${dto.q}%`);
+    }
+    if (dto.minReadTime !== undefined) {
+      query = query.gte('read_time_minutes', dto.minReadTime);
+    }
+    if (dto.maxReadTime !== undefined) {
+      query = query.lte('read_time_minutes', dto.maxReadTime);
+    }
+
+    switch (dto.sort) {
+      case 'oldest':
+        query = query.order('published_at', { ascending: true });
+        break;
+      case 'read_time_asc':
+        query = query
+          .order('read_time_minutes', { ascending: true })
+          .order('published_at', { ascending: false });
+        break;
+      case 'read_time_desc':
+        query = query
+          .order('read_time_minutes', { ascending: false })
+          .order('published_at', { ascending: false });
+        break;
+      case 'newest':
+      default:
+        query = query.order('published_at', { ascending: false });
+        break;
     }
 
     const { data, error, count } = await query;
@@ -150,7 +194,7 @@ export class ArticlesService {
 
     const { data, error } = await this.supabase.adminClient
       .from('articles')
-      .select(ARTICLE_LIST_FIELDS)
+      .select(ARTICLE_FLAT_FIELDS)
       .eq('author_id', user.memberId)
       .order('created_at', { ascending: false });
 
@@ -168,7 +212,7 @@ export class ArticlesService {
       async () => {
         let query = this.supabase.adminClient
           .from('articles')
-          .select(ARTICLE_FULL_FIELDS)
+          .select(ARTICLE_PUBLIC_FULL_SELECT)
           .eq('slug', slug);
 
         // Only published for non-members
@@ -197,7 +241,7 @@ export class ArticlesService {
 
     const { data, error } = await this.supabase.adminClient
       .from('articles')
-      .select(ARTICLE_FULL_FIELDS)
+      .select(ARTICLE_FLAT_FULL_FIELDS)
       .eq('id', id)
       .eq('author_id', user.memberId)
       .maybeSingle();
@@ -223,7 +267,7 @@ export class ArticlesService {
 
     let query = this.supabase.adminClient
       .from('articles')
-      .select(ARTICLE_LIST_FIELDS)
+      .select(ARTICLE_PUBLIC_SELECT)
       .eq('status', 'published')
       .neq('id', id)
       .limit(4);
@@ -264,6 +308,7 @@ export class ArticlesService {
         body: sanitizedBody,
         excerpt,
         cover_image_url: dto.featuredImageUrl ?? null,
+        featured_image_url: dto.featuredImageUrl ?? null,
         tags: (dto.tags ?? []).map((t) => t.toLowerCase()),
         category_id: dto.categoryId ?? null,
         service_id: dto.serviceId ?? null,
@@ -272,7 +317,7 @@ export class ArticlesService {
         status: 'draft',
         creation_mode: 'manual',
       })
-      .select(ARTICLE_FULL_FIELDS)
+      .select(ARTICLE_FLAT_FULL_FIELDS)
       .single();
 
     if (error) throw error;
@@ -311,13 +356,16 @@ export class ArticlesService {
     if (dto.categoryId !== undefined) payload.category_id = dto.categoryId;
     if (dto.serviceId !== undefined) payload.service_id = dto.serviceId;
     if (dto.tags !== undefined) payload.tags = dto.tags.map((t) => t.toLowerCase());
-    if (dto.featuredImageUrl !== undefined) payload.cover_image_url = dto.featuredImageUrl;
+    if (dto.featuredImageUrl !== undefined) {
+      payload.cover_image_url = dto.featuredImageUrl;
+      payload.featured_image_url = dto.featuredImageUrl;
+    }
 
     const { data, error } = await this.supabase.adminClient
       .from('articles')
       .update(payload)
       .eq('id', id)
-      .select(ARTICLE_FULL_FIELDS)
+      .select(ARTICLE_FLAT_FULL_FIELDS)
       .single();
 
     if (error) throw error;
@@ -383,7 +431,7 @@ export class ArticlesService {
       .from('articles')
       .update({ status: 'submitted', submitted_at: new Date().toISOString() })
       .eq('id', id)
-      .select(ARTICLE_FULL_FIELDS)
+      .select(ARTICLE_FLAT_FULL_FIELDS)
       .single();
 
     if (error) throw error;
@@ -452,7 +500,7 @@ export class ArticlesService {
 
     const { data: articles } = await this.supabase.adminClient
       .from('articles')
-      .select(ARTICLE_LIST_FIELDS)
+      .select(ARTICLE_PUBLIC_SELECT)
       .in('id', ids)
       .eq('status', 'published');
 
@@ -482,7 +530,7 @@ export class ArticlesService {
   private async getOwnedArticle(user: AuthUser, id: string): Promise<ArticleRow> {
     const { data, error } = await this.supabase.adminClient
       .from('articles')
-      .select(ARTICLE_FULL_FIELDS)
+      .select(ARTICLE_FLAT_FULL_FIELDS)
       .eq('id', id)
       .maybeSingle();
 

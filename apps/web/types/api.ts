@@ -130,6 +130,7 @@ export interface MemberListItem {
 /** Full shape returned by /members/:slug */
 export interface MemberFullProfile extends MemberListItem {
   bio?: string;
+  website?: string;
   firmWebsite?: string;
   linkedinUrl?: string;
   availabilityNotes?: string;
@@ -152,6 +153,8 @@ export interface ArticleAuthor {
   profilePhotoUrl?: string;
   designation?: string;
   headline?: string;
+  city?: string;
+  country?: string;
   user: MemberUser;
 }
 

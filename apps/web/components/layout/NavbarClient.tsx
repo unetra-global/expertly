@@ -153,6 +153,7 @@ export function NavbarClient({
                         <>
                           <Link href="/member/profile" className="block px-4 py-2 text-sm text-brand-text hover:bg-brand-surface" onClick={() => setUserMenuOpen(false)}>My Profile</Link>
                           <Link href="/member/articles" className="block px-4 py-2 text-sm text-brand-text hover:bg-brand-surface" onClick={() => setUserMenuOpen(false)}>My Articles</Link>
+                          <Link href="/member/articles/new" className="block px-4 py-2 text-sm font-medium text-brand-blue hover:bg-brand-blue-subtle" onClick={() => setUserMenuOpen(false)}>✏ Write Article</Link>
                         </>
                       )}
                       <Link href="/member/settings" className="block px-4 py-2 text-sm text-brand-text hover:bg-brand-surface" onClick={() => setUserMenuOpen(false)}>Settings</Link>
@@ -264,6 +265,15 @@ export function NavbarClient({
               <div className="pt-3 border-t border-white/10 mt-3">
                 {userEmail && (
                   <p className="text-xs text-white/40 px-3 pb-3 truncate">{userEmail}</p>
+                )}
+                {isMember && (
+                  <Link
+                    href="/member/articles/new"
+                    className="flex items-center py-3 px-3 rounded-xl text-sm font-medium text-brand-blue bg-brand-blue-subtle/20 hover:bg-brand-blue-subtle/40 transition-colors mb-1"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    ✏ Write Article
+                  </Link>
                 )}
                 <button
                   onClick={() => { setMobileOpen(false); void signOut(); }}
