@@ -113,28 +113,29 @@ export function ArticleCard({ article, className }: ArticleCardProps) {
 
         {/* Author row */}
         <div className="flex items-center justify-between gap-2 pt-3 border-t border-gray-50">
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-2.5 min-w-0">
             {article.author?.profilePhotoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={article.author.profilePhotoUrl}
                 alt={authorName ?? 'Author'}
-                className="w-7 h-7 rounded-full object-cover flex-shrink-0 border border-gray-100"
+                className="w-8 h-8 rounded-full object-cover flex-shrink-0 border border-gray-100"
               />
             ) : (
-              <div className="w-7 h-7 rounded-full bg-brand-navy flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
-                {authorName?.[0] ?? 'E'}
+              <div className="w-8 h-8 rounded-full bg-brand-navy flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
+                {authorName?.[0]?.toUpperCase() ?? 'E'}
               </div>
             )}
             <div className="min-w-0">
               {authorName && (
-                <p className="text-xs font-medium text-brand-text-secondary truncate leading-tight">
+                <p className="text-xs font-semibold text-brand-navy truncate leading-tight">
                   {authorName}
                 </p>
               )}
-              {article.author?.designation && (
-                <p className="text-xs text-gray-400 truncate leading-tight">
-                  {article.author.designation}
+
+              {article.serviceCategory?.name && (
+                <p className="text-xs font-medium text-brand-blue truncate leading-tight">
+                  {article.serviceCategory.name}
                 </p>
               )}
             </div>

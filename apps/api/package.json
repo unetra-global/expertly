@@ -6,7 +6,8 @@
     "dev": "nest start --watch",
     "start:prod": "node dist/main",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src/**/*.ts"
+    "lint": "eslint src/**/*.ts",
+    "backfill:member-storage": "ts-node scripts/backfill-member-storage.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.58",

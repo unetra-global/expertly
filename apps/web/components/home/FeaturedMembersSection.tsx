@@ -6,13 +6,14 @@ interface FeaturedMembersSectionProps {
 }
 
 function HomeMemberCard({ member }: { member: MemberCardData }) {
+  const photoUrl = member.profilePhotoUrl || member.avatarUrl;
   const displayName =
     member.users?.fullName ||
     [member.users?.firstName, member.users?.lastName].filter(Boolean).join(' ') ||
     'Expert';
 
   const location = [member.city, member.country].filter(Boolean).join(', ');
-  const serviceName = member.services?.name || member.services?.category?.name;
+  const serviceName = member.services?.name || member.services?.serviceCategories?.name;
 
   const initials = displayName
     .split(' ')
@@ -25,10 +26,10 @@ function HomeMemberCard({ member }: { member: MemberCardData }) {
     <div className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 overflow-hidden flex flex-col">
       {/* Photo */}
       <div className="relative aspect-[4/5] bg-gray-100 overflow-hidden">
-        {member.profilePhotoUrl ? (
+        {photoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={member.profilePhotoUrl}
+            src={photoUrl}
             alt={displayName}
             className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
           />

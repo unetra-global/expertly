@@ -116,9 +116,9 @@ export interface MemberListItem {
   firmName?: string;
   primaryServiceId?: string;
   /** Supabase join — plural because of the FK relationship name */
-  users?: { firstName?: string; lastName?: string; fullName?: string };
-  /** Joined primary service */
-  services?: { id?: string; name?: string; category?: { id?: string; name?: string } };
+  users?: { firstName?: string; lastName?: string; fullName?: string; email?: string };
+  /** Joined primary service (serviceCategories is the camelCased join from service_categories) */
+  services?: { id?: string; name?: string; serviceCategories?: { id?: string; name?: string } };
   // Authenticated-only fields (omitted by API for guests)
   headline?: string;
   yearsOfExperience?: number;
@@ -132,7 +132,10 @@ export interface MemberFullProfile extends MemberListItem {
   bio?: string;
   website?: string;
   firmWebsite?: string;
+  firmName?: string;
   linkedinUrl?: string;
+  contactPhone?: string;
+  contactEmail?: string;
   availabilityNotes?: string;
   isAvailable?: boolean;
   secondaryServices?: Array<{ id: string; name: string }>;

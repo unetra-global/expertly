@@ -6,6 +6,7 @@ export interface MemberCardData {
   id: string;
   slug: string;
   profilePhotoUrl?: string;
+  avatarUrl?: string;
   designation?: string;
   city?: string;
   country?: string;
@@ -14,7 +15,7 @@ export interface MemberCardData {
   /** Joined primary service — Supabase returns table name 'services' */
   services?: {
     name?: string;
-    category?: { name?: string };
+    serviceCategories?: { id?: string; name?: string };
   };
   /** Joined user — Supabase returns table name 'users' */
   users?: {
@@ -39,6 +40,7 @@ export function MemberCard({
   className,
   variant = 'teaser',
 }: MemberCardProps) {
+  const photoUrl = member.profilePhotoUrl || member.avatarUrl;
   const displayName =
     member.users?.fullName ||
     [member.users?.firstName, member.users?.lastName].filter(Boolean).join(' ') ||
@@ -66,10 +68,10 @@ export function MemberCard({
       <div className="p-5">
         {/* Avatar */}
         <div className="flex justify-center mb-4">
-          {member.profilePhotoUrl ? (
+          {photoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={member.profilePhotoUrl}
+              src={photoUrl}
               alt={displayName}
               className="w-16 h-16 rounded-full object-cover border-2 border-gray-100 group-hover:border-brand-navy/20 transition-colors"
             />

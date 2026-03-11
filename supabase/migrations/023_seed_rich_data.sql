@@ -2080,3 +2080,554 @@ INSERT INTO articles (
   (SELECT id FROM services WHERE slug='employment-law' LIMIT 1),
   ARRAY['Pakistan','employment-law','contracts','HR','compliance']
 );
+
+-- ─── Step 5: Events (36 total) ────────────────────────────────────────────────
+-- Using member expert IDs defined above (e0230001–e0230045)
+
+INSERT INTO events (
+  id, organizer_id, title, slug, description, event_type,
+  start_date, end_date, timezone, venue_name, city, country,
+  is_virtual, online_url, cover_image_url,
+  capacity, is_published, registration_url, tags
+) VALUES
+
+-- 1. Rahul Verma — Indian M&A webinar
+(
+  'b0230001-0000-0000-0000-000000000000',
+  'e0230001-0000-0000-0000-000000000000',
+  'Navigating Indian M&A: Legal Diligence and Deal Structuring',
+  'navigating-indian-ma-legal-diligence',
+  'A practical deep-dive into conducting legal due diligence for Indian acquisitions — covering regulatory approvals, data room best practices, and deal structuring across sectors.',
+  'webinar',
+  NOW() + INTERVAL '12 days', NOW() + INTERVAL '12 days' + INTERVAL '90 minutes',
+  'Asia/Kolkata', NULL, 'Online', NULL,
+  TRUE, 'https://zoom.us/j/example', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1200',
+  200, TRUE, 'https://expertly.com/events/navigating-indian-ma',
+  ARRAY['India','M&A','due-diligence','corporate-law']
+),
+
+-- 2. Mei Lin — Hong Kong Fintech regulatory workshop
+(
+  'b0230002-0000-0000-0000-000000000000',
+  'e0230002-0000-0000-0000-000000000000',
+  'Fintech Licensing in Hong Kong: SFC and HKMA Frameworks',
+  'fintech-licensing-hong-kong-sfc-hkma',
+  'An interactive workshop covering the SFC''s licensing regime for virtual asset service providers and HKMA''s regulatory expectations for digital banking and payments.',
+  'workshop',
+  NOW() + INTERVAL '18 days', NOW() + INTERVAL '18 days' + INTERVAL '3 hours',
+  'Asia/Hong_Kong', 'WeWork Central', 'Hong Kong', 'Hong Kong',
+  FALSE, NULL, 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1200',
+  40, TRUE, 'https://expertly.com/events/fintech-licensing-hong-kong',
+  ARRAY['Hong Kong','fintech','SFC','HKMA','regulation']
+),
+
+-- 3. Amara Osei — African PE fund structures
+(
+  'b0230003-0000-0000-0000-000000000000',
+  'e0230003-0000-0000-0000-000000000000',
+  'Structuring PE Funds for African Markets: GPs and LPs',
+  'pe-fund-structures-african-markets',
+  'A focused session on optimal fund structures for private equity investments in Africa — Mauritius, Cayman, and local jurisdiction considerations for GPs raising from international LPs.',
+  'webinar',
+  NOW() + INTERVAL '7 days', NOW() + INTERVAL '7 days' + INTERVAL '75 minutes',
+  'Africa/Accra', NULL, 'Online', NULL,
+  TRUE, 'https://zoom.us/j/example2', 'https://images.unsplash.com/photo-1521737852567-6949f3f9f2b5?w=1200',
+  150, TRUE, 'https://expertly.com/events/pe-fund-structures-africa',
+  ARRAY['Africa','private-equity','fund-structuring','Ghana']
+),
+
+-- 4. Sophie Beaumont — French contract negotiation masterclass
+(
+  'b0230004-0000-0000-0000-000000000000',
+  'e0230004-0000-0000-0000-000000000000',
+  'Contract Negotiation Masterclass: French & EU Commercial Law',
+  'contract-negotiation-french-eu-commercial-law',
+  'Learn negotiation tactics and legal drafting principles for French and EU commercial contracts — covering force majeure, termination rights, and limitation of liability clauses.',
+  'workshop',
+  NOW() + INTERVAL '21 days', NOW() + INTERVAL '21 days' + INTERVAL '4 hours',
+  'Europe/Paris', 'Palais des Congrès', 'Paris', 'France',
+  FALSE, NULL, 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1200',
+  30, TRUE, 'https://expertly.com/events/contract-negotiation-french-eu',
+  ARRAY['France','EU','contract-law','negotiation','commercial']
+),
+
+-- 5. Adebayo Okonkwo — Nigerian tax compliance
+(
+  'b0230005-0000-0000-0000-000000000000',
+  'e0230005-0000-0000-0000-000000000000',
+  'Nigerian Tax Compliance for Foreign Companies: FIRS & Transfer Pricing',
+  'nigerian-tax-compliance-foreign-companies',
+  'What multinationals need to know about FIRS enforcement, country-by-country reporting, and navigating Nigeria''s transfer pricing documentation requirements.',
+  'webinar',
+  NOW() + INTERVAL '14 days', NOW() + INTERVAL '14 days' + INTERVAL '90 minutes',
+  'Africa/Lagos', NULL, 'Online', NULL,
+  TRUE, 'https://zoom.us/j/example3', 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=1200',
+  250, TRUE, 'https://expertly.com/events/nigerian-tax-compliance',
+  ARRAY['Nigeria','tax','FIRS','transfer-pricing','compliance']
+),
+
+-- 6. Haruto Tanaka — Japan employment law
+(
+  'b0230006-0000-0000-0000-000000000000',
+  'e0230006-0000-0000-0000-000000000000',
+  'Hiring in Japan: Employment Law Essentials for Foreign Employers',
+  'hiring-japan-employment-law-foreign-employers',
+  'A practical guide to Japan''s employment law framework — covering work rules, mandatory benefits, dismissal constraints, and managing the complexities of hiring in Japan.',
+  'webinar',
+  NOW() + INTERVAL '9 days', NOW() + INTERVAL '9 days' + INTERVAL '90 minutes',
+  'Asia/Tokyo', NULL, 'Online', NULL,
+  TRUE, 'https://zoom.us/j/example4', 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=1200',
+  180, TRUE, 'https://expertly.com/events/hiring-japan-employment-law',
+  ARRAY['Japan','employment-law','HR','foreign-employers']
+),
+
+-- 7. Priya Krishnamurthy — SEBI compliance
+(
+  'b0230007-0000-0000-0000-000000000000',
+  'e0230007-0000-0000-0000-000000000000',
+  'SEBI Listing Obligations: Board Governance & Disclosure Compliance',
+  'sebi-listing-obligations-board-governance',
+  'A masterclass for company secretaries and compliance officers on SEBI LODR compliance — covering board composition, disclosure timelines, and managing auditor relationship requirements.',
+  'workshop',
+  NOW() + INTERVAL '25 days', NOW() + INTERVAL '25 days' + INTERVAL '3 hours',
+  'Asia/Kolkata', 'The Leela Palace', 'Mumbai', 'India',
+  FALSE, NULL, 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=1200',
+  50, TRUE, 'https://expertly.com/events/sebi-listing-obligations',
+  ARRAY['India','SEBI','compliance','governance','listed-companies']
+),
+
+-- 8. Carlos Mendoza — LatAm arbitration
+(
+  'b0230008-0000-0000-0000-000000000000',
+  'e0230008-0000-0000-0000-000000000000',
+  'International Arbitration in Latin America: ICSID and ICC Strategy',
+  'international-arbitration-latin-america-icsid-icc',
+  'How to effectively manage investment treaty and commercial arbitration proceedings involving Latin American states — enforcement challenges, interim measures, and selecting arbitrators.',
+  'webinar',
+  NOW() + INTERVAL '6 days', NOW() + INTERVAL '6 days' + INTERVAL '90 minutes',
+  'America/Mexico_City', NULL, 'Online', NULL,
+  TRUE, 'https://zoom.us/j/example5', 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200',
+  200, TRUE, 'https://expertly.com/events/arbitration-latin-america',
+  ARRAY['LatAm','arbitration','ICSID','ICC','investment-treaty']
+),
+
+-- 9. Nadia Al-Rashid — UAE corporate structuring
+(
+  'b0230009-0000-0000-0000-000000000000',
+  'e0230009-0000-0000-0000-000000000000',
+  'UAE Corporate Structuring: Mainland vs Free Zone vs DIFC',
+  'uae-corporate-structuring-mainland-free-zone-difc',
+  'A decision-making framework for choosing between mainland, free zone, and DIFC structures in the UAE — covering ownership rules, tax implications, and regulatory considerations.',
+  'seminar',
+  NOW() + INTERVAL '16 days', NOW() + INTERVAL '16 days' + INTERVAL '2 hours',
+  'Asia/Dubai', 'Dubai International Financial Centre', 'Dubai', 'UAE',
+  FALSE, NULL, 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=1200',
+  60, TRUE, 'https://expertly.com/events/uae-corporate-structuring',
+  ARRAY['UAE','DIFC','corporate-law','free-zone','structuring']
+),
+
+-- 10. Thomas Müller — German Mittelstand financing
+(
+  'b0230010-0000-0000-0000-000000000000',
+  'e0230010-0000-0000-0000-000000000000',
+  'Financing German Mittelstand Companies: Debt, Equity & KfW Instruments',
+  'financing-german-mittelstand-debt-equity-kfw',
+  'An overview of financing options for German Mittelstand businesses — bank debt, Schuldscheindarlehen, mezzanine, KfW programmes, and private equity considerations.',
+  'webinar',
+  NOW() + INTERVAL '20 days', NOW() + INTERVAL '20 days' + INTERVAL '90 minutes',
+  'Europe/Berlin', NULL, 'Online', NULL,
+  TRUE, 'https://zoom.us/j/example6', 'https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=1200',
+  200, TRUE, 'https://expertly.com/events/financing-german-mittelstand',
+  ARRAY['Germany','Mittelstand','financing','KfW','debt']
+),
+
+-- 11. Yuki Yamamoto — J-SOX compliance
+(
+  'b0230011-0000-0000-0000-000000000000',
+  'e0230011-0000-0000-0000-000000000000',
+  'J-SOX Internal Controls: Practical Compliance for Listed Companies',
+  'jsox-internal-controls-practical-compliance',
+  'A hands-on session covering J-SOX documentation requirements, control testing, and managing the relationship between internal audit and the statutory auditor.',
+  'workshop',
+  NOW() + INTERVAL '30 days', NOW() + INTERVAL '30 days' + INTERVAL '4 hours',
+  'Asia/Tokyo', 'Otemachi Financial City', 'Tokyo', 'Japan',
+  FALSE, NULL, 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=1200',
+  35, TRUE, 'https://expertly.com/events/jsox-internal-controls',
+  ARRAY['Japan','J-SOX','internal-controls','audit','compliance']
+),
+
+-- 12. Aisha Kamara — East Africa startup funding
+(
+  'b0230012-0000-0000-0000-000000000000',
+  'e0230012-0000-0000-0000-000000000000',
+  'Fundraising in East Africa: From Angel to Series A',
+  'fundraising-east-africa-angel-series-a',
+  'A practical session for East African startup founders on navigating seed funding, angel networks, DFI co-investment, and structuring for Series A from international VCs.',
+  'webinar',
+  NOW() + INTERVAL '8 days', NOW() + INTERVAL '8 days' + INTERVAL '90 minutes',
+  'Africa/Nairobi', NULL, 'Online', NULL,
+  TRUE, 'https://zoom.us/j/example7', 'https://images.unsplash.com/photo-1521737852567-6949f3f9f2b5?w=1200',
+  300, TRUE, 'https://expertly.com/events/fundraising-east-africa',
+  ARRAY['East Africa','startup','fundraising','VC','Kenya']
+),
+
+-- 13. Roberto Esposito — Italian bankruptcy law
+(
+  'b0230013-0000-0000-0000-000000000000',
+  'e0230013-0000-0000-0000-000000000000',
+  'Italy''s Codice della Crisi: Navigating the New Insolvency Framework',
+  'italy-codice-crisi-insolvency-framework',
+  'The 2023 implementation of the Codice della Crisi d''Impresa e dell''Insolvenza has fundamentally changed Italian restructuring. This session covers early warning systems, composition agreements, and creditor rights.',
+  'seminar',
+  NOW() + INTERVAL '22 days', NOW() + INTERVAL '22 days' + INTERVAL '2 hours',
+  'Europe/Rome', 'Palazzo della Borsa', 'Milan', 'Italy',
+  FALSE, NULL, 'https://images.unsplash.com/photo-1515542622106-078bda53a703?w=1200',
+  45, TRUE, 'https://expertly.com/events/italy-codice-crisi-insolvency',
+  ARRAY['Italy','insolvency','restructuring','Codice-della-Crisi']
+),
+
+-- 14. Fatima Al-Zahra — Moroccan investment law
+(
+  'b0230014-0000-0000-0000-000000000000',
+  'e0230014-0000-0000-0000-000000000000',
+  'Investing in Morocco: New Investment Charter & Sector Opportunities',
+  'investing-morocco-new-investment-charter',
+  'Morocco''s 2022 Investment Charter represents a fundamental shift in investment policy. This session covers new incentive frameworks, priority sectors, and the reformed industrial zones.',
+  'webinar',
+  NOW() + INTERVAL '15 days', NOW() + INTERVAL '15 days' + INTERVAL '90 minutes',
+  'Africa/Casablanca', NULL, 'Online', NULL,
+  TRUE, 'https://zoom.us/j/example8', 'https://images.unsplash.com/photo-1539020140153-e479b8c22e70?w=1200',
+  200, TRUE, 'https://expertly.com/events/investing-morocco-charter',
+  ARRAY['Morocco','investment','North-Africa','incentives']
+),
+
+-- 15. Park Jisoo — Korean fintech regulation
+(
+  'b0230015-0000-0000-0000-000000000000',
+  'e0230015-0000-0000-0000-000000000000',
+  'Korea Fintech Regulation: Payment Services, Open Banking & Digital Assets',
+  'korea-fintech-regulation-payment-open-banking',
+  'A comprehensive session on South Korea''s evolving fintech regulatory landscape — covering the Electronic Financial Transactions Act amendments, open banking, and the Virtual Asset User Protection Act.',
+  'webinar',
+  NOW() + INTERVAL '11 days', NOW() + INTERVAL '11 days' + INTERVAL '90 minutes',
+  'Asia/Seoul', NULL, 'Online', NULL,
+  TRUE, 'https://zoom.us/j/example9', 'https://images.unsplash.com/photo-1555664424-778a1e5e1b48?w=1200',
+  200, TRUE, 'https://expertly.com/events/korea-fintech-regulation',
+  ARRAY['Korea','fintech','regulation','digital-assets','payment']
+),
+
+-- 16. Olumide Adeleke — Big Four audit trends Africa
+(
+  'b0230016-0000-0000-0000-000000000000',
+  'e0230023-0000-0000-0000-000000000000',
+  'Audit Trends in Sub-Saharan Africa: Quality, Technology & Standards',
+  'audit-trends-sub-saharan-africa',
+  'How leading audit firms in Sub-Saharan Africa are deploying data analytics, AI-assisted testing, and ISQM 1 quality management frameworks — and what this means for audit committees.',
+  'webinar',
+  NOW() + INTERVAL '13 days', NOW() + INTERVAL '13 days' + INTERVAL '75 minutes',
+  'Africa/Lagos', NULL, 'Online', NULL,
+  TRUE, 'https://zoom.us/j/example10', 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=1200',
+  250, TRUE, 'https://expertly.com/events/audit-trends-africa',
+  ARRAY['Africa','audit','ISQM','data-analytics','governance']
+),
+
+-- 17. Valentina Rossi — Italian M&A tax
+(
+  'b0230017-0000-0000-0000-000000000000',
+  'e0230016-0000-0000-0000-000000000000',
+  'Italian M&A Tax: Step Plan, Holding Structures & Exit Planning',
+  'italian-ma-tax-step-plan-holding-structures',
+  'A technical session on Italian M&A tax planning — share vs asset deal economics, participation exemption, intragroup reorganisations, and exit tax considerations for private equity.',
+  'seminar',
+  NOW() + INTERVAL '28 days', NOW() + INTERVAL '28 days' + INTERVAL '2 hours',
+  'Europe/Rome', 'Bocconi University', 'Milan', 'Italy',
+  FALSE, NULL, 'https://images.unsplash.com/photo-1515542622106-078bda53a703?w=1200',
+  50, TRUE, 'https://expertly.com/events/italian-ma-tax',
+  ARRAY['Italy','M&A','tax','private-equity','holding-structures']
+),
+
+-- 18. Ana Claudia Santos — Brazil transfer pricing
+(
+  'b0230018-0000-0000-0000-000000000000',
+  'e0230017-0000-0000-0000-000000000000',
+  'Brazil Transfer Pricing Reform: OECD Alignment & Practical Impact',
+  'brazil-transfer-pricing-reform-oecd-alignment',
+  'Brazil''s landmark transfer pricing reform aligns its rules with the OECD framework for the first time. This session covers the transition from the old PRL/PCI/PEX methods to the new OECD-aligned regime.',
+  'webinar',
+  NOW() + INTERVAL '19 days', NOW() + INTERVAL '19 days' + INTERVAL '90 minutes',
+  'America/Sao_Paulo', NULL, 'Online', NULL,
+  TRUE, 'https://zoom.us/j/example11', 'https://images.unsplash.com/photo-1483729558449-99ef09a8c325?w=1200',
+  300, TRUE, 'https://expertly.com/events/brazil-transfer-pricing-reform',
+  ARRAY['Brazil','transfer-pricing','OECD','tax','compliance']
+),
+
+-- 19. David Nkosi — South Africa capital markets
+(
+  'b0230019-0000-0000-0000-000000000000',
+  'e0230018-0000-0000-0000-000000000000',
+  'South Africa Capital Markets: JSE Listings, Green Bonds & ESG',
+  'south-africa-capital-markets-jse-green-bonds-esg',
+  'A comprehensive session on South African capital markets — JSE listing requirements, sustainable finance instruments, the growth of ESG bonds, and what''s driving institutional investor interest.',
+  'seminar',
+  NOW() + INTERVAL '24 days', NOW() + INTERVAL '24 days' + INTERVAL '2 hours',
+  'Africa/Johannesburg', 'JSE Auditorium', 'Johannesburg', 'South Africa',
+  FALSE, NULL, 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1200',
+  60, TRUE, 'https://expertly.com/events/south-africa-capital-markets',
+  ARRAY['South Africa','JSE','capital-markets','ESG','green-bonds']
+),
+
+-- 20. Michael Adeyemi — Nigeria startup ecosystem
+(
+  'b0230020-0000-0000-0000-000000000000',
+  'e0230019-0000-0000-0000-000000000000',
+  'Nigeria Startup Act: Unlocking the Legal Framework for Tech Founders',
+  'nigeria-startup-act-legal-framework-tech-founders',
+  'A deep dive into Nigeria''s Startup Act 2022 — label certification, startup investment vehicles, tax incentives, and what founders need to do to take advantage of the new framework.',
+  'webinar',
+  NOW() + INTERVAL '5 days', NOW() + INTERVAL '5 days' + INTERVAL '90 minutes',
+  'Africa/Lagos', NULL, 'Online', NULL,
+  TRUE, 'https://zoom.us/j/example12', 'https://images.unsplash.com/photo-1521737852567-6949f3f9f2b5?w=1200',
+  400, TRUE, 'https://expertly.com/events/nigeria-startup-act',
+  ARRAY['Nigeria','startup','Startup-Act','tech','founders']
+),
+
+-- 21. Elena Vasquez — Spain renewable energy
+(
+  'b0230021-0000-0000-0000-000000000000',
+  'e0230020-0000-0000-0000-000000000000',
+  'Spain Renewable Energy Investment: PNIEC, PPAs & Grid Access',
+  'spain-renewable-energy-investment-pniec-ppas',
+  'Spain''s renewable energy targets create significant investment opportunity but navigating PNIEC, auction processes, PPA structuring, and grid access challenges requires specialist knowledge.',
+  'webinar',
+  NOW() + INTERVAL '17 days', NOW() + INTERVAL '17 days' + INTERVAL '90 minutes',
+  'Europe/Madrid', NULL, 'Online', NULL,
+  TRUE, 'https://zoom.us/j/example13', 'https://images.unsplash.com/photo-1466611653911-95081537e5b7?w=1200',
+  200, TRUE, 'https://expertly.com/events/spain-renewable-energy',
+  ARRAY['Spain','renewable-energy','PPA','PNIEC','investment']
+),
+
+-- 22. Kofi Mensah — Ghana banking regulation
+(
+  'b0230022-0000-0000-0000-000000000000',
+  'e0230021-0000-0000-0000-000000000000',
+  'Ghana Banking Sector: Regulatory Reforms & Capital Requirements',
+  'ghana-banking-regulatory-reforms-capital-requirements',
+  'Post-cleanup reforms have transformed Ghana''s banking sector. This session covers the Bank of Ghana''s strengthened supervisory framework, capital adequacy rules, and implications for foreign banks.',
+  'seminar',
+  NOW() + INTERVAL '23 days', NOW() + INTERVAL '23 days' + INTERVAL '2 hours',
+  'Africa/Accra', 'Ghana International Trade Fair', 'Accra', 'Ghana',
+  FALSE, NULL, 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=1200',
+  55, TRUE, 'https://expertly.com/events/ghana-banking-regulation',
+  ARRAY['Ghana','banking','regulation','Bank-of-Ghana','capital']
+),
+
+-- 23. Ravi Shankar — India infrastructure PPP
+(
+  'b0230023-0000-0000-0000-000000000000',
+  'e0230022-0000-0000-0000-000000000000',
+  'Infrastructure PPP in India: HAM, TOT & Hybrid Annuity Models',
+  'india-infrastructure-ppp-ham-tot-hybrid-annuity',
+  'A detailed session on India''s infrastructure PPP models — Hybrid Annuity Model, Toll-Operate-Transfer, and government grant structures — covering risk allocation and financing structures.',
+  'webinar',
+  NOW() + INTERVAL '10 days', NOW() + INTERVAL '10 days' + INTERVAL '90 minutes',
+  'Asia/Kolkata', NULL, 'Online', NULL,
+  TRUE, 'https://zoom.us/j/example14', 'https://images.unsplash.com/photo-1590593162201-f67611a18b87?w=1200',
+  250, TRUE, 'https://expertly.com/events/india-infrastructure-ppp',
+  ARRAY['India','infrastructure','PPP','HAM','project-finance']
+),
+
+-- 24. Amira Benali — Francophone Africa OHADA
+(
+  'b0230024-0000-0000-0000-000000000000',
+  'e0230024-0000-0000-0000-000000000000',
+  'OHADA Uniform Acts: Doing Business in Francophone Africa',
+  'ohada-uniform-acts-doing-business-francophone-africa',
+  'The OHADA framework governs commercial law across 17 African states. This session covers company formation, security interests, and dispute resolution under the uniform acts.',
+  'webinar',
+  NOW() + INTERVAL '4 days', NOW() + INTERVAL '4 days' + INTERVAL '90 minutes',
+  'Africa/Abidjan', NULL, 'Online', NULL,
+  TRUE, 'https://zoom.us/j/example15', 'https://images.unsplash.com/photo-1539020140153-e479b8c22e70?w=1200',
+  200, TRUE, 'https://expertly.com/events/ohada-uniform-acts',
+  ARRAY['OHADA','Francophone-Africa','business-law','company-formation']
+),
+
+-- 25. Li Wei — China data protection compliance
+(
+  'b0230025-0000-0000-0000-000000000000',
+  'e0230025-0000-0000-0000-000000000000',
+  'China Data Compliance: PIPL, DSL & Cross-Border Data Transfer Rules',
+  'china-data-compliance-pipl-dsl-cross-border',
+  'China''s data protection trifecta — Cybersecurity Law, Data Security Law, and PIPL — creates significant compliance obligations. This session focuses on cross-border data transfer mechanisms and recent enforcement.',
+  'webinar',
+  NOW() + INTERVAL '26 days', NOW() + INTERVAL '26 days' + INTERVAL '90 minutes',
+  'Asia/Shanghai', NULL, 'Online', NULL,
+  TRUE, 'https://zoom.us/j/example16', 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200',
+  300, TRUE, 'https://expertly.com/events/china-data-compliance-pipl',
+  ARRAY['China','data-protection','PIPL','DSL','compliance']
+),
+
+-- 26. Ibrahim Hassan — Turkey M&A
+(
+  'b0230026-0000-0000-0000-000000000000',
+  'e0230026-0000-0000-0000-000000000000',
+  'M&A in Turkey: Regulatory Framework, FDI Screening & Deal Structures',
+  'ma-turkey-regulatory-fdi-screening-deal-structures',
+  'How to structure acquisitions in Turkey — covering CMB requirements, FDI registration, competition authority filings, and navigating the Turkish legal system in cross-border deals.',
+  'webinar',
+  NOW() + INTERVAL '27 days', NOW() + INTERVAL '27 days' + INTERVAL '90 minutes',
+  'Europe/Istanbul', NULL, 'Online', NULL,
+  TRUE, 'https://zoom.us/j/example17', 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=1200',
+  200, TRUE, 'https://expertly.com/events/ma-turkey-fdi',
+  ARRAY['Turkey','M&A','FDI','CMB','deal-structuring']
+),
+
+-- 27. Shen Min — Singapore as Asia headquarters
+(
+  'b0230027-0000-0000-0000-000000000000',
+  'e0230027-0000-0000-0000-000000000000',
+  'Singapore as Asia HQ: Tax Incentives, Employment Pass & Corporate Setup',
+  'singapore-asia-hq-tax-incentives-employment-pass',
+  'Why companies choose Singapore for their Asia-Pacific headquarters — covering MAS licensing, EntrePass and Employment Pass frameworks, GIP and GTP incentives, and efficient corporate setup.',
+  'seminar',
+  NOW() + INTERVAL '29 days', NOW() + INTERVAL '29 days' + INTERVAL '2 hours',
+  'Asia/Singapore', 'Capital Tower', 'Singapore', 'Singapore',
+  FALSE, NULL, 'https://images.unsplash.com/photo-1525625293386-3f8f99389edd?w=1200',
+  65, TRUE, 'https://expertly.com/events/singapore-asia-hq',
+  ARRAY['Singapore','headquarters','tax-incentives','employment-pass','corporate']
+),
+
+-- 28. Nadia Popescu — Romania EU funds
+(
+  'b0230028-0000-0000-0000-000000000000',
+  'e0230028-0000-0000-0000-000000000000',
+  'Accessing EU Structural Funds in Romania: Legal Framework & Project Finance',
+  'accessing-eu-structural-funds-romania',
+  'Romania''s access to €80bn+ of EU structural and cohesion funds represents transformative opportunity but requires navigating complex procurement and state aid rules. This session covers how.',
+  'webinar',
+  NOW() + INTERVAL '31 days', NOW() + INTERVAL '31 days' + INTERVAL '90 minutes',
+  'Europe/Bucharest', NULL, 'Online', NULL,
+  TRUE, 'https://zoom.us/j/example18', 'https://images.unsplash.com/photo-1562619371-b67825b8b90d?w=1200',
+  200, TRUE, 'https://expertly.com/events/romania-eu-structural-funds',
+  ARRAY['Romania','EU-funds','structural-funds','project-finance','state-aid']
+),
+
+-- 29. Adeola Bankole — Nigerian capital markets
+(
+  'b0230029-0000-0000-0000-000000000000',
+  'e0230029-0000-0000-0000-000000000000',
+  'Nigerian Capital Markets: NSE Listing, Eurobonds & SEC Regulation',
+  'nigerian-capital-markets-nse-eurobonds-sec',
+  'A comprehensive overview of Nigeria''s capital markets — NSE listing process, Eurobond issuances, the new digital assets regulatory framework, and recent SEC enforcement priorities.',
+  'seminar',
+  NOW() + INTERVAL '32 days', NOW() + INTERVAL '32 days' + INTERVAL '2 hours',
+  'Africa/Lagos', 'Nigerian Stock Exchange Building', 'Lagos', 'Nigeria',
+  FALSE, NULL, 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=1200',
+  55, TRUE, 'https://expertly.com/events/nigerian-capital-markets',
+  ARRAY['Nigeria','capital-markets','NSE','Eurobond','SEC']
+),
+
+-- 30. Kenji Tanaka — Japan real estate
+(
+  'b0230030-0000-0000-0000-000000000000',
+  'e0230030-0000-0000-0000-000000000000',
+  'Japan Real Estate Investment: J-REIT, Tokutei Mokuteki Kaisha & Foreign Ownership',
+  'japan-real-estate-investment-jreit-tmk',
+  'A practical guide to Japanese real estate investment structures — J-REITs, TMK/TK structures, GK-TK arrangements, and navigating foreign investment approval requirements.',
+  'webinar',
+  NOW() + INTERVAL '33 days', NOW() + INTERVAL '33 days' + INTERVAL '90 minutes',
+  'Asia/Tokyo', NULL, 'Online', NULL,
+  TRUE, 'https://zoom.us/j/example19', 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=1200',
+  200, TRUE, 'https://expertly.com/events/japan-real-estate-investment',
+  ARRAY['Japan','real-estate','J-REIT','investment','property']
+),
+
+-- 31. Amina Toure — West Africa trade finance
+(
+  'b0230031-0000-0000-0000-000000000000',
+  'e0230031-0000-0000-0000-000000000000',
+  'Trade Finance in West Africa: LCs, Guarantees & DFI Instruments',
+  'trade-finance-west-africa-lcs-guarantees-dfi',
+  'A practical session on structuring trade finance transactions across West Africa — letters of credit under UCP 600, performance bonds, DFI guarantee instruments, and currency risk management.',
+  'webinar',
+  NOW() + INTERVAL '3 days', NOW() + INTERVAL '3 days' + INTERVAL '90 minutes',
+  'Africa/Abidjan', NULL, 'Online', NULL,
+  TRUE, 'https://zoom.us/j/example20', 'https://images.unsplash.com/photo-1566386566-13379e29adee?w=1200',
+  250, TRUE, 'https://expertly.com/events/trade-finance-west-africa',
+  ARRAY['West Africa','trade-finance','letters-of-credit','DFI','ECOWAS']
+),
+
+-- 32. Priyanka Sinha — Indian listed company governance
+(
+  'b0230032-0000-0000-0000-000000000000',
+  'e0230032-0000-0000-0000-000000000000',
+  'Corporate Governance for Indian Listed Companies: Board Dynamics & Compliance',
+  'corporate-governance-indian-listed-companies',
+  'A masterclass for independent directors and company secretaries on the governance expectations of SEBI, institutional investors, and proxy advisors for Indian listed companies.',
+  'workshop',
+  NOW() + INTERVAL '34 days', NOW() + INTERVAL '34 days' + INTERVAL '3 hours',
+  'Asia/Kolkata', 'Bombay Stock Exchange', 'Mumbai', 'India',
+  FALSE, NULL, 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=1200',
+  45, TRUE, 'https://expertly.com/events/indian-listed-company-governance',
+  ARRAY['India','governance','board','SEBI','listed-companies']
+),
+
+-- 33. Bashir Saleh — GCC VAT compliance
+(
+  'b0230033-0000-0000-0000-000000000000',
+  'e0230033-0000-0000-0000-000000000000',
+  'GCC VAT Compliance: Saudi Arabia, UAE & Bahrain Obligations',
+  'gcc-vat-compliance-saudi-uae-bahrain',
+  'The GCC VAT framework has matured with increased enforcement. This session covers compliance obligations across KSA, UAE, and Bahrain — registration thresholds, filing requirements, and managing tax authority audits.',
+  'webinar',
+  NOW() + INTERVAL '35 days', NOW() + INTERVAL '35 days' + INTERVAL '90 minutes',
+  'Asia/Riyadh', NULL, 'Online', NULL,
+  TRUE, 'https://zoom.us/j/example21', 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=1200',
+  300, TRUE, 'https://expertly.com/events/gcc-vat-compliance',
+  ARRAY['GCC','VAT','Saudi-Arabia','UAE','tax-compliance']
+),
+
+-- 34. Chen Wei — China PE/VC fund formation
+(
+  'b0230034-0000-0000-0000-000000000000',
+  'e0230034-0000-0000-0000-000000000000',
+  'China PE/VC Fund Formation: AMAC Registration & Offshore Structures',
+  'china-pe-vc-fund-formation-amac-offshore',
+  'How to structure PE and VC funds for investing in China — AMAC registration requirements, QFLP/QFII frameworks, Cayman/BVI GP structures, and managing cross-border capital flows.',
+  'webinar',
+  NOW() + INTERVAL '36 days', NOW() + INTERVAL '36 days' + INTERVAL '90 minutes',
+  'Asia/Shanghai', NULL, 'Online', NULL,
+  TRUE, 'https://zoom.us/j/example22', 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1200',
+  250, TRUE, 'https://expertly.com/events/china-pe-vc-fund-formation',
+  ARRAY['China','private-equity','VC','AMAC','fund-formation']
+),
+
+-- 35. Zanele Dlamini — Southern Africa M&A
+(
+  'b0230035-0000-0000-0000-000000000000',
+  'e0230035-0000-0000-0000-000000000000',
+  'M&A in Southern Africa: Competition Law, BEE & Deal Structuring',
+  'ma-southern-africa-competition-bee-deal-structuring',
+  'How to execute acquisitions across Southern Africa — COMESA and national competition filings, BEE structuring in South Africa, and navigating SADC regulatory frameworks.',
+  'seminar',
+  NOW() + INTERVAL '37 days', NOW() + INTERVAL '37 days' + INTERVAL '2 hours',
+  'Africa/Johannesburg', 'Sandton Convention Centre', 'Johannesburg', 'South Africa',
+  FALSE, NULL, 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1200',
+  60, TRUE, 'https://expertly.com/events/ma-southern-africa',
+  ARRAY['Southern Africa','M&A','competition-law','BEE','SADC']
+),
+
+-- 36. Fatima Malik — Pakistan FDI & corporate
+(
+  'b0230036-0000-0000-0000-000000000000',
+  'e0230041-0000-0000-0000-000000000000',
+  'FDI in Pakistan: SECP Registration, Sector Restrictions & Repatriation',
+  'fdi-pakistan-secp-registration-repatriation',
+  'A practical guide for foreign investors entering Pakistan — SECP company registration, sector-specific FDI restrictions, SBP approval for profit repatriation, and the BOI investment facilitation framework.',
+  'webinar',
+  NOW() + INTERVAL '38 days', NOW() + INTERVAL '38 days' + INTERVAL '90 minutes',
+  'Asia/Karachi', NULL, 'Online', NULL,
+  TRUE, 'https://zoom.us/j/example23', 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200',
+  200, TRUE, 'https://expertly.com/events/fdi-pakistan-secp',
+  ARRAY['Pakistan','FDI','SECP','investment','repatriation']
+);
+

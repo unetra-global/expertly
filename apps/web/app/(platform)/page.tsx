@@ -34,7 +34,7 @@ async function getHomepageData(): Promise<HomepageData> {
   };
 
   const apiUrl =
-    (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002') + '/api/v1';
+    (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4001') + '/api/v1';
 
   try {
     const res = await fetch(`${apiUrl}/homepage`, {

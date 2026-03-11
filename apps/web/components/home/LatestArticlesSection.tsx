@@ -16,7 +16,7 @@ export default function LatestArticlesSection({
           <div>
             <p className="section-label mb-1">KNOWLEDGE BASE</p>
             <h2 className="text-2xl sm:text-3xl font-bold text-brand-navy">
-              Articles
+              Latest Insights
             </h2>
           </div>
           <Link

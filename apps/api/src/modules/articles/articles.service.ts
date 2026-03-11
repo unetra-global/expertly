@@ -113,14 +113,14 @@ export class ArticlesService {
       .select(ARTICLE_PUBLIC_SELECT, { count: 'exact' })
       .range(offset, offset + limit - 1);
 
-    if (isMember && user?.memberId) {
-      // Members see their own articles at any status
+    if (isMember && user?.memberId && !dto.memberId) {
+      // Members see their own articles at any status (only when not viewing another member's profile)
       query = query.eq('author_id', user.memberId);
-        if (dto.status) {
-          query = query.eq('status', dto.status);
-        }
-      } else {
-      // Guests/users see only published articles
+      if (dto.status) {
+        query = query.eq('status', dto.status);
+      }
+    } else {
+      // Guests/users/member viewing another profile see only published articles
       query = query.eq('status', 'published');
     }
 
@@ -254,7 +254,6 @@ export class ArticlesService {
   // ─── Get Related Articles ────────────────────────────────────────────────
 
   async getRelated(id: string): Promise<unknown[]> {
-    // Get current article's service/category
     const { data: article } = await this.supabase.adminClient
       .from('articles')
       .select('service_id, category_id')
@@ -265,21 +264,41 @@ export class ArticlesService {
 
     const { service_id, category_id } = article as { service_id?: string; category_id?: string };
 
-    let query = this.supabase.adminClient
+    const base = this.supabase.adminClient
       .from('articles')
       .select(ARTICLE_PUBLIC_SELECT)
       .eq('status', 'published')
       .neq('id', id)
       .limit(4);
 
+    // 1st pass: match by service_id
     if (service_id) {
-      query = query.eq('service_id', service_id);
-    } else if (category_id) {
-      query = query.eq('category_id', category_id);
+      const { data } = await base.eq('service_id', service_id);
+      if (data && data.length > 0) return data;
     }
 
-    const { data } = await query;
-    return data ?? [];
+    // 2nd pass: broaden to category_id
+    if (category_id) {
+      const { data } = await this.supabase.adminClient
+        .from('articles')
+        .select(ARTICLE_PUBLIC_SELECT)
+        .eq('status', 'published')
+        .neq('id', id)
+        .eq('category_id', category_id)
+        .limit(4);
+      if (data && data.length > 0) return data;
+    }
+
+    // 3rd pass: fallback to most recent published articles
+    const { data: fallback } = await this.supabase.adminClient
+      .from('articles')
+      .select(ARTICLE_PUBLIC_SELECT)
+      .eq('status', 'published')
+      .neq('id', id)
+      .order('published_at', { ascending: false })
+      .limit(4);
+
+    return fallback ?? [];
   }
 
   // ─── Create Article ───────────────────────────────────────────────────────

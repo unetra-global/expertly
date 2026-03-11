@@ -12,6 +12,7 @@ const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const ALLOWED_DOCUMENT_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
 const MAX_DOC_SIZE = 10 * 1024 * 1024;  // 10 MB
+const AVATAR_SIZE = 1200;
 
 @Injectable()
 export class UploadService {
@@ -33,8 +34,9 @@ export class UploadService {
     }
 
     const processed = await sharp(buffer)
-      .resize(400, 400, { fit: 'cover', position: 'entropy' })
-      .webp({ quality: 85 })
+      .resize(AVATAR_SIZE, AVATAR_SIZE, { fit: 'cover', position: 'entropy' })
+      .sharpen(1.1)
+      .webp({ quality: 90 })
       .toBuffer();
 
     const path = `${userId}/profile.webp`;

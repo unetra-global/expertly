@@ -51,7 +51,9 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 function AboutTab({ member }: { member: MemberFullProfile }) {
   const hasEngagements = (member.engagements ?? []).length > 0;
-  const hasContact = !!(member.linkedinUrl || member.website || member.firmWebsite);
+  const contactEmail = member.contactEmail || member.users?.email;
+  const contactPhone = member.contactPhone;
+  const hasContact = !!(contactPhone || contactEmail || member.linkedinUrl || member.website || member.firmWebsite);
 
   return (
     <div className="space-y-8">
@@ -64,34 +66,71 @@ function AboutTab({ member }: { member: MemberFullProfile }) {
             </p>
           )}
           {member.bio && (
-            <p className="text-sm text-brand-text-secondary leading-relaxed whitespace-pre-line line-clamp-3">
+            <p className="text-sm text-brand-text-secondary leading-relaxed whitespace-pre-line">
               {member.bio}
             </p>
           )}
         </section>
       )}
 
-      {/* Contact options */}
+      {/* Contact Options */}
       {hasContact && (
         <section>
           <SectionLabel>
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
             </svg>
-            Contact
+            Contact Options
           </SectionLabel>
-          <div className="flex flex-wrap gap-3">
+          <div className="grid sm:grid-cols-2 gap-3">
+            {contactPhone && (
+              <a
+                href={`tel:${contactPhone}`}
+                className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3.5 hover:border-brand-blue/30 hover:bg-brand-blue-subtle transition-colors group"
+              >
+                <div className="w-8 h-8 rounded-lg bg-brand-blue-subtle flex items-center justify-center flex-shrink-0 group-hover:bg-brand-blue/10">
+                  <svg className="h-4 w-4 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] text-brand-text-muted font-medium uppercase tracking-wide">Phone</p>
+                  <p className="text-sm font-semibold text-brand-navy truncate">{contactPhone}</p>
+                </div>
+              </a>
+            )}
+            {contactEmail && (
+              <a
+                href={`mailto:${contactEmail}`}
+                className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3.5 hover:border-brand-blue/30 hover:bg-brand-blue-subtle transition-colors group"
+              >
+                <div className="w-8 h-8 rounded-lg bg-brand-blue-subtle flex items-center justify-center flex-shrink-0 group-hover:bg-brand-blue/10">
+                  <svg className="h-4 w-4 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] text-brand-text-muted font-medium uppercase tracking-wide">Email</p>
+                  <p className="text-sm font-semibold text-brand-navy truncate">{contactEmail}</p>
+                </div>
+              </a>
+            )}
             {member.linkedinUrl && (
               <a
                 href={member.linkedinUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 rounded-lg bg-[#0077B5] hover:bg-[#006097] text-white text-xs font-semibold px-3 py-2 transition-colors"
+                className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3.5 hover:border-brand-blue/30 hover:bg-brand-blue-subtle transition-colors group"
               >
-                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-                </svg>
-                LinkedIn
+                <div className="w-8 h-8 rounded-lg bg-brand-blue-subtle flex items-center justify-center flex-shrink-0">
+                  <svg className="h-4 w-4 text-brand-blue" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                  </svg>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] text-brand-text-muted font-medium uppercase tracking-wide">LinkedIn</p>
+                  <p className="text-sm font-semibold text-brand-navy truncate">View Profile</p>
+                </div>
               </a>
             )}
             {(member.website || member.firmWebsite) && (
@@ -99,12 +138,17 @@ function AboutTab({ member }: { member: MemberFullProfile }) {
                 href={(member.website || member.firmWebsite)!}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-brand-text-secondary text-xs font-semibold px-3 py-2 transition-colors"
+                className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3.5 hover:border-brand-blue/30 hover:bg-brand-blue-subtle transition-colors group"
               >
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-                Website
+                <div className="w-8 h-8 rounded-lg bg-brand-blue-subtle flex items-center justify-center flex-shrink-0">
+                  <svg className="h-4 w-4 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9" />
+                  </svg>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] text-brand-text-muted font-medium uppercase tracking-wide">Website</p>
+                  <p className="text-sm font-semibold text-brand-navy truncate">{(member.website || member.firmWebsite)!.replace(/^https?:\/\//, '')}</p>
+                </div>
               </a>
             )}
           </div>
@@ -122,12 +166,14 @@ function AboutTab({ member }: { member: MemberFullProfile }) {
           </SectionLabel>
           <div className="space-y-2">
             {(member.engagements ?? []).map((eng) => (
-              <div key={eng.id} className="flex items-start gap-3 rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-                <span className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-brand-blue bg-brand-blue-subtle rounded-md px-2 py-0.5 flex-shrink-0 whitespace-nowrap">
-                  {eng.type}
-                </span>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-brand-navy">{eng.title}</p>
+              <div key={eng.id} className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+                <div className="w-5 h-5 rounded-full bg-brand-blue-subtle flex items-center justify-center flex-shrink-0">
+                  <svg className="h-3 w-3 text-brand-blue" fill="currentColor" viewBox="0 0 20 20" aria-hidden>
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm text-brand-navy">{eng.title}</p>
                   {(eng.organization || eng.year) && (
                     <p className="text-xs text-brand-text-muted mt-0.5">
                       {eng.organization}{eng.organization && eng.year ? ' · ' : ''}{eng.year}
@@ -135,8 +181,46 @@ function AboutTab({ member }: { member: MemberFullProfile }) {
                   )}
                 </div>
                 {eng.url && (
-                  <a href={eng.url} target="_blank" rel="noopener noreferrer" className="ml-auto text-xs text-brand-blue hover:underline flex-shrink-0">↗</a>
+                  <a href={eng.url} target="_blank" rel="noopener noreferrer" className="text-xs text-brand-blue hover:underline flex-shrink-0">↗</a>
                 )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Qualifications */}
+      {(member.qualifications ?? []).length > 0 && (
+        <section>
+          <SectionLabel>
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+            </svg>
+            Qualifications
+          </SectionLabel>
+          <div className="flex flex-wrap gap-2">
+            {(member.qualifications ?? []).map((q) => (
+              <GrayTag key={q.id}>{q.name}{q.year ? ` (${q.year})` : ''}</GrayTag>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Education */}
+      {(member.educations ?? []).length > 0 && (
+        <section>
+          <SectionLabel>
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+            </svg>
+            Education
+          </SectionLabel>
+          <div className="grid sm:grid-cols-2 gap-3">
+            {(member.educations ?? []).map((edu) => (
+              <div key={edu.id} className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+                <p className="font-semibold text-sm text-brand-navy">{edu.degree}</p>
+                <p className="text-xs text-brand-text-secondary mt-0.5">{edu.institution}{edu.endYear ? ` · ${edu.endYear}` : ''}</p>
+                {edu.field && <p className="text-xs text-brand-text-muted mt-0.5">{edu.field}</p>}
               </div>
             ))}
           </div>
@@ -178,29 +262,6 @@ function CredentialsTab({ member }: { member: MemberFullProfile }) {
                 {edu.field && <p className="text-xs text-brand-text-muted mt-0.5">{edu.field}</p>}
               </div>
             ))}
-          </div>
-        </section>
-      )}
-
-      {/* Years of experience + classification */}
-      {(member.yearsOfExperience || tierLabel) && (
-        <section>
-          <div className="rounded-xl border border-brand-blue-subtle bg-brand-blue-subtle/30 p-4 flex items-center gap-6">
-            {member.yearsOfExperience && (
-              <div className="text-center">
-                <p className="text-2xl font-bold text-brand-blue">{member.yearsOfExperience}+</p>
-                <p className="text-xs text-brand-text-muted uppercase tracking-wide mt-0.5">Years Experience</p>
-              </div>
-            )}
-            {member.yearsOfExperience && tierLabel && (
-              <div className="w-px h-10 bg-blue-100" />
-            )}
-            {tierLabel && (
-              <div>
-                <p className="text-xs text-brand-text-muted uppercase tracking-wide">Classification</p>
-                <p className="text-sm font-semibold text-brand-navy mt-0.5">{tierLabel}</p>
-              </div>
-            )}
           </div>
         </section>
       )}

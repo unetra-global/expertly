@@ -30,11 +30,22 @@ const FORMAT_COLORS: Record<string, string> = {
 
 // ── Event Card ────────────────────────────────────────────────────────────────
 
+function isSameDay(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
 function EventCard({ event }: { event: EventListItem }) {
   const startDate = new Date(event.startDate);
   const endDate = event.endDate ? new Date(event.endDate) : null;
-  const day = startDate.toLocaleDateString('en-GB', { day: '2-digit' });
-  const month = startDate.toLocaleDateString('en-GB', { month: 'short' }).toUpperCase();
+  const singleDay = !endDate || isSameDay(startDate, endDate);
+
+  const startDay = startDate.toLocaleDateString('en-GB', { day: '2-digit' });
+  const startMonth = startDate.toLocaleDateString('en-GB', { month: 'short' }).toUpperCase();
+
   const format = event.eventFormat ?? 'online';
   const formatLabel = FORMAT_LABELS[format] ?? format;
   const formatColor = FORMAT_COLORS[format] ?? 'bg-gray-50 border-gray-100 text-gray-600';
@@ -43,21 +54,32 @@ function EventCard({ event }: { event: EventListItem }) {
   return (
     <div className="group bg-white rounded-2xl border border-gray-100 shadow-card hover:shadow-card-hover transition-all duration-200 overflow-hidden flex">
       {/* Date block */}
-      <div className="w-16 sm:w-20 flex-shrink-0 flex flex-col items-center justify-center py-5 px-2 bg-gray-50 border-r border-gray-100">
-        <span className="text-2xl sm:text-3xl font-bold text-brand-navy leading-none tabular-nums">{day}</span>
-        <span className="text-xs font-semibold uppercase tracking-widest text-brand-text-muted mt-1">{month}</span>
-        {endDate && (
-          <>
-            <span className="text-xs text-gray-300 my-1">TO</span>
-            <span className="text-base font-bold text-brand-navy leading-none tabular-nums">
-              {endDate.toLocaleDateString('en-GB', { day: '2-digit' })}
-            </span>
-            <span className="text-xs font-semibold uppercase tracking-widest text-brand-text-muted mt-1">
-              {endDate.toLocaleDateString('en-GB', { month: 'short' }).toUpperCase()}
-            </span>
-          </>
-        )}
-      </div>
+      {singleDay ? (
+        <div className="w-16 sm:w-20 flex-shrink-0 flex flex-col items-center justify-center py-5 px-2 bg-blue-50 border-r border-blue-100">
+          <span className="text-2xl sm:text-3xl font-bold text-brand-blue leading-none tabular-nums">{startDay}</span>
+          <span className="text-xs font-semibold uppercase tracking-widest text-blue-400 mt-1">{startMonth}</span>
+        </div>
+      ) : (
+        <div className="flex-shrink-0 flex flex-col items-center justify-center py-5 px-3 bg-blue-50 border-r border-blue-100 gap-1">
+          <div className="flex items-center gap-2">
+            <div className="text-center">
+              <span className="block text-xl sm:text-2xl font-bold text-brand-blue leading-none tabular-nums">{startDay}</span>
+              <span className="block text-xs font-semibold uppercase tracking-widest text-blue-400 mt-1">{startMonth}</span>
+            </div>
+            <svg className="h-3 w-3 text-blue-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+            </svg>
+            <div className="text-center">
+              <span className="block text-xl sm:text-2xl font-bold text-brand-blue leading-none tabular-nums">
+                {endDate!.toLocaleDateString('en-GB', { day: '2-digit' })}
+              </span>
+              <span className="block text-xs font-semibold uppercase tracking-widest text-blue-400 mt-1">
+                {endDate!.toLocaleDateString('en-GB', { month: 'short' }).toUpperCase()}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Content */}
       <div className="flex-1 min-w-0 p-4 sm:p-5 flex items-center gap-4">

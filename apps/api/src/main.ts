@@ -110,7 +110,7 @@ async function bootstrap(): Promise<void> {
   app.useGlobalInterceptors(new LoggingInterceptor(), new ResponseInterceptor());
   app.useGlobalFilters(new HttpExceptionFilter());
 
-  const port = parseInt(process.env.PORT ?? '3001', 10);
+  const port = parseInt(process.env.PORT ?? '4001', 10);
   // Bind dual-stack so localhost resolution to ::1 or 127.0.0.1 both work in dev.
   await app.listen(port, '::');
   logger.log(`API running on http://localhost:${port}`);

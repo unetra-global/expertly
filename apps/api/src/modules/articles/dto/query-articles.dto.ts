@@ -1,4 +1,4 @@
-import { IsEnum, IsIn, IsNumber, IsOptional, IsString, IsUUID, Min, Max } from 'class-validator';
+import { IsEnum, IsIn, IsNumber, IsOptional, IsString, IsUUID, Matches, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class QueryArticlesDto {
@@ -28,7 +28,8 @@ export class QueryArticlesDto {
   serviceId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
+  @Matches(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
   memberId?: string;
 
   @IsOptional()
