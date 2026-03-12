@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { useOnboardingStore } from '@/stores/onboardingStore';
-import { apiClient } from '@/lib/apiClient';
+import { apiClient, ApiError } from '@/lib/apiClient';
 import type { EngagementEntry } from '@/stores/onboardingStore';
 import type { Service as TaxonomyService } from '@/types/api';
 
@@ -70,6 +70,12 @@ export function Step3Services({ onBack }: Props) {
     queryFn: () => apiClient.get<TaxonomyService[]>('/taxonomy/services'),
     staleTime: 3600_000,
   });
+
+  // Reset submitting state on mount in case it got stuck in persisted store
+  useEffect(() => {
+    setIsSubmitting(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!toast) return;
@@ -165,14 +171,13 @@ export function Step3Services({ onBack }: Props) {
         linkedinUrl: formData.linkedinUrl,
       };
       const step2Payload = {
-        yearsOfExperience: formData.yearsOfExperience,
-        firmName: formData.firmName,
-        firmSize: formData.firmSize,
-        country: formData.country,
-        city: formData.city,
-        consultationFeeMinUsd: formData.consultationFeeMinUsd,
-        consultationFeeMaxUsd: formData.consultationFeeMaxUsd,
-        qualifications: formData.qualifications,
+        yearsOfExperience: formData.yearsOfExperience !== '' ? formData.yearsOfExperience : undefined,
+        firmName: formData.firmName || undefined,
+        firmSize: formData.firmSize || undefined,
+        country: formData.country || undefined,
+        city: formData.city || undefined,
+        consultationFeeMinUsd: formData.consultationFeeMinUsd !== '' ? formData.consultationFeeMinUsd : undefined,
+        consultationFeeMaxUsd: formData.consultationFeeMaxUsd !== '' ? formData.consultationFeeMaxUsd : undefined,
         credentials: formData.credentials,
         workExperience: formData.workExperience,
         education: formData.education,
@@ -184,26 +189,31 @@ export function Step3Services({ onBack }: Props) {
         availability,
       };
 
-      // 2. PATCH step data
-      await Promise.all([
-        apiClient.patch(`/applications/${appId}/step-1`, step1Payload),
-        apiClient.patch(`/applications/${appId}/step-2`, step2Payload),
-        apiClient.patch(`/applications/${appId}/step-3`, step3Payload),
-      ]);
+      // 2. PATCH step data sequentially — step enforcement requires step N before step N+1
+      await apiClient.patch(`/applications/${appId}/step-1`, step1Payload);
+      await apiClient.patch(`/applications/${appId}/step-2`, step2Payload);
+      await apiClient.patch(`/applications/${appId}/step-3`, step3Payload);
 
       // 3. Submit the application
       await apiClient.post(`/applications/${appId}/submit`, {});
 
-      // 4. Log consents
-      await Promise.all([
-        apiClient.post('/consent', { type: 'terms_and_privacy', applicationId: appId }),
-        apiClient.post('/consent', { type: 'credential_verification', applicationId: appId }),
-      ]);
-
-      // 5. Redirect to status page
+      // 4. Redirect to status page
       router.push('/application/status');
-    } catch {
-      setToast({ message: 'Submission failed. Please check your connection and try again.', type: 'error' });
+    } catch (err) {
+      console.error('[Onboarding] Submission failed:', err);
+      if (err instanceof ApiError) {
+        const alreadySubmitted = [
+          'APPLICATION_UNDER_REVIEW',
+          'APPLICATION_APPROVED',
+          'APPLICATION_WAITLISTED',
+        ].includes(err.code);
+        if (alreadySubmitted) {
+          router.push('/application/status');
+          return;
+        }
+      }
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setToast({ message: `Submission failed: ${message}`, type: 'error' });
     } finally {
       setIsSubmitting(false);
     }

@@ -34,8 +34,9 @@ export class Step2Dto {
   consultationFeeMaxUsd?: number;
 
   @IsOptional()
-  @IsString()
-  qualifications?: string;
+  @IsArray()
+  @IsString({ each: true })
+  qualifications?: string[];
 
   @IsOptional()
   @IsArray()

@@ -173,19 +173,15 @@ export default function ProfileEditor({ profile }: Props) {
     try {
       const form = new FormData();
       form.append('file', file);
-      const resp = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1'}/upload/avatar`,
-        { method: 'POST', body: form },
-      );
-      const json = (await resp.json()) as { data?: { url: string } };
-      if (json.data?.url) {
-        setPhotoUrl(json.data.url);
-        await apiClient.patch('/members/me', { profilePhotoUrl: json.data.url });
+      const result = await apiClient.upload<{ url: string }>('/upload/avatar', form);
+      if (result?.url) {
+        setPhotoUrl(result.url);
+        await apiClient.patch('/members/me', { profilePhotoUrl: result.url });
         void queryClient.invalidateQueries({ queryKey: queryKeys.members.me() });
         showToast('Profile photo updated.', 'success');
       }
     } catch {
-      showToast('Photo upload failed.', 'error');
+      showToast('Photo upload failed. Please try again.', 'error');
     } finally {
       setUploadingPhoto(false);
     }

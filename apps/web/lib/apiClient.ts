@@ -1,6 +1,6 @@
 import { getBrowserClient } from './supabase';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4001';
 
 export class ApiError extends Error {
   constructor(
@@ -119,10 +119,41 @@ async function request<T>(
   return json as unknown as T;
 }
 
+/**
+ * Upload a file (multipart/form-data) with auth token attached.
+ * Do NOT set Content-Type — the browser sets the correct multipart boundary.
+ */
+async function uploadFile<T>(path: string, form: FormData, params?: Record<string, string>): Promise<T> {
+  const url = new URL(`${API_BASE}/api/v1${path}`);
+  if (params) {
+    Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+  }
+  const authHeaders = await getAuthHeader();
+  const resp = await fetch(url.toString(), {
+    method: 'POST',
+    headers: authHeaders, // NO Content-Type — let browser set multipart boundary
+    body: form,
+    credentials: 'include',
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({})) as Record<string, unknown>;
+    const errObj = err.error as Record<string, unknown> | undefined;
+    throw new ApiError(
+      String(errObj?.code ?? 'UPLOAD_FAILED'),
+      String(errObj?.message ?? 'Upload failed'),
+      resp.status,
+    );
+  }
+  const json = await resp.json() as { data?: T };
+  return (json.data ?? json) as T;
+}
+
 export const apiClient = {
   get: <T>(path: string, params?: Record<string, string | number | boolean | undefined>) =>
     request<T>('GET', path, undefined, params),
   post: <T>(path: string, body?: unknown) => request<T>('POST', path, body),
   patch: <T>(path: string, body?: unknown) => request<T>('PATCH', path, body),
   delete: <T>(path: string) => request<T>('DELETE', path),
+  upload: <T>(path: string, form: FormData, params?: Record<string, string>) =>
+    uploadFile<T>(path, form, params),
 };

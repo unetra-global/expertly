@@ -6,7 +6,6 @@ import { getBrowserClient } from '@/lib/supabase';
 import { apiClient } from '@/lib/apiClient';
 import type { LinkedInPrefillResult } from '@/stores/onboardingStore';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
 
 interface Props {
   onNext: () => void;
@@ -75,26 +74,15 @@ export function Step1Identity({ onNext }: Props) {
     const objectUrl = URL.createObjectURL(file);
     setPhotoPreview(objectUrl);
 
-    // Upload
     setPhotoUploading(true);
     try {
-      const supabase = getBrowserClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      if (!token) throw new Error('Not authenticated');
-
       const fd = new FormData();
       fd.append('file', file);
-      const res = await fetch(`${API_BASE}/upload`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: fd,
-      });
-      if (!res.ok) throw new Error('Upload failed');
-      const json = await res.json() as { success: boolean; data: { url: string } };
-      const url = json.data.url;
-      setStep1({ profilePhotoUrl: url });
-      setPhotoPreview(url);
+      const result = await apiClient.upload<{ url: string }>('/upload/avatar', fd);
+      if (result?.url) {
+        setStep1({ profilePhotoUrl: result.url });
+        setPhotoPreview(result.url);
+      }
     } catch {
       setPhotoPreview(formData.profilePhotoUrl); // revert
       setToast({ message: 'Photo upload failed. Please try again.', type: 'error' });

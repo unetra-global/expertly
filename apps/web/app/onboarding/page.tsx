@@ -2,7 +2,7 @@
 import { createServerClient } from '@/lib/supabase-server';
 import { OnboardingLayout } from '@/components/onboarding/OnboardingLayout';
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4001';
 
 export const metadata = {
   title: 'Apply for Membership | Expertly',
@@ -29,7 +29,7 @@ export default async function OnboardingPage() {
     const token = session?.access_token;
 
     if (token) {
-      const res = await fetch(`${API}/applications/me`, {
+      const res = await fetch(`${API_BASE}/api/v1/applications/me`, {
         headers: { Authorization: `Bearer ${token}` },
         cache: 'no-store',
       });

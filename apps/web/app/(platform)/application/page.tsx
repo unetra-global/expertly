@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase-server';
 import { DraftResumer } from '@/components/onboarding/DraftResumer';
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4001';
 
 export const metadata = {
   title: 'Your Application | Expertly',
@@ -31,7 +31,7 @@ export default async function ApplicationPage() {
   }
 
   try {
-    const res = await fetch(`${API}/applications/me`, {
+    const res = await fetch(`${API_BASE}/api/v1/applications/me`, {
       headers: { Authorization: `Bearer ${token}` },
       cache: 'no-store',
     });

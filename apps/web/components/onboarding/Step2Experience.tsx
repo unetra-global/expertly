@@ -3,9 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useOnboardingStore } from '@/stores/onboardingStore';
 import type { WorkExperienceEntry, EducationEntry, CredentialEntry } from '@/stores/onboardingStore';
-import { getBrowserClient } from '@/lib/supabase';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
+import { apiClient } from '@/lib/apiClient';
 
 interface Props {
   onBack: () => void;
@@ -123,21 +121,11 @@ export function Step2Experience({ onBack, onNext }: Props) {
     };
     setCredentials((c) => [...c, newCred]);
     try {
-      const supabase = getBrowserClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      if (!token) throw new Error('Not authenticated');
       const fd = new FormData();
       fd.append('file', file);
-      const res = await fetch(`${API_BASE}/upload`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: fd,
-      });
-      if (!res.ok) throw new Error('Upload failed');
-      const json = await res.json() as { success: boolean; data: { url: string } };
+      const result = await apiClient.upload<{ url: string }>('/upload/document', fd, { type: 'credentials' });
       setCredentials((c) =>
-        c.map((cr) => cr.id === newCred.id ? { ...cr, documentUrl: json.data.url, uploading: false } : cr),
+        c.map((cr) => cr.id === newCred.id ? { ...cr, documentUrl: result.url, uploading: false } : cr),
       );
     } catch {
       setCredentials((c) => c.filter((cr) => cr.id !== newCred.id));

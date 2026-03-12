@@ -271,12 +271,8 @@ export default function ArticleEditor({ articleId: initialArticleId }: Props) {
     try {
       const form = new FormData();
       form.append('file', file);
-      const resp = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1'}/upload/article-image`,
-        { method: 'POST', body: form },
-      );
-      const json = (await resp.json()) as { data?: { url: string } };
-      if (json.data?.url) setFeaturedImageUrl(json.data.url);
+      const result = await apiClient.upload<{ url: string }>('/upload/article-image', form);
+      if (result?.url) setFeaturedImageUrl(result.url);
     } catch {
       // fail silently — user can retry
     } finally {
@@ -290,13 +286,9 @@ export default function ArticleEditor({ articleId: initialArticleId }: Props) {
     try {
       const form = new FormData();
       form.append('file', file);
-      const resp = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1'}/upload/article-image`,
-        { method: 'POST', body: form },
-      );
-      const json = (await resp.json()) as { data?: { url: string } };
-      if (json.data?.url && editor) {
-        editor.chain().focus().setImage({ src: json.data.url }).run();
+      const result = await apiClient.upload<{ url: string }>('/upload/article-image', form);
+      if (result?.url && editor) {
+        editor.chain().focus().setImage({ src: result.url }).run();
       }
     } catch {
       // fail silently

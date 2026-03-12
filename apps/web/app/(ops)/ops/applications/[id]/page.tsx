@@ -92,8 +92,8 @@ export default function ApplicationDetailPage() {
 
   const approveMutation = useMutation({
     mutationFn: () =>
-      apiClient.post(`/ops/applications/${id}/approve`, {
-        primaryServiceId: selectedServiceId || app?.primaryServiceId,
+      apiClient.patch(`/ops/applications/${id}/approve`, {
+        serviceId: selectedServiceId || app?.primaryServiceId,
         membershipTier: selectedTier,
       }),
     onSuccess: () => {
@@ -104,7 +104,7 @@ export default function ApplicationDetailPage() {
 
   const rejectMutation = useMutation({
     mutationFn: () =>
-      apiClient.post(`/ops/applications/${id}/reject`, { reason: rejectReason }),
+      apiClient.patch(`/ops/applications/${id}/reject`, { rejectionReason: rejectReason }),
     onSuccess: () => {
       invalidate();
       setShowRejectModal(false);
@@ -113,7 +113,7 @@ export default function ApplicationDetailPage() {
   });
 
   const waitlistMutation = useMutation({
-    mutationFn: () => apiClient.post(`/ops/applications/${id}/waitlist`, {}),
+    mutationFn: () => apiClient.patch(`/ops/applications/${id}/waitlist`, {}),
     onSuccess: () => {
       invalidate();
     },
