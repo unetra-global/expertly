@@ -1,10 +1,11 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import OpenAI from 'openai';
+import { Queue } from 'bullmq';
 import { SupabaseService } from '../../common/services/supabase.service';
 import { CacheService } from '../../common/services/cache.service';
-import { RedisService } from '../../common/services/redis.service';
 import { EmailService } from '../../common/services/email.service';
+import { EmbeddingService } from '../../common/services/embedding.service';
+import { QUEUE_NAMES, QUEUE_JOB_TYPES, getQueueConnection } from '../../config/queue.config';
 import { AuthUser, PaginationMeta } from '@expertly/types';
 import { QueryMembersDto } from './dto/query-members.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
@@ -26,6 +27,16 @@ const BADGE_SENSITIVE_FIELDS: (keyof UpdateMemberDto)[] = [
   'credentials',
   'work_experience',
   'education',
+];
+
+// Fields whose content is embedded — changing any of these triggers a re-embed
+const EMBEDDABLE_FIELDS: (keyof UpdateMemberDto)[] = [
+  'designation',
+  'headline',
+  'bio',
+  'country',
+  'city',
+  'qualifications',
 ];
 
 // Teaser fields for guests (no auth)
@@ -118,19 +129,17 @@ function getCountryAliases(country: string): string[] {
 @Injectable()
 export class MembersService {
   private readonly logger = new Logger(MembersService.name);
-  private openai: OpenAI | null = null;
+
+  private readonly aiQueue: Queue;
 
   constructor(
     private readonly supabase: SupabaseService,
     private readonly cache: CacheService,
-    private readonly redis: RedisService,
     private readonly config: ConfigService,
     private readonly email: EmailService,
+    private readonly embeddingService: EmbeddingService,
   ) {
-    const apiKey = this.config.get<string>('OPENAI_API_KEY');
-    if (apiKey) {
-      this.openai = new OpenAI({ apiKey });
-    }
+    this.aiQueue = new Queue(QUEUE_NAMES.AI, { connection: getQueueConnection(config) });
   }
 
   // ─── Featured ────────────────────────────────────────────────────────────────
@@ -287,10 +296,12 @@ export class MembersService {
       throw new NotFoundException(`Member with slug '${slug}' not found`);
     }
 
-    // Increment view count in Redis (flushed to DB by scheduler)
+    // Increment view count directly in DB (fire-and-forget)
     const memberId = (result as { id?: string }).id;
     if (memberId) {
-      await this.redis.incr(`expertly:member:views:${memberId}`);
+      void Promise.resolve(
+        this.supabase.adminClient.rpc('increment_member_view_count', { p_member_id: memberId, p_count: 1 }),
+      ).catch((err: Error) => this.logger.warn(`View count increment failed: ${err.message}`));
     }
 
     return result;
@@ -402,6 +413,16 @@ export class MembersService {
       await this.supabase.revalidatePath(`/members/${slug}`);
     }
 
+    // Re-embed if any embeddable field changed (jobId deduplicates rapid edits)
+    const needsReEmbed = EMBEDDABLE_FIELDS.some((f) => dto[f] !== undefined);
+    if (needsReEmbed) {
+      await this.aiQueue.add(
+        QUEUE_JOB_TYPES.GENERATE_EMBEDDING,
+        { entityType: 'member', entityId: user.memberId },
+        { jobId: `embed:member:${user.memberId}` },
+      );
+    }
+
     return data;
   }
 
@@ -454,17 +475,7 @@ export class MembersService {
   // ─── AI Search ───────────────────────────────────────────────────────────────
 
   async aiSearch(dto: AiSearchDto, user: AuthUser | null): Promise<unknown[]> {
-    if (!this.openai) {
-      throw new Error('OpenAI is not configured. Set OPENAI_API_KEY.');
-    }
-
-    // Generate embedding
-    const embeddingResponse = await this.openai.embeddings.create({
-      model: 'text-embedding-3-small',
-      input: dto.query,
-    });
-
-    const embedding = embeddingResponse.data[0]?.embedding;
+    const embedding = await this.embeddingService.embed(dto.query);
     if (!embedding) {
       return [];
     }

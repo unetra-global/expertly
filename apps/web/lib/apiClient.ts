@@ -1,4 +1,5 @@
 import { getBrowserClient } from './supabase';
+import type { AiSearchResponse } from '@/types/api';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4001';
 
@@ -156,4 +157,9 @@ export const apiClient = {
   delete: <T>(path: string) => request<T>('DELETE', path),
   upload: <T>(path: string, form: FormData, params?: Record<string, string>) =>
     uploadFile<T>(path, form, params),
+
+  search: {
+    ai: (query: string, scope?: 'members' | 'articles' | 'events' | 'all') =>
+      request<AiSearchResponse>('POST', '/search/ai', { query, ...(scope ? { scope } : {}) }),
+  },
 };

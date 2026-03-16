@@ -15,7 +15,6 @@ import { ConfigService } from '@nestjs/config';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { SupabaseService } from '../../common/services/supabase.service';
-import { RedisService } from '../../common/services/redis.service';
 import {
   QUEUE_NAMES,
   QUEUE_JOB_TYPES,
@@ -23,17 +22,17 @@ import {
 } from '../../config/queue.config';
 import type { AuthUser } from '@expertly/types';
 
-const LINKEDIN_RATE_LIMIT_TTL = 3600; // 1 hour in seconds
+const LINKEDIN_RATE_LIMIT_MS = 3600 * 1000; // 1 hour in ms
 
 @Controller('automation')
 @UseGuards(JwtAuthGuard)
 export class AutomationController {
   private readonly linkedInQueue: Queue;
+  private readonly rateLimitMap = new Map<string, number>();
 
   constructor(
     private readonly supabase: SupabaseService,
     private readonly config: ConfigService,
-    private readonly redis: RedisService,
   ) {
     this.linkedInQueue = new Queue(QUEUE_NAMES.LINKEDIN, {
       connection: getQueueConnection(config),
@@ -41,23 +40,22 @@ export class AutomationController {
   }
 
   /** Check and set rate limit — throws 429 if already used within TTL */
-  private async checkLinkedInRateLimit(userId: string): Promise<void> {
-    const key = `expertly:linkedin:ratelimit:${userId}`;
-    const existing = await this.redis.get(key);
-    if (existing) {
+  private checkLinkedInRateLimit(userId: string): void {
+    const lastUsed = this.rateLimitMap.get(userId);
+    if (lastUsed && Date.now() - lastUsed < LINKEDIN_RATE_LIMIT_MS) {
       throw new HttpException(
         'Rate limit exceeded: LinkedIn import is limited to once per hour',
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }
-    await this.redis.set(key, '1', 'EX', LINKEDIN_RATE_LIMIT_TTL);
+    this.rateLimitMap.set(userId, Date.now());
   }
 
   // ── POST /automation/linkedin-scrape ───────────────────────────────────────
 
   @Post('linkedin-scrape')
   async linkedInScrape(@CurrentUser() user: AuthUser) {
-    await this.checkLinkedInRateLimit(user.dbId);
+    this.checkLinkedInRateLimit(user.dbId);
 
     const sb = this.supabase.adminClient;
 
@@ -106,7 +104,7 @@ export class AutomationController {
     @CurrentUser() user: AuthUser,
     @Body() body: { pdfUrl: string },
   ) {
-    await this.checkLinkedInRateLimit(user.dbId);
+    this.checkLinkedInRateLimit(user.dbId);
 
     const sb = this.supabase.adminClient;
 

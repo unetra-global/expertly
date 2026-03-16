@@ -7,7 +7,17 @@ import Link from 'next/link';
 import { apiClient } from '@/lib/apiClient';
 import { queryKeys } from '@/hooks/queryKeys';
 import { FilterSheet } from '@/components/ui/FilterSheet';
+import { HeroSearchBar } from '@/components/search/HeroSearchBar';
 import type { EventListItem, PaginatedResponse } from '@/types/api';
+
+const EVENT_PLACEHOLDERS = [
+  'Finance conference in Singapore this April...',
+  'Tax webinar on GST changes...',
+  'Events in London between 10th and 20th March...',
+  'M&A networking in Dubai...',
+  'Online legal tech summit...',
+  'SEBI compliance workshop in Mumbai...',
+];
 
 const COUNTRIES = [
   'Australia', 'Canada', 'Hong Kong', 'India', 'Malaysia', 'Singapore',
@@ -307,53 +317,7 @@ export default function EventsClient({ initialFilters }: EventsClientProps) {
             Conferences, webinars, and networking events for finance and legal professionals.
           </p>
 
-          {/* Top search bar — mobile: search only; desktop: search + country + type */}
-          <div className="mt-5 bg-white rounded-2xl shadow-lg p-2 flex gap-2 max-w-3xl">
-            <div className="flex-1 relative">
-              <svg className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <input
-                type="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search events…"
-                className="w-full pl-9 pr-4 py-2.5 text-sm text-gray-800 bg-transparent rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue"
-              />
-            </div>
-            {/* Desktop-only dropdowns */}
-            <div className="hidden sm:flex items-center gap-0">
-              <div className="w-px bg-gray-200 self-stretch my-1 mx-2" />
-              <select
-                value={country}
-                onChange={(e) => { setCountry(e.target.value); setPage(1); }}
-                className="pl-4 pr-8 py-2.5 text-sm text-gray-800 bg-transparent rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue appearance-none cursor-pointer w-36"
-              >
-                <option value="">All Countries</option>
-                {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
-              <div className="w-px bg-gray-200 self-stretch my-1 mx-2" />
-              <select
-                value={format}
-                onChange={(e) => { setFormat(e.target.value); setPage(1); }}
-                className="pl-4 pr-8 py-2.5 text-sm text-gray-800 bg-transparent rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue appearance-none cursor-pointer w-36"
-              >
-                <option value="">All Types</option>
-                <option value="online">Online</option>
-                <option value="in_person">In Person</option>
-                <option value="hybrid">Hybrid</option>
-              </select>
-            </div>
-            <button
-              onClick={() => syncUrl(search, country, format, startDateFrom, startDateTo, sort)}
-              className="flex-shrink-0 inline-flex items-center justify-center gap-1.5 px-4 sm:px-6 py-2.5 rounded-xl bg-brand-blue hover:bg-brand-blue-dark text-white text-sm font-semibold transition-colors"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <span className="hidden sm:inline">SEARCH</span>
-            </button>
-          </div>
+          <HeroSearchBar placeholders={EVENT_PLACEHOLDERS} scope="events" />
         </div>
       </div>
 

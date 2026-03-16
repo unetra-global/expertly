@@ -7,11 +7,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import OpenAI from 'openai';
 import sanitizeHtml from 'sanitize-html';
 import { SupabaseService } from '../../common/services/supabase.service';
 import { CacheService } from '../../common/services/cache.service';
 import { EmailService } from '../../common/services/email.service';
+import { EmbeddingService } from '../../common/services/embedding.service';
 import { AuthUser, PaginationMeta } from '@expertly/types';
 import {
   slugify,
@@ -67,19 +67,14 @@ function sanitizeBody(html: string): string {
 @Injectable()
 export class ArticlesService {
   private readonly logger = new Logger(ArticlesService.name);
-  private openai: OpenAI | null = null;
 
   constructor(
     private readonly supabase: SupabaseService,
     private readonly cache: CacheService,
     private readonly email: EmailService,
     private readonly config: ConfigService,
-  ) {
-    const apiKey = this.config.get<string>('OPENAI_API_KEY');
-    if (apiKey) {
-      this.openai = new OpenAI({ apiKey });
-    }
-  }
+    private readonly embeddingService: EmbeddingService,
+  ) {}
 
   // ─── List Articles ────────────────────────────────────────────────────────
 
@@ -487,16 +482,7 @@ export class ArticlesService {
   // ─── AI Search ────────────────────────────────────────────────────────────
 
   async aiSearch(dto: ArticleAiSearchDto): Promise<unknown[]> {
-    if (!this.openai) {
-      throw new BadRequestException('AI search not configured');
-    }
-
-    const embeddingResp = await this.openai.embeddings.create({
-      model: 'text-embedding-3-small',
-      input: dto.query,
-    });
-
-    const embedding = embeddingResp.data[0]?.embedding;
+    const embedding = await this.embeddingService.embed(dto.query);
     if (!embedding) return [];
 
     const { data: rpcResults, error } = await this.supabase.adminClient.rpc(

@@ -6,8 +6,8 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Worker, Job } from 'bullmq';
-import OpenAI from 'openai';
 import { SupabaseService } from '../../common/services/supabase.service';
+import { EmbeddingService } from '../../common/services/embedding.service';
 import {
   QUEUE_NAMES,
   QUEUE_JOB_TYPES,
@@ -23,16 +23,12 @@ type EmbeddingJobData = {
 export class EmbeddingProcessor implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(EmbeddingProcessor.name);
   private worker!: Worker;
-  private readonly openai: OpenAI;
 
   constructor(
     private readonly supabase: SupabaseService,
     private readonly config: ConfigService,
-  ) {
-    this.openai = new OpenAI({
-      apiKey: this.config.get<string>('OPENAI_API_KEY'),
-    });
-  }
+    private readonly embeddingService: EmbeddingService,
+  ) {}
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
@@ -145,13 +141,8 @@ export class EmbeddingProcessor implements OnModuleInit, OnModuleDestroy {
         return;
       }
 
-      const response = await this.openai.embeddings.create({
-        model: 'text-embedding-3-small',
-        input: text,
-      });
-
-      const vector = response.data[0]?.embedding;
-      if (!vector) throw new Error('OpenAI returned no embedding');
+      const vector = await this.embeddingService.embed(text);
+      if (!vector) throw new Error('Embedding service returned no vector');
 
       await sb
         .from(table)

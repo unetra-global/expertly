@@ -10,7 +10,6 @@ import { Queue } from 'bullmq';
 import { SupabaseService } from '../../common/services/supabase.service';
 import { EmailService } from '../../common/services/email.service';
 import { CacheService } from '../../common/services/cache.service';
-import { RedisService } from '../../common/services/redis.service';
 import {
   QUEUE_NAMES,
   QUEUE_JOB_TYPES,
@@ -28,7 +27,6 @@ export class SchedulerService implements OnModuleInit, OnModuleDestroy {
     private readonly supabase: SupabaseService,
     private readonly email: EmailService,
     private readonly cache: CacheService,
-    private readonly redis: RedisService,
     private readonly config: ConfigService,
   ) {}
 
@@ -200,17 +198,6 @@ export class SchedulerService implements OnModuleInit, OnModuleDestroy {
     lastMonday.setHours(0, 0, 0, 0);
     const weekStart = lastMonday.toISOString().split('T')[0];
 
-    // Idempotency check — skip if already queued this week
-    const lockKey = `expertly:digest:lock:${weekStart}`;
-    const alreadySent = await this.redis.get(lockKey);
-    if (alreadySent) {
-      this.logger.log(`Weekly digest for ${weekStart} already dispatched — skipping`);
-      return;
-    }
-
-    // Mark as dispatched before queuing (7-day TTL)
-    await this.redis.set(lockKey, '1', 'EX', 7 * 86400);
-
     // Get digest data
     const { data: digestRows } = await sb.rpc('get_digest_data', {
       p_week_start: weekStart,
@@ -250,79 +237,7 @@ export class SchedulerService implements OnModuleInit, OnModuleDestroy {
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // 5. Flush View Counts — every 15 minutes
-  // ─────────────────────────────────────────────────────────────────────────────
-  @Cron('*/15 * * * *')
-  async flushViewCounts(): Promise<void> {
-    const sb = this.supabase.adminClient;
-
-    // Find all view count keys
-    const memberKeys = await this.redis.keys('expertly:member:views:*');
-    const articleKeys = await this.redis.keys('expertly:article:views:*');
-
-    let flushed = 0;
-
-    // Flush member view counts
-    for (const key of memberKeys) {
-      try {
-        const val = await this.redis.get(key);
-        if (!val) continue;
-        const count = parseInt(val, 10);
-        if (isNaN(count) || count <= 0) {
-          await this.redis.del(key);
-          continue;
-        }
-
-        // Key format: expertly:member:views:{memberId}
-        const memberId = key.split(':').pop();
-        if (!memberId) continue;
-
-        await sb.rpc('increment_member_view_count', {
-          p_member_id: memberId,
-          p_count: count,
-        });
-
-        await this.redis.del(key);
-        flushed++;
-      } catch (err) {
-        this.logger.warn(`Failed to flush member view key ${key}: ${(err as Error).message}`);
-      }
-    }
-
-    // Flush article view counts
-    for (const key of articleKeys) {
-      try {
-        const val = await this.redis.get(key);
-        if (!val) continue;
-        const count = parseInt(val, 10);
-        if (isNaN(count) || count <= 0) {
-          await this.redis.del(key);
-          continue;
-        }
-
-        // Key format: expertly:article:views:{articleId}
-        const articleId = key.split(':').pop();
-        if (!articleId) continue;
-
-        await sb.rpc('increment_view_count', {
-          article_id: articleId,
-          increment: count,
-        });
-
-        await this.redis.del(key);
-        flushed++;
-      } catch (err) {
-        this.logger.warn(`Failed to flush article view key ${key}: ${(err as Error).message}`);
-      }
-    }
-
-    if (flushed > 0) {
-      this.logger.log(`Flushed ${flushed} view count(s) to DB`);
-    }
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // 6. Retry Failed Embeddings — 03:00 UTC daily
+  // 5. Retry Failed Embeddings — 03:00 UTC daily
   // ─────────────────────────────────────────────────────────────────────────────
   @Cron('0 3 * * *')
   async retryFailedEmbeddings(): Promise<void> {

@@ -1064,6 +1064,18 @@ export class OpsService {
 
     if (error) throw new BadRequestException(error.message);
     await this.cache.delByPattern('expertly:events:*');
+
+    // Re-embed if any embeddable field changed (jobId deduplicates rapid edits)
+    const eventEmbeddableFields = ['title', 'description', 'event_type', 'country', 'city'];
+    const needsReEmbed = eventEmbeddableFields.some((f) => f in body);
+    if (needsReEmbed) {
+      await this.aiQueue.add(
+        QUEUE_JOB_TYPES.GENERATE_EMBEDDING,
+        { entityType: 'event', entityId: id },
+        { jobId: `embed:event:${id}` },
+      );
+    }
+
     return data;
   }
 

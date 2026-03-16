@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSignOut } from '@/hooks/useAuth';
+import { GlobalSearchBar } from '@/components/search/GlobalSearchBar';
 
 interface NavbarClientProps {
   userRole: string | null;
@@ -16,6 +17,7 @@ export function NavbarClient({
   userAvatarUrl,
 }: NavbarClientProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const signOut = useSignOut();
 
@@ -74,16 +76,21 @@ export function NavbarClient({
           </Link>
 
           {/* ── Desktop nav links ─────────────────────────── */}
-          <div className="hidden md:flex items-center gap-8 flex-1 justify-center">
+          <div className="hidden md:flex items-center gap-6">
             {navLinks.map(({ href, label }) => (
               <Link
                 key={href}
                 href={href}
-                className="text-sm font-medium text-white/70 hover:text-white transition-colors"
+                className="text-sm font-medium text-white/70 hover:text-white transition-colors whitespace-nowrap"
               >
                 {label}
               </Link>
             ))}
+          </div>
+
+          {/* ── Desktop search bar ────────────────────────── */}
+          <div className="hidden md:block flex-1 max-w-sm mx-4">
+            <GlobalSearchBar />
           </div>
 
           {/* ── Desktop right side ────────────────────────── */}
@@ -172,8 +179,17 @@ export function NavbarClient({
             )}
           </div>
 
-          {/* ── Mobile right group: Log In + hamburger ──── */}
-          <div className="md:hidden flex items-center gap-2 flex-shrink-0">
+          {/* ── Mobile right group: Search + Log In + hamburger ──── */}
+          <div className="md:hidden flex items-center gap-1 flex-shrink-0">
+            <button
+              onClick={() => setMobileSearchOpen(true)}
+              className="p-2 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+              aria-label="Search"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </button>
             {!isLoggedIn && (
               <Link
                 href="/auth"
@@ -194,6 +210,28 @@ export function NavbarClient({
           </div>
         </nav>
       </header>
+
+      {/* ── Mobile search overlay ─────────────────────────── */}
+      {mobileSearchOpen && (
+        <div className="fixed inset-0 z-[70] bg-brand-navy/95 flex flex-col md:hidden">
+          <div className="flex items-center gap-3 px-4 h-16 border-b border-white/10">
+            <GlobalSearchBar
+              className="flex-1"
+              autoFocus
+              onClose={() => setMobileSearchOpen(false)}
+            />
+            <button
+              onClick={() => setMobileSearchOpen(false)}
+              className="p-2 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors flex-shrink-0"
+              aria-label="Close search"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Mobile drawer backdrop ─────────────────────────── */}
       <div

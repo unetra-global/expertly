@@ -487,3 +487,65 @@ export interface BroadcastLog {
   recipientCount: number;
   sentAt: string;
 }
+
+// ── AI Search ──────────────────────────────────────────────────────────────────
+
+export interface SearchParsedQuery {
+  intent: 'members' | 'articles' | 'events' | 'all';
+  cleanQuery: string;
+  filters: {
+    city?: string;
+    country?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    serviceCategory?: string;
+    isVirtual?: boolean;
+  };
+}
+
+export interface SearchMemberResult {
+  id: string;
+  slug: string;
+  designation?: string;
+  headline?: string;
+  profilePhotoUrl?: string;
+  city?: string;
+  country?: string;
+  memberTier?: string;
+  isVerified?: boolean;
+  users?: { firstName?: string; lastName?: string };
+  services?: { name: string };
+}
+
+export interface SearchArticleResult {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt?: string;
+  coverImageUrl?: string;
+  publishedAt?: string;
+  readTime?: number;
+  tags?: string[];
+}
+
+export interface SearchEventResult {
+  id: string;
+  slug: string;
+  title: string;
+  description?: string;
+  coverImageUrl?: string;
+  startDate?: string;
+  endDate?: string;
+  location?: string;
+  city?: string;
+  country?: string;
+  isVirtual?: boolean;
+  status?: string;
+}
+
+export interface AiSearchResponse {
+  members: SearchMemberResult[];
+  articles: SearchArticleResult[];
+  events: SearchEventResult[];
+  parsedQuery?: SearchParsedQuery;
+}

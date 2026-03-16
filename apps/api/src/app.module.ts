@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
-import { RedisModule } from './common/modules/redis.module';
 import { SupabaseModule } from './common/modules/supabase.module';
 import { CacheModule } from './common/modules/cache.module';
+import { EmbeddingModule } from './common/modules/embedding.module';
 import { HealthModule } from './modules/health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { TaxonomyModule } from './modules/taxonomy/taxonomy.module';
@@ -31,9 +31,9 @@ import { SchedulerModule } from './modules/scheduler/scheduler.module';
     ConfigModule.forRoot({ isGlobal: true }),
     ScheduleModule.forRoot(),
     // Shared global singletons — must come before feature modules
-    RedisModule,
     SupabaseModule,
     CacheModule,
+    EmbeddingModule,
     // Feature modules
     HealthModule,
     AuthModule,

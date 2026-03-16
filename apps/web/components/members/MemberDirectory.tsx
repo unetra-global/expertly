@@ -8,7 +8,17 @@ import { apiClient } from '@/lib/apiClient';
 import { queryKeys } from '@/hooks/queryKeys';
 import { MemberCard } from './MemberCard';
 import { FilterSheet } from '@/components/ui/FilterSheet';
+import { HeroSearchBar } from '@/components/search/HeroSearchBar';
 import type { MemberListItem, PaginatedResponse } from '@/types/api';
+
+const MEMBER_PLACEHOLDERS = [
+  'US incorporation specialist in Singapore...',
+  'Transfer pricing expert in Delhi...',
+  'Tax lawyer based in Mumbai...',
+  'M&A advisor in London...',
+  'GST consultant in Bangalore...',
+  'Corporate law expert in Dubai...',
+];
 
 const COUNTRIES = [
   'Australia', 'Canada', 'Hong Kong', 'India', 'Malaysia', 'Singapore',
@@ -272,55 +282,7 @@ export default function MemberDirectory({
             Browse verified finance and legal professionals from around the world.
           </p>
 
-          {/* Top search bar */}
-          <div className="mt-5 bg-white rounded-2xl shadow-lg p-2 flex gap-2 max-w-3xl">
-            <div className="flex-1 relative">
-              <svg
-                className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none"
-                fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <input
-                type="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by name, keyword…"
-                className="w-full pl-9 pr-4 py-2.5 text-sm text-gray-800 bg-transparent rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue"
-              />
-            </div>
-            {/* Country dropdown — hidden on mobile, shown sm+ */}
-            <div className="hidden sm:flex items-center">
-              <div className="w-px bg-gray-200 self-stretch my-1 mr-2" />
-              <div className="relative">
-                <svg
-                  className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none"
-                  fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064" />
-                </svg>
-                <select
-                  value={country}
-                  onChange={(e) => { setCountry(e.target.value); setPage(1); }}
-                  className="pl-9 pr-8 py-2.5 text-sm text-gray-800 bg-transparent rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue appearance-none cursor-pointer w-40"
-                >
-                  <option value="">All Countries</option>
-                  {COUNTRIES.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <button
-              onClick={() => syncUrl(resolvedServiceId, country, search, minYears, maxHourly, sort)}
-              className="flex-shrink-0 inline-flex items-center justify-center gap-1.5 px-4 sm:px-6 py-2.5 rounded-xl bg-brand-blue hover:bg-brand-blue-dark text-white text-sm font-semibold transition-colors"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <span className="hidden sm:inline">FIND AN EXPERT</span>
-            </button>
-          </div>
+          <HeroSearchBar placeholders={MEMBER_PLACEHOLDERS} scope="members" />
         </div>
       </div>
 

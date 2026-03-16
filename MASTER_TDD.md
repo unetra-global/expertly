@@ -1032,10 +1032,15 @@ CREATE INDEX idx_members_expiring
 ```
 
 ## Vector Search Functions
+
+> **Embedding provider:** Google `gemini-embedding-001` (768 dims, v1beta REST API)
+> with `outputDimensionality: 768`. All vector columns are `vector(768)`.
+> Configured via `EMBEDDING_PROVIDER=google` + `GOOGLE_GENERATIVE_AI_API_KEY`.
+
 ```sql
 -- Member semantic search
 CREATE OR REPLACE FUNCTION search_members(
-  query_embedding   vector(1536),
+  query_embedding   vector(768),
   match_threshold   FLOAT DEFAULT 0.3,
   match_count       INT DEFAULT 20,
   filter_country    TEXT DEFAULT NULL,
@@ -2336,7 +2341,16 @@ PATCH /consultation-requests/:id/status  JWT+Member  Update status
 
 ### Search
 ```
-GET  /search?q=&type=           OptJWT    Global search (members+articles+events)
+POST /search/ai                 OptJWT    AI natural-language search
+  Body: { query: string, scope?: 'members'|'articles'|'events'|'all' }
+  - scope overrides the LLM's parsed intent (used by listing-page hero bars)
+  - scope omitted / 'all' → returns members + articles + events
+  - scope='members' → returns only members
+  - scope='articles' → returns only articles
+  - scope='events' → returns only events
+  Response: { members[], articles[], events[], parsedQuery }
+
+GET  /search?q=&type=           OptJWT    Basic vector search (members+articles+events)
 ```
 
 ### Upload
@@ -4922,4 +4936,4 @@ git push
 
 The document covers everything — all 33 sections, every database table with exact SQL, every API endpoint, every business rule, every JSONB structure, all email templates, the full auth flow, every state machine, the ops workflows, SEO implementation, deployment config, local setup, and the complete build order with Claude Code session prompts.
 
-Any developer or AI agent who reads this file has everything they need to build the entir
+Any developer or AI agent who reads this file has everything they need to build the entire platform.

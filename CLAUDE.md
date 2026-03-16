@@ -108,6 +108,20 @@ If a criterion is not met, fix it before declaring the feature done.
 ✅ RLS is enabled on all tables — backend bypasses via service role key
 ✅ All mutations go through NestJS — never direct Supabase from frontend
 ✅ Slugs are always generated server-side — never client-side
+✅ Vector columns are vector(768) — Google gemini-embedding-001 with
+   outputDimensionality: 768 via v1beta REST API (NOT @google/generative-ai SDK,
+   which uses v1beta but doesn't support text-embedding-004)
+```
+
+### AI Search (POST /search/ai)
+```
+✅ EmbeddingService uses direct REST fetch to gemini-embedding-001 (not SDK)
+✅ AiSearchDto accepts optional scope: 'members'|'articles'|'events'|'all'
+✅ scope overrides the LLM's parsed intent — always pass scope from listing pages
+✅ HeroSearchBar accepts scope prop → appends &scope=... to /search URL
+✅ /search page reads scope from URL, passes to apiClient.search.ai(q, scope)
+✅ GlobalSearchBar (navbar) has no scope → always searches all types
+✅ To re-embed all records: run scripts/backfill-embeddings.mjs from apps/api/
 ```
 
 ### Routes (CRITICAL)
@@ -224,5 +238,5 @@ At the end of every session:
 
 ---
 
-*CLAUDE.md — Version 1.0*
+*CLAUDE.md — Version 1.1 (updated: AI search scope, embeddings)*
 *Read this file at the start of every session.*

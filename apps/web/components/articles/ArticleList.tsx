@@ -7,7 +7,17 @@ import Link from 'next/link';
 import { apiClient } from '@/lib/apiClient';
 import { queryKeys } from '@/hooks/queryKeys';
 import { FilterSheet } from '@/components/ui/FilterSheet';
+import { HeroSearchBar } from '@/components/search/HeroSearchBar';
 import type { ArticleListItem, PaginatedResponse } from '@/types/api';
+
+const ARTICLE_PLACEHOLDERS = [
+  'GST changes and their impact on startups...',
+  'Transfer pricing explained for CFOs...',
+  'SEBI regulations update 2025...',
+  'Corporate restructuring in a downturn...',
+  'Cross-border M&A tax implications...',
+  'FEMA compliance for foreign investments...',
+];
 
 const READ_TIME_OPTIONS = [
   { label: 'Any Length', value: '' },
@@ -312,30 +322,7 @@ export default function ArticleList({
             )}
           </div>
 
-          {/* Top search bar */}
-          <div className="mt-5 bg-white rounded-2xl shadow-lg p-2 flex gap-2 max-w-3xl">
-            <div className="flex-1 relative">
-              <svg className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <input
-                type="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search articles…"
-                className="w-full pl-9 pr-4 py-2.5 text-sm text-gray-800 bg-transparent rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue"
-              />
-            </div>
-            <button
-              onClick={() => syncUrl(resolvedServiceId, search, readTime, sort)}
-              className="flex-shrink-0 inline-flex items-center justify-center gap-1.5 px-4 sm:px-6 py-2.5 rounded-xl bg-brand-blue hover:bg-brand-blue-dark text-white text-sm font-semibold transition-colors"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <span className="hidden sm:inline">SEARCH</span>
-            </button>
-          </div>
+          <HeroSearchBar placeholders={ARTICLE_PLACEHOLDERS} scope="articles" />
         </div>
       </div>
 
