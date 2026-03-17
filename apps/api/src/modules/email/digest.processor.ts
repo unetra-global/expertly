@@ -12,6 +12,7 @@ import {
   QUEUE_NAMES,
   QUEUE_JOB_TYPES,
   getQueueConnection,
+  isQueueDisabled,
 } from '../../config/queue.config';
 
 const DIGEST_BATCH_SIZE = 50;
@@ -53,6 +54,8 @@ export class DigestProcessor implements OnModuleInit, OnModuleDestroy {
   // ── Lifecycle ────────────────────────────────────────────────────────────────
 
   async onModuleInit() {
+    if (isQueueDisabled(this.config)) return;
+
     const connection = getQueueConnection(this.config);
 
     this.queue = new Queue(QUEUE_NAMES.DIGEST, { connection });

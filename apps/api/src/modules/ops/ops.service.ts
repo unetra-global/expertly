@@ -16,6 +16,7 @@ import {
   QUEUE_NAMES,
   QUEUE_JOB_TYPES,
   getQueueConnection,
+  isQueueDisabled,
 } from '../../config/queue.config';
 
 const LEGAL_DISCLAIMER_HTML = `
@@ -30,7 +31,7 @@ const LEGAL_DISCLAIMER_HTML = `
 @Injectable()
 export class OpsService {
   private readonly logger = new Logger(OpsService.name);
-  private readonly aiQueue: Queue;
+  private readonly aiQueue: Queue | null;
 
   constructor(
     private readonly supabase: SupabaseService,
@@ -38,9 +39,9 @@ export class OpsService {
     private readonly email: EmailService,
     private readonly config: ConfigService,
   ) {
-    this.aiQueue = new Queue(QUEUE_NAMES.AI, {
-      connection: getQueueConnection(config),
-    });
+    this.aiQueue = isQueueDisabled(config)
+      ? null
+      : new Queue(QUEUE_NAMES.AI, { connection: getQueueConnection(config) });
   }
 
   // ── Applications ──────────────────────────────────────────────────────────
@@ -477,7 +478,7 @@ export class OpsService {
       .eq('id', applicationId);
 
     // Step 12: Queue embedding
-    await this.aiQueue.add(QUEUE_JOB_TYPES.GENERATE_EMBEDDING, {
+    await this.aiQueue?.add(QUEUE_JOB_TYPES.GENERATE_EMBEDDING, {
       entityType: 'member',
       entityId: memberId,
     });
@@ -878,7 +879,7 @@ export class OpsService {
     });
 
     // Queue embedding with high priority (1) per spec
-    await this.aiQueue.add(
+    await this.aiQueue?.add(
       QUEUE_JOB_TYPES.GENERATE_EMBEDDING,
       { entityType: 'article', entityId: id },
       { priority: 1 },
@@ -1045,7 +1046,7 @@ export class OpsService {
 
     if (error) throw new BadRequestException(error.message);
 
-    await this.aiQueue.add(QUEUE_JOB_TYPES.GENERATE_EMBEDDING, {
+    await this.aiQueue?.add(QUEUE_JOB_TYPES.GENERATE_EMBEDDING, {
       entityType: 'event',
       entityId: (data as any).id,
     });
@@ -1069,7 +1070,7 @@ export class OpsService {
     const eventEmbeddableFields = ['title', 'description', 'event_type', 'country', 'city'];
     const needsReEmbed = eventEmbeddableFields.some((f) => f in body);
     if (needsReEmbed) {
-      await this.aiQueue.add(
+      await this.aiQueue?.add(
         QUEUE_JOB_TYPES.GENERATE_EMBEDDING,
         { entityType: 'event', entityId: id },
         { jobId: `embed:event:${id}` },

@@ -12,6 +12,7 @@ import {
   QUEUE_NAMES,
   QUEUE_JOB_TYPES,
   getQueueConnection,
+  isQueueDisabled,
 } from '../../config/queue.config';
 
 @Injectable()
@@ -27,6 +28,8 @@ export class LinkedInProcessor implements OnModuleInit, OnModuleDestroy {
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
   async onModuleInit() {
+    if (isQueueDisabled(this.config)) return;
+
     this.worker = new Worker(
       QUEUE_NAMES.LINKEDIN,
       async (job: Job) => this.process(job),

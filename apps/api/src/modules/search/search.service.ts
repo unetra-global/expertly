@@ -109,7 +109,7 @@ export class SearchService {
       shouldSearchArticles
         ? this.supabase.adminClient.rpc('search_articles', {
             query_embedding: embedding,
-            match_threshold: 0.7,
+            match_threshold: 0.4,
             match_count: 15,
           })
         : Promise.resolve({ data: null, error: null }),
@@ -117,7 +117,7 @@ export class SearchService {
       shouldSearchEvents
         ? this.supabase.adminClient.rpc('search_events', {
             query_embedding: embedding,
-            match_threshold: 0.7,
+            match_threshold: 0.3,
             match_count: 20,
           })
         : Promise.resolve({ data: null, error: null }),

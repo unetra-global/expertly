@@ -391,12 +391,6 @@ export default function AuthPage() {
                           </>
                         )}
                       </button>
-
-                      {/* Info box */}
-                      <div className="mt-5 rounded-xl bg-brand-blue-subtle border border-blue-100 px-4 py-3 text-xs text-blue-700 leading-relaxed">
-                        <strong>How it works:</strong> After connecting with LinkedIn, new
-                        members complete a short application. Membership is verified by our team.
-                      </div>
                     </>
                   ) : (
                     <form

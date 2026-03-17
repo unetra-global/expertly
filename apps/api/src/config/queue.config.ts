@@ -25,11 +25,22 @@ export const QUEUE_JOB_TYPES = {
 
 export type QueueJobType = (typeof QUEUE_JOB_TYPES)[keyof typeof QUEUE_JOB_TYPES];
 
+/** Returns true when Redis / queues are disabled via env. */
+export function isQueueDisabled(config: ConfigService): boolean {
+  return config.get<string>('REDIS_DISABLED') === 'true';
+}
+
 export function getQueueConnection(config: ConfigService): ConnectionOptions {
-  if (config.get<string>('REDIS_DISABLED') === 'true') {
-    // Queue workers/producers are effectively disabled in this mode.
-    // Use a local endpoint to avoid consuming Upstash requests.
-    return { host: '127.0.0.1', port: 6379 } as ConnectionOptions;
+  if (isQueueDisabled(config)) {
+    // Queues are disabled — return a config that fails silently on first attempt
+    // and never retries, so no ECONNREFUSED flood in the logs.
+    return {
+      host: '127.0.0.1',
+      port: 6379,
+      lazyConnect: true,
+      enableOfflineQueue: false,
+      retryStrategy: () => null,
+    } as ConnectionOptions;
   }
 
   const url = config.get<string>('REDIS_URL');

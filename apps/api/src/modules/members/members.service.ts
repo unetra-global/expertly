@@ -5,7 +5,7 @@ import { SupabaseService } from '../../common/services/supabase.service';
 import { CacheService } from '../../common/services/cache.service';
 import { EmailService } from '../../common/services/email.service';
 import { EmbeddingService } from '../../common/services/embedding.service';
-import { QUEUE_NAMES, QUEUE_JOB_TYPES, getQueueConnection } from '../../config/queue.config';
+import { QUEUE_NAMES, QUEUE_JOB_TYPES, getQueueConnection, isQueueDisabled } from '../../config/queue.config';
 import { AuthUser, PaginationMeta } from '@expertly/types';
 import { QueryMembersDto } from './dto/query-members.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
@@ -130,7 +130,7 @@ function getCountryAliases(country: string): string[] {
 export class MembersService {
   private readonly logger = new Logger(MembersService.name);
 
-  private readonly aiQueue: Queue;
+  private readonly aiQueue: Queue | null;
 
   constructor(
     private readonly supabase: SupabaseService,
@@ -139,7 +139,9 @@ export class MembersService {
     private readonly email: EmailService,
     private readonly embeddingService: EmbeddingService,
   ) {
-    this.aiQueue = new Queue(QUEUE_NAMES.AI, { connection: getQueueConnection(config) });
+    this.aiQueue = isQueueDisabled(config)
+      ? null
+      : new Queue(QUEUE_NAMES.AI, { connection: getQueueConnection(config) });
   }
 
   // ─── Featured ────────────────────────────────────────────────────────────────
@@ -416,7 +418,7 @@ export class MembersService {
     // Re-embed if any embeddable field changed (jobId deduplicates rapid edits)
     const needsReEmbed = EMBEDDABLE_FIELDS.some((f) => dto[f] !== undefined);
     if (needsReEmbed) {
-      await this.aiQueue.add(
+      await this.aiQueue?.add(
         QUEUE_JOB_TYPES.GENERATE_EMBEDDING,
         { entityType: 'member', entityId: user.memberId },
         { jobId: `embed:member:${user.memberId}` },

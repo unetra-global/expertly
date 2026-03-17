@@ -19,6 +19,7 @@ import {
   QUEUE_NAMES,
   QUEUE_JOB_TYPES,
   getQueueConnection,
+  isQueueDisabled,
 } from '../../config/queue.config';
 import type { AuthUser } from '@expertly/types';
 
@@ -27,16 +28,16 @@ const LINKEDIN_RATE_LIMIT_MS = 3600 * 1000; // 1 hour in ms
 @Controller('automation')
 @UseGuards(JwtAuthGuard)
 export class AutomationController {
-  private readonly linkedInQueue: Queue;
+  private readonly linkedInQueue: Queue | null;
   private readonly rateLimitMap = new Map<string, number>();
 
   constructor(
     private readonly supabase: SupabaseService,
     private readonly config: ConfigService,
   ) {
-    this.linkedInQueue = new Queue(QUEUE_NAMES.LINKEDIN, {
-      connection: getQueueConnection(config),
-    });
+    this.linkedInQueue = isQueueDisabled(config)
+      ? null
+      : new Queue(QUEUE_NAMES.LINKEDIN, { connection: getQueueConnection(config) });
   }
 
   /** Check and set rate limit — throws 429 if already used within TTL */
@@ -88,7 +89,7 @@ export class AutomationController {
     const jobId = (job as any).id as string;
 
     // Add BullMQ job with jobId = background_jobs.id
-    await this.linkedInQueue.add(
+    await this.linkedInQueue?.add(
       QUEUE_JOB_TYPES.LINKEDIN_SCRAPE,
       { jobId, linkedinUrl, userId: user.dbId },
       { jobId },
@@ -126,7 +127,7 @@ export class AutomationController {
 
     const jobId = (job as any).id as string;
 
-    await this.linkedInQueue.add(
+    await this.linkedInQueue?.add(
       QUEUE_JOB_TYPES.LINKEDIN_PDF_PARSE,
       { jobId, pdfUrl: body.pdfUrl, userId: user.dbId },
       { jobId },

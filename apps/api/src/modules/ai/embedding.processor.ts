@@ -12,6 +12,7 @@ import {
   QUEUE_NAMES,
   QUEUE_JOB_TYPES,
   getQueueConnection,
+  isQueueDisabled,
 } from '../../config/queue.config';
 
 type EmbeddingJobData = {
@@ -33,6 +34,11 @@ export class EmbeddingProcessor implements OnModuleInit, OnModuleDestroy {
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
   async onModuleInit() {
+    if (isQueueDisabled(this.config)) {
+      this.logger.warn('REDIS_DISABLED=true — embedding worker not started');
+      return;
+    }
+
     this.worker = new Worker(
       QUEUE_NAMES.AI,
       async (job: Job) => this.process(job),

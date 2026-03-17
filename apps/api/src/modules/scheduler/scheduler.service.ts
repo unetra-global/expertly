@@ -14,6 +14,7 @@ import {
   QUEUE_NAMES,
   QUEUE_JOB_TYPES,
   getQueueConnection,
+  isQueueDisabled,
 } from '../../config/queue.config';
 
 @Injectable()
@@ -31,6 +32,11 @@ export class SchedulerService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   async onModuleInit() {
+    if (isQueueDisabled(this.config)) {
+      this.logger.warn('REDIS_DISABLED=true — scheduler queues not started');
+      return;
+    }
+
     const connection = getQueueConnection(this.config);
     this.rssQueue = new Queue(QUEUE_NAMES.RSS, { connection });
     this.aiQueue = new Queue(QUEUE_NAMES.AI, { connection });

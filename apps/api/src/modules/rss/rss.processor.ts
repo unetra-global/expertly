@@ -14,6 +14,7 @@ import {
   QUEUE_NAMES,
   QUEUE_JOB_TYPES,
   getQueueConnection,
+  isQueueDisabled,
 } from '../../config/queue.config';
 
 // ── RSS Feed Definitions ───────────────────────────────────────────────────
@@ -103,6 +104,11 @@ export class RssProcessor implements OnModuleInit, OnModuleDestroy {
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
   async onModuleInit() {
+    if (isQueueDisabled(this.config)) {
+      this.logger.warn('REDIS_DISABLED=true — RSS worker not started');
+      return;
+    }
+
     const connection = getQueueConnection(this.config);
 
     this.queue = new Queue(QUEUE_NAMES.RSS, { connection });

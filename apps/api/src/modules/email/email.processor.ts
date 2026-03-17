@@ -11,6 +11,7 @@ import {
   QUEUE_NAMES,
   QUEUE_JOB_TYPES,
   getQueueConnection,
+  isQueueDisabled,
 } from '../../config/queue.config';
 
 @Injectable()
@@ -24,6 +25,8 @@ export class EmailProcessor implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   async onModuleInit() {
+    if (isQueueDisabled(this.config)) return;
+
     this.worker = new Worker(
       QUEUE_NAMES.EMAIL,
       async (job: Job) => this.process(job),
