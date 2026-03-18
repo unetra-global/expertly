@@ -117,11 +117,8 @@ export interface Member {
   headline: string;
   bio: string;
   avatarUrl?: string;
-  location?: string;
   website?: string;
   linkedinUrl?: string;
-  twitterUrl?: string;
-  githubUrl?: string;
   membershipStatus: MembershipStatus;
   seatId?: string;
   availability?: Availability;

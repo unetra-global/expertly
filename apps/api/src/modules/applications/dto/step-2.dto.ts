@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsNumber, IsArray, Min, Max } from 'class-validator';
+import { IsOptional, IsString, IsNumber, IsArray, IsUrl, Min, Max } from 'class-validator';
 
 export class Step2Dto {
   @IsOptional()
@@ -16,12 +16,8 @@ export class Step2Dto {
   firmSize?: string;
 
   @IsOptional()
-  @IsString()
-  country?: string;
-
-  @IsOptional()
-  @IsString()
-  city?: string;
+  @IsUrl({ require_protocol: true }, { message: 'firmWebsiteUrl must be a valid URL' })
+  firmWebsiteUrl?: string;
 
   @IsOptional()
   @IsNumber()

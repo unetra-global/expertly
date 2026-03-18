@@ -171,6 +171,9 @@ importers:
       clsx:
         specifier: ^2.1.0
         version: 2.1.1
+      country-state-city:
+        specifier: ^3.2.1
+        version: 3.2.1
       lucide-react:
         specifier: ^0.316.0
         version: 0.316.0(react@18.3.1)
@@ -2367,6 +2370,10 @@ packages:
       path-type: 4.0.0
       typescript: 5.7.2
     dev: true
+
+  /country-state-city@3.2.1:
+    resolution: {integrity: sha512-kxbanqMc6izjhc/EHkGPCTabSPZ2G6eG4/97akAYHJUN4stzzFEvQPZoF8oXDQ+10gM/O/yUmISCR1ZVxyb6EA==}
+    dev: false
 
   /create-require@1.1.1:
     resolution: {integrity: sha512-dcKFX3jn0MpIaXjisoRvexIJVEKzaq7z2rZKxf+MSr9TkdmHmsU4m2lcLojrj/FHl8mk5VxMmYA+ftRkP/3oKQ==}

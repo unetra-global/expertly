@@ -4,7 +4,7 @@ import { AuthUser } from '@expertly/types';
 
 const ME_FIELDS =
   'id, slug, headline, bio, designation, profile_photo_url, avatar_url, ' +
-  'city, country, website, linkedin_url, twitter_url, github_url, ' +
+  'city, country, website, linkedin_url, ' +
   'primary_service_id, years_of_experience, qualifications, ' +
   'consultation_fee_min_usd, consultation_fee_max_usd, ' +
   'credentials, work_experience, education, testimonials, ' +

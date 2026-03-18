@@ -1,11 +1,122 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
+import { State } from 'country-state-city';
 import { useOnboardingStore } from '@/stores/onboardingStore';
 import { getBrowserClient } from '@/lib/supabase';
 import { apiClient } from '@/lib/apiClient';
 import type { LinkedInPrefillResult } from '@/stores/onboardingStore';
 
+// ── Geographic data ───────────────────────────────────────────────────────────
+
+const REGIONS = [
+  { value: 'africa', label: 'Africa' },
+  { value: 'asia_pacific', label: 'Asia-Pacific' },
+  { value: 'europe', label: 'Europe' },
+  { value: 'latin_america', label: 'Latin America' },
+  { value: 'middle_east', label: 'Middle East' },
+  { value: 'north_america', label: 'North America' },
+  { value: 'south_asia', label: 'South Asia' },
+];
+
+// Country names for each region
+const COUNTRIES_BY_REGION: Record<string, string[]> = {
+  africa: ['Egypt', 'Ghana', 'Kenya', 'Mauritius', 'Morocco', 'Nigeria', 'Rwanda', 'South Africa', 'Tanzania', 'Uganda', 'Zimbabwe'],
+  asia_pacific: ['Australia', 'China', 'Hong Kong', 'Indonesia', 'Japan', 'Malaysia', 'New Zealand', 'Philippines', 'Singapore', 'South Korea', 'Thailand', 'Vietnam'],
+  europe: ['Belgium', 'Denmark', 'Finland', 'France', 'Germany', 'Greece', 'Ireland', 'Italy', 'Netherlands', 'Norway', 'Poland', 'Portugal', 'Spain', 'Sweden', 'Switzerland', 'Turkey', 'United Kingdom'],
+  latin_america: ['Argentina', 'Brazil', 'Chile', 'Colombia', 'Mexico', 'Peru'],
+  middle_east: ['Bahrain', 'Egypt', 'Israel', 'Jordan', 'Kuwait', 'Lebanon', 'Oman', 'Qatar', 'Saudi Arabia', 'United Arab Emirates'],
+  north_america: ['Canada', 'United States'],
+  south_asia: ['Bangladesh', 'India', 'Nepal', 'Pakistan', 'Sri Lanka'],
+};
+
+// Reverse map: country name → region (for auto-selecting region when country is chosen)
+const COUNTRY_TO_REGION: Record<string, string> = Object.entries(COUNTRIES_BY_REGION).reduce(
+  (acc, [region, countries]) => {
+    countries.forEach((c) => { acc[c] = region; });
+    return acc;
+  },
+  {} as Record<string, string>,
+);
+
+// All countries (alphabetically, deduplicated) — shown when no region is selected
+const ALL_COUNTRIES = [...new Set(Object.values(COUNTRIES_BY_REGION).flat())].sort();
+
+// Country name → ISO 3166-1 alpha-2 code (for state lookups via country-state-city)
+const COUNTRY_ISO: Record<string, string> = {
+  // Africa
+  Egypt: 'EG', Ghana: 'GH', Kenya: 'KE', Mauritius: 'MU', Morocco: 'MA',
+  Nigeria: 'NG', Rwanda: 'RW', 'South Africa': 'ZA', Tanzania: 'TZ', Uganda: 'UG', Zimbabwe: 'ZW',
+  // Asia-Pacific
+  Australia: 'AU', China: 'CN', 'Hong Kong': 'HK', Indonesia: 'ID', Japan: 'JP',
+  Malaysia: 'MY', 'New Zealand': 'NZ', Singapore: 'SG', 'South Korea': 'KR',
+  // Europe
+  France: 'FR', Germany: 'DE', Ireland: 'IE', Netherlands: 'NL',
+  Switzerland: 'CH', Turkey: 'TR', 'United Kingdom': 'GB',
+  // Latin America
+  Argentina: 'AR', Brazil: 'BR', Chile: 'CL', Colombia: 'CO', Mexico: 'MX',
+  // Middle East
+  Bahrain: 'BH', Israel: 'IL', Jordan: 'JO', Kuwait: 'KW', Oman: 'OM',
+  Qatar: 'QA', 'Saudi Arabia': 'SA', 'United Arab Emirates': 'AE',
+  // North America
+  Canada: 'CA', 'United States': 'US',
+  // South Asia
+  India: 'IN', Pakistan: 'PK', 'Sri Lanka': 'LK',
+};
+
+// ── Phone calling codes ───────────────────────────────────────────────────────
+
+const PHONE_CODES = [
+  { code: '+1', label: '+1 (US / CA)' },
+  { code: '+20', label: '+20 (EG)' },
+  { code: '+27', label: '+27 (ZA)' },
+  { code: '+31', label: '+31 (NL)' },
+  { code: '+33', label: '+33 (FR)' },
+  { code: '+41', label: '+41 (CH)' },
+  { code: '+44', label: '+44 (UK)' },
+  { code: '+49', label: '+49 (DE)' },
+  { code: '+52', label: '+52 (MX)' },
+  { code: '+54', label: '+54 (AR)' },
+  { code: '+55', label: '+55 (BR)' },
+  { code: '+56', label: '+56 (CL)' },
+  { code: '+57', label: '+57 (CO)' },
+  { code: '+60', label: '+60 (MY)' },
+  { code: '+61', label: '+61 (AU)' },
+  { code: '+62', label: '+62 (ID)' },
+  { code: '+63', label: '+63 (PH)' },
+  { code: '+64', label: '+64 (NZ)' },
+  { code: '+65', label: '+65 (SG)' },
+  { code: '+81', label: '+81 (JP)' },
+  { code: '+82', label: '+82 (KR)' },
+  { code: '+86', label: '+86 (CN)' },
+  { code: '+90', label: '+90 (TR)' },
+  { code: '+91', label: '+91 (IN)' },
+  { code: '+92', label: '+92 (PK)' },
+  { code: '+94', label: '+94 (LK)' },
+  { code: '+212', label: '+212 (MA)' },
+  { code: '+230', label: '+230 (MU)' },
+  { code: '+233', label: '+233 (GH)' },
+  { code: '+234', label: '+234 (NG)' },
+  { code: '+250', label: '+250 (RW)' },
+  { code: '+253', label: '+253 (DJ)' },
+  { code: '+254', label: '+254 (KE)' },
+  { code: '+255', label: '+255 (TZ)' },
+  { code: '+256', label: '+256 (UG)' },
+  { code: '+263', label: '+263 (ZW)' },
+  { code: '+353', label: '+353 (IE)' },
+  { code: '+357', label: '+357 (CY)' },
+  { code: '+852', label: '+852 (HK)' },
+  { code: '+962', label: '+962 (JO)' },
+  { code: '+965', label: '+965 (KW)' },
+  { code: '+966', label: '+966 (SA)' },
+  { code: '+968', label: '+968 (OM)' },
+  { code: '+971', label: '+971 (AE)' },
+  { code: '+972', label: '+972 (IL)' },
+  { code: '+973', label: '+973 (BH)' },
+  { code: '+974', label: '+974 (QA)' },
+];
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 interface Props {
   onNext: () => void;
@@ -25,26 +136,58 @@ export function Step1Identity({ onNext }: Props) {
   const photoInputRef = useRef<HTMLInputElement>(null);
   const realtimeCleanupRef = useRef<(() => void) | null>(null);
 
-  // Local form state (uncontrolled via store)
+  // Local form state
   const [fields, setFields] = useState({
     firstName: formData.firstName,
     lastName: formData.lastName,
+    phoneExtension: formData.phoneExtension || '+1',
+    phone: formData.phone,
+    contactEmail: formData.contactEmail,
+    region: formData.region,
+    country: formData.country,
+    state: formData.state,
+    city: formData.city,
+    linkedinUrl: formData.linkedinUrl,
     designation: formData.designation,
     headline: formData.headline,
     bio: formData.bio,
-    linkedinUrl: formData.linkedinUrl,
   });
+
+  // States available for selected country (from country-state-city library)
+  const [availableStates, setAvailableStates] = useState<{ name: string; isoCode: string }[]>(() => {
+    const iso = COUNTRY_ISO[formData.country];
+    return iso ? State.getStatesOfCountry(iso) : [];
+  });
+
+  // Pre-populate email from auth session (non-destructive)
+  useEffect(() => {
+    if (fields.contactEmail) return;
+    getBrowserClient()
+      .auth.getUser()
+      .then(({ data }) => {
+        const email = data.user?.email;
+        if (email) setFields((f) => ({ ...f, contactEmail: email }));
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Sync from store if LinkedIn prefill updates it
   useEffect(() => {
-    setFields({
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      designation: formData.designation,
-      headline: formData.headline,
-      bio: formData.bio,
-      linkedinUrl: formData.linkedinUrl,
-    });
+    setFields((f) => ({
+      firstName: formData.firstName || f.firstName,
+      lastName: formData.lastName || f.lastName,
+      phoneExtension: formData.phoneExtension || f.phoneExtension,
+      phone: formData.phone || f.phone,
+      contactEmail: formData.contactEmail || f.contactEmail,
+      region: formData.region || f.region,
+      country: formData.country || f.country,
+      state: formData.state || f.state,
+      city: formData.city || f.city,
+      linkedinUrl: formData.linkedinUrl || f.linkedinUrl,
+      designation: formData.designation || f.designation,
+      headline: formData.headline || f.headline,
+      bio: formData.bio || f.bio,
+    }));
     if (formData.profilePhotoUrl) setPhotoPreview(formData.profilePhotoUrl);
   }, [formData]);
 
@@ -65,12 +208,33 @@ export function Step1Identity({ onNext }: Props) {
     setErrors((e) => ({ ...e, [key]: '' }));
   }
 
+  function handleRegionChange(region: string) {
+    const countries = COUNTRIES_BY_REGION[region] ?? [];
+    setFields((f) => ({
+      ...f,
+      region,
+      country: countries.includes(f.country) ? f.country : '',
+      state: '',
+    }));
+    setAvailableStates([]);
+    setErrors((e) => ({ ...e, region: '', country: '', state: '' }));
+  }
+
+  function handleCountryChange(country: string) {
+    const iso = COUNTRY_ISO[country];
+    const states = iso ? State.getStatesOfCountry(iso) : [];
+    setAvailableStates(states);
+    // Auto-set region if we know which one this country belongs to
+    const autoRegion = COUNTRY_TO_REGION[country] ?? '';
+    setFields((f) => ({ ...f, country, state: '', region: f.region || autoRegion }));
+    setErrors((e) => ({ ...e, country: '', state: '' }));
+  }
+
   // ── Photo upload ─────────────────────────────────────────────────────────────
   async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Immediate preview
     const objectUrl = URL.createObjectURL(file);
     setPhotoPreview(objectUrl);
 
@@ -84,7 +248,7 @@ export function Step1Identity({ onNext }: Props) {
         setPhotoPreview(result.url);
       }
     } catch {
-      setPhotoPreview(formData.profilePhotoUrl); // revert
+      setPhotoPreview(formData.profilePhotoUrl);
       setToast({ message: 'Photo upload failed. Please try again.', type: 'error' });
     } finally {
       setPhotoUploading(false);
@@ -99,7 +263,6 @@ export function Step1Identity({ onNext }: Props) {
       const result = await apiClient.post<{ jobId: string }>('/automation/linkedin-scrape', {});
       const jobId = result.jobId;
 
-      // Subscribe to Supabase Realtime for job updates
       const supabase = getBrowserClient();
       const channel = supabase
         .channel(`job-${jobId}`)
@@ -116,9 +279,7 @@ export function Step1Identity({ onNext }: Props) {
             if (job.status === 'completed') {
               cleanup();
               const prefillData = job.result as LinkedInPrefillResult | undefined;
-              if (prefillData) {
-                applyLinkedInPrefill(prefillData);
-              }
+              if (prefillData) applyLinkedInPrefill(prefillData);
               setLinkedinLoading(false);
               setToast({ message: 'LinkedIn data imported. Review your details below.', type: 'success' });
             } else if (job.status === 'failed') {
@@ -134,10 +295,8 @@ export function Step1Identity({ onNext }: Props) {
         void supabase.removeChannel(channel);
         realtimeCleanupRef.current = null;
       }
-
       realtimeCleanupRef.current = cleanup;
 
-      // Timeout after 2 minutes
       setTimeout(() => {
         if (realtimeCleanupRef.current) {
           cleanup();
@@ -153,15 +312,27 @@ export function Step1Identity({ onNext }: Props) {
 
   // ── Validation + Next ─────────────────────────────────────────────────────────
   function handleNext() {
-    // Save to store first
     setStep1({ ...fields });
 
     const errs: Record<string, string> = {};
     if (!fields.firstName.trim()) errs.firstName = 'First name is required';
     if (!fields.lastName.trim()) errs.lastName = 'Last name is required';
+    if (!fields.contactEmail.trim()) {
+      errs.contactEmail = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.contactEmail.trim())) {
+      errs.contactEmail = 'Enter a valid email address';
+    }
+    if (!fields.region) errs.region = 'Region is required';
+    if (!fields.country) errs.country = 'Country is required';
+    if (!fields.linkedinUrl.trim()) {
+      errs.linkedinUrl = 'LinkedIn URL is required';
+    } else if (!/^https?:\/\/(www\.)?linkedin\.com\/in\/.+/i.test(fields.linkedinUrl.trim())) {
+      errs.linkedinUrl = 'Enter a valid LinkedIn profile URL (e.g. https://linkedin.com/in/yourname)';
+    }
     if (!fields.designation.trim()) errs.designation = 'Designation is required';
     if (!fields.headline.trim()) errs.headline = 'Headline is required';
     if (!fields.bio.trim()) errs.bio = 'Bio is required';
+    if (!formData.profilePhotoUrl) errs.photo = 'Profile photo is required';
 
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
@@ -170,8 +341,7 @@ export function Step1Identity({ onNext }: Props) {
     onNext();
   }
 
-  const initials =
-    (fields.firstName?.[0] ?? '') + (fields.lastName?.[0] ?? '') || 'You';
+  const initials = (fields.firstName?.[0] ?? '') + (fields.lastName?.[0] ?? '') || 'You';
 
   return (
     <div className="space-y-6">
@@ -248,16 +418,19 @@ export function Step1Identity({ onNext }: Props) {
             )}
           </div>
           <div>
-            <p className="text-sm font-semibold text-brand-navy mb-1">Profile photo</p>
+            <p className="text-sm font-semibold text-brand-navy mb-1">
+              Profile photo <span className="text-red-500">*</span>
+            </p>
             <p className="text-xs text-brand-text-muted mb-2">JPEG or PNG, max 5 MB. Displayed square.</p>
             <button
               type="button"
-              onClick={() => photoInputRef.current?.click()}
+              onClick={() => { photoInputRef.current?.click(); setErrors((e) => ({ ...e, photo: '' })); }}
               disabled={photoUploading}
               className="text-xs font-semibold text-brand-blue hover:text-brand-navy transition-colors disabled:opacity-50"
             >
               {photoPreview ? 'Change photo' : 'Upload photo'}
             </button>
+            {errors.photo && <p className="mt-1 text-xs text-red-500">{errors.photo}</p>}
             <input
               ref={photoInputRef}
               type="file"
@@ -268,7 +441,7 @@ export function Step1Identity({ onNext }: Props) {
           </div>
         </div>
 
-        {/* Name row */}
+        {/* ── 1. Name ── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <div>
             <label className="block text-xs font-semibold text-brand-text-secondary mb-1.5">
@@ -298,7 +471,131 @@ export function Step1Identity({ onNext }: Props) {
           </div>
         </div>
 
-        {/* Designation */}
+        {/* ── 2. Phone ── */}
+        <div className="mb-4">
+          <label className="block text-xs font-semibold text-brand-text-secondary mb-1.5">
+            WhatsApp / Phone
+          </label>
+          <div className="flex gap-2">
+            <select
+              value={fields.phoneExtension}
+              onChange={(e) => updateField('phoneExtension', e.target.value)}
+              className="input-base w-36 shrink-0"
+            >
+              {PHONE_CODES.map((p) => (
+                <option key={p.code} value={p.code}>{p.label}</option>
+              ))}
+            </select>
+            <input
+              type="tel"
+              value={fields.phone}
+              onChange={(e) => updateField('phone', e.target.value)}
+              placeholder="7700 900 000"
+              className="input-base flex-1 min-w-0"
+            />
+          </div>
+        </div>
+
+        {/* ── 3. Contact email ── */}
+        <div className="mb-4">
+          <label className="block text-xs font-semibold text-brand-text-secondary mb-1.5">
+            Contact email <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="email"
+            value={fields.contactEmail}
+            onChange={(e) => updateField('contactEmail', e.target.value)}
+            placeholder="you@example.com"
+            className={`input-base w-full ${errors.contactEmail ? 'border-red-300 focus:ring-red-200' : ''}`}
+          />
+          {errors.contactEmail && <p className="mt-1 text-xs text-red-500">{errors.contactEmail}</p>}
+        </div>
+
+        {/* ── 4. Region + Country ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-xs font-semibold text-brand-text-secondary mb-1.5">
+              Region <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={fields.region}
+              onChange={(e) => handleRegionChange(e.target.value)}
+              className={`input-base w-full ${errors.region ? 'border-red-300 focus:ring-red-200' : ''}`}
+            >
+              <option value="">Select region</option>
+              {REGIONS.map((r) => (
+                <option key={r.value} value={r.value}>{r.label}</option>
+              ))}
+            </select>
+            {errors.region && <p className="mt-1 text-xs text-red-500">{errors.region}</p>}
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-brand-text-secondary mb-1.5">
+              Country <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={fields.country}
+              onChange={(e) => handleCountryChange(e.target.value)}
+              className={`input-base w-full ${errors.country ? 'border-red-300 focus:ring-red-200' : ''}`}
+            >
+              <option value="">Select country</option>
+              {(fields.region ? COUNTRIES_BY_REGION[fields.region] ?? [] : ALL_COUNTRIES).map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+            {errors.country && <p className="mt-1 text-xs text-red-500">{errors.country}</p>}
+          </div>
+        </div>
+
+        {/* ── 5. State (shown only when states are available) ── */}
+        {availableStates.length > 0 && (
+          <div className="mb-4">
+            <label className="block text-xs font-semibold text-brand-text-secondary mb-1.5">
+              State / Province
+            </label>
+            <select
+              value={fields.state}
+              onChange={(e) => updateField('state', e.target.value)}
+              className="input-base w-full"
+            >
+              <option value="">Select state</option>
+              {availableStates.map((s) => (
+                <option key={s.isoCode} value={s.name}>{s.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* ── 6. City ── */}
+        <div className="mb-4">
+          <label className="block text-xs font-semibold text-brand-text-secondary mb-1.5">
+            City
+          </label>
+          <input
+            type="text"
+            value={fields.city}
+            onChange={(e) => updateField('city', e.target.value)}
+            placeholder="e.g. London"
+            className="input-base w-full"
+          />
+        </div>
+
+        {/* ── 7. LinkedIn URL ── */}
+        <div className="mb-4">
+          <label className="block text-xs font-semibold text-brand-text-secondary mb-1.5">
+            LinkedIn URL <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="url"
+            value={fields.linkedinUrl}
+            onChange={(e) => updateField('linkedinUrl', e.target.value)}
+            placeholder="https://linkedin.com/in/yourprofile"
+            className={`input-base w-full ${errors.linkedinUrl ? 'border-red-300 focus:ring-red-200' : ''}`}
+          />
+          {errors.linkedinUrl && <p className="mt-1 text-xs text-red-500">{errors.linkedinUrl}</p>}
+        </div>
+
+        {/* ── 8. Designation ── */}
         <div className="mb-4">
           <label className="block text-xs font-semibold text-brand-text-secondary mb-1.5">
             Designation <span className="text-red-500">*</span>
@@ -313,7 +610,7 @@ export function Step1Identity({ onNext }: Props) {
           {errors.designation && <p className="mt-1 text-xs text-red-500">{errors.designation}</p>}
         </div>
 
-        {/* Headline */}
+        {/* ── 9. Professional headline ── */}
         <div className="mb-4">
           <div className="flex items-center justify-between mb-1.5">
             <label className="block text-xs font-semibold text-brand-text-secondary">
@@ -333,8 +630,8 @@ export function Step1Identity({ onNext }: Props) {
           {errors.headline && <p className="mt-1 text-xs text-red-500">{errors.headline}</p>}
         </div>
 
-        {/* Bio */}
-        <div className="mb-4">
+        {/* ── 10. Professional bio ── */}
+        <div>
           <div className="flex items-center justify-between mb-1.5">
             <label className="block text-xs font-semibold text-brand-text-secondary">
               Professional bio <span className="text-red-500">*</span>
@@ -351,20 +648,6 @@ export function Step1Identity({ onNext }: Props) {
             className={`input-base w-full resize-none ${errors.bio ? 'border-red-300 focus:ring-red-200' : ''}`}
           />
           {errors.bio && <p className="mt-1 text-xs text-red-500">{errors.bio}</p>}
-        </div>
-
-        {/* LinkedIn URL */}
-        <div>
-          <label className="block text-xs font-semibold text-brand-text-secondary mb-1.5">
-            LinkedIn URL <span className="text-brand-text-muted font-normal">(optional)</span>
-          </label>
-          <input
-            type="url"
-            value={fields.linkedinUrl}
-            onChange={(e) => updateField('linkedinUrl', e.target.value)}
-            placeholder="https://linkedin.com/in/yourprofile"
-            className="input-base w-full"
-          />
         </div>
       </div>
 
@@ -397,11 +680,7 @@ export function Step1Identity({ onNext }: Props) {
               You can edit any field after import. We never post to LinkedIn without your permission.
             </p>
             <ul className="space-y-2 mb-6">
-              {[
-                'Name and profile photo',
-                'Headline and bio',
-                'Work experience history',
-              ].map((item) => (
+              {['Name and profile photo', 'Headline and bio', 'Work experience history'].map((item) => (
                 <li key={item} className="flex items-center gap-2 text-xs text-brand-text-secondary">
                   <svg className="h-3.5 w-3.5 text-green-500 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden>
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />

@@ -45,23 +45,11 @@ export class UpdateMemberDto {
 
   @IsOptional()
   @IsString()
-  location?: string;
-
-  @IsOptional()
-  @IsString()
   website?: string;
 
   @IsOptional()
   @IsString()
   linkedin_url?: string;
-
-  @IsOptional()
-  @IsString()
-  twitter_url?: string;
-
-  @IsOptional()
-  @IsString()
-  github_url?: string;
 
   @IsOptional()
   @IsObject()

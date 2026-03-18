@@ -43,7 +43,7 @@ const EMBEDDABLE_FIELDS: (keyof UpdateMemberDto)[] = [
 const TEASER_FIELDS =
   'id, slug, designation, headline, profile_photo_url, avatar_url, ' +
   'city, country, member_tier, is_verified, primary_service_id, ' +
-  'users!user_id(first_name, last_name, full_name), ' +
+  'users!user_id(first_name, last_name), ' +
   'services!primary_service_id(id, name, service_categories!category_id(id, name))';
 
 // Full fields for authenticated users
@@ -51,18 +51,18 @@ const FULL_FIELDS =
   'id, slug, designation, headline, bio, profile_photo_url, avatar_url, ' +
   'city, country, member_tier, is_verified, primary_service_id, firm_name, ' +
   'years_of_experience, consultation_fee_min_usd, consultation_fee_max_usd, ' +
-  'website, linkedin_url, twitter_url, github_url, ' +
+  'website, linkedin_url, ' +
   'contact_phone, contact_email, ' +
   'availability, engagement, engagements, ' +
   'work_experience, education, credentials, qualifications, testimonials, ' +
   'is_featured, view_count, membership_status, created_at, updated_at, ' +
-  'users!user_id(first_name, last_name, full_name, email), ' +
+  'users!user_id(first_name, last_name, email), ' +
   'services!primary_service_id(id, name, service_categories!category_id(id, name))';
 
 // Full fields for /me endpoint (all JSONB, no embedding)
 const ME_FIELDS =
   'id, user_id, slug, designation, headline, bio, profile_photo_url, avatar_url, ' +
-  'city, country, location, website, linkedin_url, twitter_url, github_url, ' +
+  'city, country, website, linkedin_url, ' +
   'membership_status, member_tier, is_verified, verified_at, is_featured, ' +
   'primary_service_id, years_of_experience, consultation_fee_min_usd, ' +
   'consultation_fee_max_usd, qualifications, availability, engagement, ' +

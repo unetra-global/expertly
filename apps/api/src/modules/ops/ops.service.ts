@@ -327,10 +327,12 @@ export class OpsService {
       .from('applications')
       .select(
         'id, status, user_id, first_name, last_name, designation, headline, bio, ' +
-          'linkedin_url, profile_photo_url, firm_name, country, city, ' +
-          'consultation_fee_min_usd, consultation_fee_max_usd, qualifications, ' +
+          'linkedin_url, profile_photo_url, firm_name, firm_size, website_url, region, country, state, ' +
+          'phone_extension, phone, contact_email, city, ' +
+          'years_of_experience, consultation_fee_min_usd, consultation_fee_max_usd, qualifications, ' +
           'credentials, work_experience, education, primary_service_id, ' +
-          'secondary_service_ids, engagements, availability',
+          'secondary_service_ids, key_engagements, engagements, availability, ' +
+          'motivation_why, motivation_engagement, motivation_unique',
       )
       .eq('id', applicationId)
       .single();
@@ -396,8 +398,15 @@ export class OpsService {
         linkedin_url: a.linkedin_url,
         profile_photo_url: a.profile_photo_url,
         firm_name: a.firm_name,
+        firm_size: a.firm_size,
+        website: a.website_url,
+        region: a.region,
         country: a.country,
+        state: a.state,
         city: a.city,
+        contact_phone: a.phone_extension && a.phone ? `${a.phone_extension} ${a.phone}` : (a.phone ?? null),
+        contact_email: a.contact_email,
+        years_of_experience: a.years_of_experience,
         consultation_fee_min_usd: a.consultation_fee_min_usd,
         consultation_fee_max_usd: a.consultation_fee_max_usd,
         qualifications: a.qualifications,
@@ -405,8 +414,12 @@ export class OpsService {
         work_experience: a.work_experience,
         education: a.education,
         primary_service_id: a.primary_service_id,
+        key_engagements: a.key_engagements ?? [],
         engagements: a.engagements,
         availability: a.availability,
+        motivation_why: a.motivation_why,
+        motivation_engagement: a.motivation_engagement,
+        motivation_unique: a.motivation_unique,
         member_tier: 'standard',
         membership_status: 'active',
         membership_start_date: new Date().toISOString().split('T')[0],

@@ -40,7 +40,7 @@ const ARTICLE_FLAT_FULL_FIELDS = ARTICLE_FLAT_FIELDS + ', body';
 // Public select — includes author profile + service category joins for listing/detail pages
 const ARTICLE_PUBLIC_SELECT =
   ARTICLE_FLAT_FIELDS + ', ' +
-  'author:members!author_id(id, slug, designation, city, country, profile_photo_url, user:users!user_id(first_name, last_name, full_name)), ' +
+  'author:members!author_id(id, slug, designation, city, country, profile_photo_url, user:users!user_id(first_name, last_name)), ' +
   'service_category:service_categories!category_id(id, name)';
 
 const ARTICLE_PUBLIC_FULL_SELECT = ARTICLE_PUBLIC_SELECT + ', body';

@@ -27,11 +27,8 @@ interface MemberRow {
   designation: string;
   city: string;
   country: string;
-  location: string | null;
   website: string | null;
   linkedin_url: string | null;
-  twitter_url: string | null;
-  github_url: string | null;
   membership_status: string;
   member_tier: string;
   is_verified: boolean;
@@ -98,7 +95,7 @@ export class AuthController {
         .from('members')
         .select(
           'id, user_id, slug, headline, bio, profile_photo_url, avatar_url, designation, ' +
-          'city, country, location, website, linkedin_url, twitter_url, github_url, ' +
+          'city, country, website, linkedin_url, ' +
           'membership_status, member_tier, is_verified, is_featured, primary_service_id, ' +
           'years_of_experience, consultation_fee_min_usd, consultation_fee_max_usd, ' +
           'qualifications, availability, engagement, credentials, testimonials, ' +

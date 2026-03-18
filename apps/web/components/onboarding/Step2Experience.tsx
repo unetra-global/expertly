@@ -5,47 +5,163 @@ import { useOnboardingStore } from '@/stores/onboardingStore';
 import type { WorkExperienceEntry, EducationEntry, CredentialEntry } from '@/stores/onboardingStore';
 import { apiClient } from '@/lib/apiClient';
 
+// ── Qualification taxonomy (hardcoded) ────────────────────────────────────────
+// TODO: Replace with a qualification_types table + GET /taxonomy/qualifications
+// endpoint so the ops team can manage this list without code deploys.
+const QUALIFICATION_TYPES: {
+  id: string;
+  name: string;
+  abbreviation: string;
+  issuingBody: string;
+  domain: 'finance' | 'law' | 'compliance' | 'other';
+}[] = [
+  // ── Finance ──────────────────────────────────────────────────────────────────
+  { id: 'ca-icai',   name: 'Chartered Accountant',                       abbreviation: 'CA',    issuingBody: 'Institute of Chartered Accountants of India (ICAI)',          domain: 'finance' },
+  { id: 'ca-icaew',  name: 'Chartered Accountant (ACA / FCA)',           abbreviation: 'ACA',   issuingBody: 'ICAEW (England & Wales)',                                     domain: 'finance' },
+  { id: 'ca-caanz',  name: 'Chartered Accountant (Australia / NZ)',      abbreviation: 'CA',    issuingBody: 'Chartered Accountants Australia & New Zealand (CAANZ)',        domain: 'finance' },
+  { id: 'ca-icap',   name: 'Chartered Accountant (Pakistan)',            abbreviation: 'CA',    issuingBody: 'Institute of Chartered Accountants of Pakistan (ICAP)',        domain: 'finance' },
+  { id: 'ca-casl',   name: 'Chartered Accountant (Sri Lanka)',           abbreviation: 'CA',    issuingBody: 'CA Sri Lanka',                                               domain: 'finance' },
+  { id: 'cfa',       name: 'Chartered Financial Analyst',                abbreviation: 'CFA',   issuingBody: 'CFA Institute',                                              domain: 'finance' },
+  { id: 'cpa-us',    name: 'Certified Public Accountant (US)',           abbreviation: 'CPA',   issuingBody: 'AICPA / State Board of Accountancy',                         domain: 'finance' },
+  { id: 'cpa-ca',    name: 'Chartered Professional Accountant (Canada)', abbreviation: 'CPA',   issuingBody: 'CPA Canada',                                                 domain: 'finance' },
+  { id: 'cpa-au',    name: 'Certified Practising Accountant (Australia)',abbreviation: 'CPA',   issuingBody: 'CPA Australia',                                              domain: 'finance' },
+  { id: 'acca',      name: 'ACCA',                                       abbreviation: 'ACCA',  issuingBody: 'Association of Chartered Certified Accountants (ACCA)',       domain: 'finance' },
+  { id: 'cima',      name: 'Chartered Institute of Management Accountants', abbreviation: 'CIMA', issuingBody: 'CIMA',                                                    domain: 'finance' },
+  { id: 'frm',       name: 'Financial Risk Manager',                     abbreviation: 'FRM',   issuingBody: 'Global Association of Risk Professionals (GARP)',             domain: 'finance' },
+  { id: 'caia',      name: 'Chartered Alternative Investment Analyst',   abbreviation: 'CAIA',  issuingBody: 'CAIA Association',                                           domain: 'finance' },
+  { id: 'cfp',       name: 'Certified Financial Planner',                abbreviation: 'CFP',   issuingBody: 'CFP Board',                                                  domain: 'finance' },
+  { id: 'cma',       name: 'Certified Management Accountant',            abbreviation: 'CMA',   issuingBody: 'Institute of Management Accountants (IMA)',                  domain: 'finance' },
+  { id: 'cs-icsi',   name: 'Company Secretary',                          abbreviation: 'CS',    issuingBody: 'Institute of Company Secretaries of India (ICSI)',            domain: 'finance' },
+  { id: 'imc',       name: 'Investment Management Certificate',          abbreviation: 'IMC',   issuingBody: 'CFA Society UK',                                             domain: 'finance' },
+  { id: 'cmt',       name: 'Chartered Market Technician',                abbreviation: 'CMT',   issuingBody: 'CMT Association',                                            domain: 'finance' },
+  { id: 'ciia',      name: 'Certified International Investment Analyst', abbreviation: 'CIIA',  issuingBody: 'ACIIA',                                                      domain: 'finance' },
+  { id: 'fmva',      name: 'Financial Modelling & Valuation Analyst',    abbreviation: 'FMVA',  issuingBody: 'Corporate Finance Institute (CFI)',                          domain: 'finance' },
+  { id: 'cip',       name: 'Chartered Insurance Professional',           abbreviation: 'CIP',   issuingBody: 'Insurance Institute of Canada',                              domain: 'finance' },
+  { id: 'acii',      name: 'Associate of the Chartered Insurance Institute', abbreviation: 'ACII', issuingBody: 'Chartered Insurance Institute (CII)',                    domain: 'finance' },
+  { id: 'cb',        name: 'Chartered Banker',                           abbreviation: 'CB',    issuingBody: 'Chartered Banker Institute',                                 domain: 'finance' },
+  // ── Law ──────────────────────────────────────────────────────────────────────
+  { id: 'sol-ew',    name: 'Solicitor (England & Wales)',                abbreviation: 'Solicitor', issuingBody: 'Solicitors Regulation Authority (SRA)',              domain: 'law' },
+  { id: 'bar-ew',    name: 'Barrister (England & Wales)',                abbreviation: 'Barrister', issuingBody: 'Bar Standards Board (BSB)',                          domain: 'law' },
+  { id: 'adv-in',    name: 'Advocate (India)',                           abbreviation: 'Advocate',  issuingBody: 'Bar Council of India',                              domain: 'law' },
+  { id: 'jd-us',     name: 'Juris Doctor / Attorney at Law (US)',        abbreviation: 'JD',        issuingBody: 'State Bar / American Bar Association',              domain: 'law' },
+  { id: 'sol-ie',    name: 'Solicitor (Ireland)',                        abbreviation: 'Solicitor', issuingBody: 'Law Society of Ireland',                            domain: 'law' },
+  { id: 'bar-ie',    name: 'Barrister (Ireland)',                        abbreviation: 'Barrister', issuingBody: 'Bar Council of Ireland',                            domain: 'law' },
+  { id: 'sol-au',    name: 'Solicitor (Australia)',                      abbreviation: 'Solicitor', issuingBody: 'Law Society of Australia (state-based)',            domain: 'law' },
+  { id: 'bar-au',    name: 'Barrister (Australia)',                      abbreviation: 'Barrister', issuingBody: 'Bar Association (state-based)',                     domain: 'law' },
+  { id: 'adv-sg',    name: 'Advocate & Solicitor (Singapore)',           abbreviation: 'Advocate',  issuingBody: 'Law Society of Singapore',                         domain: 'law' },
+  { id: 'adv-ae',    name: 'Advocate (UAE)',                             abbreviation: 'Advocate',  issuingBody: 'UAE Ministry of Justice',                          domain: 'law' },
+  { id: 'cilex',     name: 'Chartered Legal Executive',                  abbreviation: 'CILEx',     issuingBody: 'Chartered Institute of Legal Executives (CILEx)',  domain: 'law' },
+  { id: 'notary',    name: 'Notary Public',                              abbreviation: 'Notary',    issuingBody: 'Various jurisdictions',                            domain: 'law' },
+  { id: 'llm',       name: 'Master of Laws',                             abbreviation: 'LLM',       issuingBody: 'Various universities',                             domain: 'law' },
+  // ── Compliance & Risk ─────────────────────────────────────────────────────────
+  { id: 'cams',      name: 'Certified Anti-Money Laundering Specialist', abbreviation: 'CAMS',  issuingBody: 'ACAMS',                                                      domain: 'compliance' },
+  { id: 'cfe',       name: 'Certified Fraud Examiner',                   abbreviation: 'CFE',   issuingBody: 'Association of Certified Fraud Examiners (ACFE)',            domain: 'compliance' },
+  { id: 'cia',       name: 'Certified Internal Auditor',                 abbreviation: 'CIA',   issuingBody: 'Institute of Internal Auditors (IIA)',                       domain: 'compliance' },
+  { id: 'cisa',      name: 'Certified Information Systems Auditor',      abbreviation: 'CISA',  issuingBody: 'ISACA',                                                      domain: 'compliance' },
+  { id: 'ccp',       name: 'Certified Compliance Professional',          abbreviation: 'CCP',   issuingBody: 'Society of Corporate Compliance & Ethics (SCCE)',            domain: 'compliance' },
+  // ── Other ─────────────────────────────────────────────────────────────────────
+  { id: 'other',     name: 'Other (specify)',                            abbreviation: '',      issuingBody: '',                                                           domain: 'other' },
+];
+
+const DOMAIN_LABELS: Record<string, string> = {
+  finance: 'Finance & Accounting',
+  law: 'Law',
+  compliance: 'Compliance & Risk',
+  other: 'Other',
+};
+
+// ── Date / Year helpers ───────────────────────────────────────────────────────
+
+const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const CURR_YEAR = new Date().getFullYear();
+const YEAR_OPTIONS = Array.from({ length: CURR_YEAR - 1959 }, (_, i) => CURR_YEAR - i);
+
+function MonthYearPicker({
+  value,
+  onChange,
+  disabled = false,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  disabled?: boolean;
+}) {
+  const parts = value ? value.split('-') : ['', ''];
+  const [selYear, setSelYear] = useState(parts[0] ?? '');
+  const [selMonth, setSelMonth] = useState(parts[1] ?? '');
+
+  // Sync with external resets (e.g. isCurrent toggled) without overwriting
+  // partial user selections that haven't been committed to parent yet.
+  const prevValueRef = useRef(value);
+  useEffect(() => {
+    if (value !== prevValueRef.current) {
+      prevValueRef.current = value;
+      const p = value ? value.split('-') : ['', ''];
+      setSelYear(p[0] ?? '');
+      setSelMonth(p[1] ?? '');
+    }
+  }, [value]);
+
+  function handleMonthChange(m: string) {
+    setSelMonth(m);
+    if (selYear && m) onChange(`${selYear}-${m}`);
+    else if (!m && !selYear) onChange('');
+  }
+
+  function handleYearChange(y: string) {
+    setSelYear(y);
+    if (y && selMonth) onChange(`${y}-${selMonth}`);
+    else if (!y && !selMonth) onChange('');
+  }
+
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      <select
+        value={selMonth}
+        disabled={disabled}
+        onChange={(e) => handleMonthChange(e.target.value)}
+        className="input-base text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <option value="">Month</option>
+        {MONTHS_SHORT.map((m, i) => (
+          <option key={m} value={String(i + 1).padStart(2, '0')}>{m}</option>
+        ))}
+      </select>
+      <select
+        value={selYear}
+        disabled={disabled}
+        onChange={(e) => handleYearChange(e.target.value)}
+        className="input-base text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <option value="">Year</option>
+        {YEAR_OPTIONS.map((y) => <option key={y} value={String(y)}>{y}</option>)}
+      </select>
+    </div>
+  );
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
 interface Props {
   onBack: () => void;
   onNext: () => void;
 }
 
 const FIRM_SIZES = ['Solo', '2–10', '11–50', '51–200', '200+'] as const;
-
-const COUNTRIES = [
-  'Australia', 'Bahrain', 'Canada', 'China', 'Egypt', 'France', 'Germany',
-  'Ghana', 'Hong Kong', 'India', 'Indonesia', 'Ireland', 'Israel', 'Japan',
-  'Jordan', 'Kenya', 'Kuwait', 'Malaysia', 'Mauritius', 'Morocco', 'Netherlands',
-  'New Zealand', 'Nigeria', 'Oman', 'Pakistan', 'Qatar', 'Rwanda', 'Saudi Arabia',
-  'Singapore', 'South Africa', 'South Korea', 'Sri Lanka', 'Switzerland',
-  'Tanzania', 'Turkey', 'Uganda', 'United Arab Emirates', 'United Kingdom',
-  'United States', 'Zimbabwe',
-];
-
 type ToastState = { message: string; type: 'success' | 'error' } | null;
 
 function genId() {
   return Math.random().toString(36).slice(2, 9);
 }
 
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export function Step2Experience({ onBack, onNext }: Props) {
   const { formData, setStep2 } = useOnboardingStore();
-  const credentialInputRef = useRef<HTMLInputElement>(null);
   const [toast, setToast] = useState<ToastState>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [countrySearch, setCountrySearch] = useState('');
-  const [countryOpen, setCountryOpen] = useState(false);
-  const [qualInput, setQualInput] = useState('');
 
   // Local state
   const [yearsOfExperience, setYearsOfExperience] = useState<number | ''>(formData.yearsOfExperience);
-  const [firmName, setFirmName] = useState(formData.firmName);
-  const [firmSize, setFirmSize] = useState(formData.firmSize);
-  const [country, setCountry] = useState(formData.country);
-  const [city, setCity] = useState(formData.city);
-  const [feeMin, setFeeMin] = useState<number | ''>(formData.consultationFeeMinUsd);
-  const [feeMax, setFeeMax] = useState<number | ''>(formData.consultationFeeMaxUsd);
-  const [qualifications, setQualifications] = useState<string[]>(formData.qualifications);
   const [credentials, setCredentials] = useState<CredentialEntry[]>(formData.credentials);
   const [workExperience, setWorkExperience] = useState<WorkExperienceEntry[]>(
     formData.workExperience.length > 0 ? formData.workExperience : [],
@@ -54,41 +170,99 @@ export function Step2Experience({ onBack, onNext }: Props) {
     formData.education.length > 0 ? formData.education : [],
   );
 
+  // Per-credential qualification search state
+  const [credTypeSearch, setCredTypeSearch] = useState<Record<string, string>>({});
+  const [credTypeOpen, setCredTypeOpen] = useState<Record<string, boolean>>({});
+  // Per-credential file input refs
+  const credFileRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 4500);
     return () => clearTimeout(t);
   }, [toast]);
 
-  // ── Qualifications tag input ───────────────────────────────────────────────
-  function addQual() {
-    const trimmed = qualInput.trim();
-    if (!trimmed || qualifications.includes(trimmed)) return;
-    setQualifications((q) => [...q, trimmed]);
-    setQualInput('');
+  // ── Credential handlers ────────────────────────────────────────────────────
+
+  function addCredential() {
+    if (credentials.length >= 10) return;
+    setCredentials((c) => [
+      ...c,
+      { id: genId(), qualificationTypeId: '', qualificationName: '', abbreviation: '', issuingBody: '', year: '', documentUrl: '' },
+    ]);
   }
-  function removeQual(q: string) {
-    setQualifications((qs) => qs.filter((x) => x !== q));
+
+  function selectQualificationType(credId: string, typeId: string) {
+    const type = QUALIFICATION_TYPES.find((t) => t.id === typeId);
+    setCredentials((c) =>
+      c.map((cr) =>
+        cr.id === credId
+          ? {
+              ...cr,
+              qualificationTypeId: typeId,
+              qualificationName: type?.name ?? '',
+              abbreviation: type?.abbreviation ?? '',
+              issuingBody: type?.issuingBody ?? '',
+            }
+          : cr,
+      ),
+    );
+    setCredTypeOpen((o) => ({ ...o, [credId]: false }));
+    setCredTypeSearch((s) => ({ ...s, [credId]: '' }));
+  }
+
+  function updateCredential(id: string, key: keyof CredentialEntry, value: string | number | '') {
+    setCredentials((c) => c.map((cr) => (cr.id === id ? { ...cr, [key]: value } : cr)));
+  }
+
+  function removeCredential(id: string) {
+    setCredentials((c) => c.filter((cr) => cr.id !== id));
+  }
+
+  async function handleCredentialUpload(credId: string, e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCredentials((c) => c.map((cr) => (cr.id === credId ? { ...cr, uploading: true } : cr)));
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const result = await apiClient.upload<{ url: string }>('/upload/document', fd, { type: 'credentials' });
+      setCredentials((c) => c.map((cr) => (cr.id === credId ? { ...cr, documentUrl: result.url, uploading: false } : cr)));
+    } catch {
+      setCredentials((c) => c.map((cr) => (cr.id === credId ? { ...cr, uploading: false } : cr)));
+      setToast({ message: 'Document upload failed. Please try again.', type: 'error' });
+    }
+  }
+
+  function filteredTypes(credId: string) {
+    const q = (credTypeSearch[credId] ?? '').toLowerCase();
+    if (!q) return QUALIFICATION_TYPES;
+    return QUALIFICATION_TYPES.filter(
+      (t) =>
+        t.name.toLowerCase().includes(q) ||
+        t.abbreviation.toLowerCase().includes(q) ||
+        t.issuingBody.toLowerCase().includes(q),
+    );
   }
 
   // ── Work experience ────────────────────────────────────────────────────────
+
   function addWorkExp() {
     if (workExperience.length >= 5) return;
     setWorkExperience((wx) => [
       ...wx,
-      { id: genId(), title: '', company: '', startDate: '', endDate: '', isCurrent: false },
+      { id: genId(), title: '', company: '', website: '', city: '', firmSize: '', startDate: '', endDate: '', isCurrent: false },
     ]);
   }
   function updateWorkExp(id: string, key: keyof WorkExperienceEntry, value: string | boolean) {
-    setWorkExperience((wx) =>
-      wx.map((e) => (e.id === id ? { ...e, [key]: value } : e)),
-    );
+    setWorkExperience((wx) => wx.map((e) => (e.id === id ? { ...e, [key]: value } : e)));
   }
   function removeWorkExp(id: string) {
     setWorkExperience((wx) => wx.filter((e) => e.id !== id));
   }
 
   // ── Education ──────────────────────────────────────────────────────────────
+
   function addEdu() {
     if (education.length >= 3) return;
     setEducation((ed) => [
@@ -103,54 +277,23 @@ export function Step2Experience({ onBack, onNext }: Props) {
     setEducation((ed) => ed.filter((e) => e.id !== id));
   }
 
-  // ── Credential upload ──────────────────────────────────────────────────────
-  async function handleCredentialUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (credentials.length >= 5) {
-      setToast({ message: 'Maximum 5 credential documents allowed.', type: 'error' });
-      return;
-    }
-    const newCred: CredentialEntry = {
-      id: genId(),
-      name: '',
-      institution: '',
-      year: '',
-      documentUrl: '',
-      uploading: true,
-    };
-    setCredentials((c) => [...c, newCred]);
-    try {
-      const fd = new FormData();
-      fd.append('file', file);
-      const result = await apiClient.upload<{ url: string }>('/upload/document', fd, { type: 'credentials' });
-      setCredentials((c) =>
-        c.map((cr) => cr.id === newCred.id ? { ...cr, documentUrl: result.url, uploading: false } : cr),
-      );
-    } catch {
-      setCredentials((c) => c.filter((cr) => cr.id !== newCred.id));
-      setToast({ message: 'Document upload failed. Please try again.', type: 'error' });
-    }
-  }
-  function updateCredential(id: string, key: keyof CredentialEntry, value: string | number | '') {
-    setCredentials((c) => c.map((cr) => cr.id === id ? { ...cr, [key]: value } : cr));
-  }
-  function removeCredential(id: string) {
-    setCredentials((c) => c.filter((cr) => cr.id !== id));
-  }
-
   // ── Validation + Next ──────────────────────────────────────────────────────
+
   function handleNext() {
-    // Persist to store
+    // Derive qualifications badges from credentials (backward compat with DB column)
+    const derivedQualifications = [
+      ...new Set(credentials.filter((c) => c.abbreviation && !c.uploading).map((c) => c.abbreviation)),
+    ];
+
+    // Derive firm details from the current (or first) work experience entry
+    const primaryExp = workExperience.find((e) => e.isCurrent) ?? workExperience[0];
+
     setStep2({
       yearsOfExperience,
-      firmName,
-      firmSize,
-      country,
-      city,
-      consultationFeeMinUsd: feeMin,
-      consultationFeeMaxUsd: feeMax,
-      qualifications,
+      firmName: primaryExp?.company ?? '',
+      firmSize: primaryExp?.firmSize ?? '',
+      firmWebsiteUrl: primaryExp?.website ?? '',
+      qualifications: derivedQualifications,
       credentials,
       workExperience,
       education,
@@ -158,7 +301,23 @@ export function Step2Experience({ onBack, onNext }: Props) {
 
     const errs: Record<string, string> = {};
     if (!yearsOfExperience && yearsOfExperience !== 0) errs.years = 'Years of experience is required';
-    if (!country) errs.country = 'Country is required';
+    if (credentials.length === 0) errs.credentials = 'At least one professional qualification is required';
+    if (workExperience.length === 0) errs.workExperience = 'At least one work experience entry is required';
+    if (education.length === 0) errs.education = 'At least one education entry is required';
+
+    credentials.forEach((cred) => {
+      // "Other" must have a custom name
+      if (cred.qualificationTypeId === 'other') {
+        const name = cred.qualificationName.trim();
+        if (!name || name === 'Other (specify)') {
+          errs[`cred_name_${cred.id}`] = 'Please enter the qualification name';
+        }
+      }
+      // Document is required for every credential
+      if (!cred.documentUrl && !cred.uploading) {
+        errs[`cred_doc_${cred.id}`] = 'Please attach a certificate or supporting document';
+      }
+    });
 
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
@@ -167,9 +326,41 @@ export function Step2Experience({ onBack, onNext }: Props) {
     onNext();
   }
 
-  const filteredCountries = COUNTRIES.filter((c) =>
-    c.toLowerCase().includes(countrySearch.toLowerCase()),
-  );
+  // ── Render grouped qualification options ──────────────────────────────────
+
+  function renderQualificationOptions(credId: string) {
+    const types = filteredTypes(credId);
+    const groups = ['finance', 'law', 'compliance', 'other'] as const;
+    return groups.map((domain) => {
+      const items = types.filter((t) => t.domain === domain);
+      if (items.length === 0) return null;
+      return (
+        <div key={domain}>
+          <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-brand-text-muted bg-brand-surface border-b border-gray-100">
+            {DOMAIN_LABELS[domain]}
+          </div>
+          {items.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onMouseDown={() => selectQualificationType(credId, t.id)}
+              className="w-full text-left px-3 py-2.5 text-sm hover:bg-brand-surface transition-colors"
+            >
+              <span className="font-medium text-brand-navy">{t.name}</span>
+              {t.abbreviation && (
+                <span className="ml-2 text-xs text-brand-blue font-semibold bg-brand-blue-subtle px-1.5 py-0.5 rounded-full">
+                  {t.abbreviation}
+                </span>
+              )}
+              {t.id !== 'other' && (
+                <p className="text-xs text-brand-text-muted mt-0.5 truncate">{t.issuingBody}</p>
+              )}
+            </button>
+          ))}
+        </div>
+      );
+    });
+  }
 
   return (
     <div className="space-y-6">
@@ -179,313 +370,278 @@ export function Step2Experience({ onBack, onNext }: Props) {
         </div>
       )}
 
-      {/* ── Basic info ──────────────────────────────────────── */}
+      {/* ── Professional Background ────────────────────────── */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-6 sm:p-8">
         <h2 className="text-lg font-bold text-brand-navy mb-6">Professional Background</h2>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-          {/* Years of experience */}
-          <div>
-            <label className="block text-xs font-semibold text-brand-text-secondary mb-1.5">
-              Years of experience <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="number"
-              min={0}
-              max={60}
-              value={yearsOfExperience}
-              onChange={(e) => setYearsOfExperience(e.target.value === '' ? '' : Number(e.target.value))}
-              placeholder="e.g. 12"
-              className={`input-base w-full ${errors.years ? 'border-red-300' : ''}`}
-            />
-            {errors.years && <p className="mt-1 text-xs text-red-500">{errors.years}</p>}
-          </div>
-
-          {/* Firm size */}
-          <div>
-            <label className="block text-xs font-semibold text-brand-text-secondary mb-1.5">Firm size</label>
-            <select value={firmSize} onChange={(e) => setFirmSize(e.target.value)} className="input-base w-full">
-              <option value="">Select firm size</option>
-              {FIRM_SIZES.map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-        </div>
-
-        {/* Firm name */}
         <div className="mb-4">
-          <label className="block text-xs font-semibold text-brand-text-secondary mb-1.5">Firm / Organisation name</label>
+          <label className="block text-xs font-semibold text-brand-text-secondary mb-1.5">
+            Years of experience <span className="text-red-500">*</span>
+          </label>
           <input
-            type="text"
-            value={firmName}
-            onChange={(e) => setFirmName(e.target.value)}
-            placeholder="e.g. Smith & Partners LLP"
-            className="input-base w-full"
+            type="number"
+            min={0}
+            max={60}
+            value={yearsOfExperience}
+            onChange={(e) => setYearsOfExperience(e.target.value === '' ? '' : Number(e.target.value))}
+            placeholder="e.g. 12"
+            className={`input-base w-full sm:w-48 ${errors.years ? 'border-red-300' : ''}`}
           />
+          {errors.years && <p className="mt-1 text-xs text-red-500">{errors.years}</p>}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-          {/* Country — searchable */}
-          <div className="relative">
-            <label className="block text-xs font-semibold text-brand-text-secondary mb-1.5">
-              Country <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={countryOpen ? countrySearch : country}
-              onChange={(e) => { setCountrySearch(e.target.value); setCountryOpen(true); }}
-              onFocus={() => { setCountrySearch(''); setCountryOpen(true); }}
-              onBlur={() => setTimeout(() => setCountryOpen(false), 150)}
-              placeholder="Search country…"
-              className={`input-base w-full ${errors.country ? 'border-red-300' : ''}`}
-            />
-            {errors.country && <p className="mt-1 text-xs text-red-500">{errors.country}</p>}
-            {countryOpen && filteredCountries.length > 0 && (
-              <div className="absolute z-20 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-card-hover max-h-48 overflow-y-auto">
-                {filteredCountries.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onMouseDown={() => { setCountry(c); setCountryOpen(false); setErrors((e) => ({ ...e, country: '' })); }}
-                    className={`w-full text-left px-4 py-2.5 text-sm hover:bg-brand-surface transition-colors ${country === c ? 'bg-brand-blue-subtle text-brand-blue font-medium' : 'text-brand-text'}`}
-                  >
-                    {c}
-                  </button>
-                ))}
-              </div>
+        {/* Work Experience sub-section */}
+        <div className="border-t border-gray-100 pt-6 mt-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-sm font-bold text-brand-navy">Work Experience <span className="text-red-500">*</span></h3>
+              <p className="text-xs text-brand-text-muted mt-0.5">At least 1 entry required · up to 5</p>
+            </div>
+            {workExperience.length < 5 && (
+              <button type="button" onClick={addWorkExp} className="btn-outline text-sm px-4 py-2">+ Add entry</button>
             )}
           </div>
-
-          {/* City */}
-          <div>
-            <label className="block text-xs font-semibold text-brand-text-secondary mb-1.5">City</label>
-            <input
-              type="text"
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              placeholder="e.g. London"
-              className="input-base w-full"
-            />
-          </div>
-        </div>
-
-        {/* Fee range */}
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className="block text-xs font-semibold text-brand-text-secondary mb-1.5">Consultation fee — min (USD)</label>
-            <input
-              type="number"
-              min={0}
-              value={feeMin}
-              onChange={(e) => setFeeMin(e.target.value === '' ? '' : Number(e.target.value))}
-              placeholder="e.g. 500"
-              className="input-base w-full"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-brand-text-secondary mb-1.5">Consultation fee — max (USD)</label>
-            <input
-              type="number"
-              min={0}
-              value={feeMax}
-              onChange={(e) => setFeeMax(e.target.value === '' ? '' : Number(e.target.value))}
-              placeholder="e.g. 2000"
-              className="input-base w-full"
-            />
-          </div>
-        </div>
-
-        {/* Qualifications */}
-        <div>
-          <label className="block text-xs font-semibold text-brand-text-secondary mb-1.5">Qualifications</label>
-          <div className="flex gap-2 mb-2">
-            <input
-              type="text"
-              value={qualInput}
-              onChange={(e) => setQualInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addQual(); } }}
-              placeholder="e.g. CA, LLB — press Enter to add"
-              className="input-base flex-1"
-            />
-            <button type="button" onClick={addQual} className="btn-outline px-4 py-2 text-sm">Add</button>
-          </div>
-          {qualifications.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {qualifications.map((q) => (
-                <span key={q} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-blue-subtle border border-blue-100 text-xs font-semibold text-brand-blue">
-                  {q}
-                  <button type="button" onClick={() => removeQual(q)} aria-label={`Remove ${q}`} className="text-brand-blue/60 hover:text-brand-blue">
-                    <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20" aria-hidden>
-                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                    </svg>
-                  </button>
-                </span>
+          {errors.workExperience && <p className="mb-3 text-xs text-red-500">{errors.workExperience}</p>}
+          {workExperience.length === 0 ? (
+            <p className="text-sm text-brand-text-muted text-center py-4">No work experience added yet. Click <span className="font-semibold">+ Add entry</span> to begin.</p>
+          ) : (
+            <div className="space-y-4">
+              {workExperience.map((exp, idx) => (
+                <div key={exp.id} className="rounded-xl border border-gray-100 bg-brand-surface p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs font-semibold text-brand-text-muted">Position {idx + 1}</p>
+                    <button type="button" onClick={() => removeWorkExp(exp.id)} className="text-red-400 hover:text-red-600 text-xs font-medium">Remove</button>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-brand-text-muted mb-1">Job title</label>
+                      <input type="text" value={exp.title} onChange={(e) => updateWorkExp(exp.id, 'title', e.target.value)} placeholder="Partner" className="input-base w-full text-sm" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-brand-text-muted mb-1">Company</label>
+                      <input type="text" value={exp.company} onChange={(e) => updateWorkExp(exp.id, 'company', e.target.value)} placeholder="Firm name" className="input-base w-full text-sm" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-brand-text-muted mb-1">Company website <span className="text-brand-text-muted font-normal">(optional)</span></label>
+                      <input type="url" value={exp.website ?? ''} onChange={(e) => updateWorkExp(exp.id, 'website', e.target.value)} placeholder="https://example.com" className="input-base w-full text-sm" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-brand-text-muted mb-1">City</label>
+                      <input type="text" value={exp.city ?? ''} onChange={(e) => updateWorkExp(exp.id, 'city', e.target.value)} placeholder="e.g. London" className="input-base w-full text-sm" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-brand-text-muted mb-1">Firm size <span className="text-brand-text-muted font-normal">(optional)</span></label>
+                      <select value={exp.firmSize ?? ''} onChange={(e) => updateWorkExp(exp.id, 'firmSize', e.target.value)} className="input-base w-full text-sm">
+                        <option value="">Select size</option>
+                        {FIRM_SIZES.map((s) => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-brand-text-muted mb-1">Start date</label>
+                      <MonthYearPicker value={exp.startDate} onChange={(v) => updateWorkExp(exp.id, 'startDate', v)} />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-brand-text-muted mb-1">
+                        {exp.isCurrent ? 'End date (present)' : 'End date'}
+                      </label>
+                      <MonthYearPicker value={exp.endDate} onChange={(v) => updateWorkExp(exp.id, 'endDate', v)} disabled={exp.isCurrent} />
+                    </div>
+                  </div>
+                  <label className="flex items-center gap-2 mt-3 cursor-pointer">
+                    <input type="checkbox" checked={exp.isCurrent} onChange={(e) => updateWorkExp(exp.id, 'isCurrent', e.target.checked)} className="rounded border-gray-300 text-brand-blue focus:ring-brand-blue" />
+                    <span className="text-xs text-brand-text-secondary">I currently work here</span>
+                  </label>
+                </div>
               ))}
             </div>
           )}
         </div>
       </div>
 
-      {/* ── Credentials ─────────────────────────────────────── */}
+      {/* ── Credentials ───────────────────────────────────────── */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-6 sm:p-8">
         <div className="flex items-center justify-between mb-5">
           <div>
-            <h2 className="text-base font-bold text-brand-navy">Credentials</h2>
-            <p className="text-xs text-brand-text-muted mt-0.5">Upload certificate or degree documents (PDF/image, max 10 MB each)</p>
+            <h2 className="text-base font-bold text-brand-navy">Qualifications &amp; Credentials <span className="text-red-500">*</span></h2>
+            <p className="text-xs text-brand-text-muted mt-0.5">
+              At least 1 required · licences, certifications, and professional memberships.
+            </p>
           </div>
-          {credentials.length < 5 && (
-            <button
-              type="button"
-              onClick={() => credentialInputRef.current?.click()}
-              className="btn-outline text-sm px-4 py-2"
-            >
-              + Upload document
+          {credentials.length < 10 && (
+            <button type="button" onClick={addCredential} className="btn-outline text-sm px-4 py-2">
+              + Add credential
             </button>
           )}
-          <input
-            ref={credentialInputRef}
-            type="file"
-            accept="application/pdf,image/jpeg,image/png"
-            className="hidden"
-            onChange={(e) => void handleCredentialUpload(e)}
-          />
         </div>
 
+        {errors.credentials && <p className="mb-3 text-xs text-red-500">{errors.credentials}</p>}
         {credentials.length === 0 ? (
-          <p className="text-sm text-brand-text-muted text-center py-4">No credentials added yet.</p>
+          <p className="text-sm text-brand-text-muted text-center py-4">No credentials added yet. Click <span className="font-semibold">+ Add credential</span> to begin.</p>
         ) : (
           <div className="space-y-4">
-            {credentials.map((cred) => (
+            {credentials.map((cred, idx) => (
               <div key={cred.id} className="rounded-xl border border-gray-100 bg-brand-surface p-4">
-                {cred.uploading ? (
-                  <div className="flex items-center gap-3 text-sm text-brand-text-muted">
-                    <svg className="animate-spin h-4 w-4 text-brand-blue" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    Uploading document…
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div>
-                      <label className="block text-xs text-brand-text-muted mb-1">Credential name</label>
-                      <input
-                        type="text"
-                        value={cred.name}
-                        onChange={(e) => updateCredential(cred.id, 'name', e.target.value)}
-                        placeholder="e.g. ACA"
-                        className="input-base w-full text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-brand-text-muted mb-1">Institution</label>
-                      <input
-                        type="text"
-                        value={cred.institution}
-                        onChange={(e) => updateCredential(cred.id, 'institution', e.target.value)}
-                        placeholder="e.g. ICAEW"
-                        className="input-base w-full text-sm"
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <div className="flex-1">
-                        <label className="block text-xs text-brand-text-muted mb-1">Year</label>
-                        <input
-                          type="number"
-                          value={cred.year}
-                          onChange={(e) => updateCredential(cred.id, 'year', e.target.value === '' ? '' : Number(e.target.value))}
-                          placeholder="2018"
-                          className="input-base w-full text-sm"
-                        />
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs font-semibold text-brand-text-muted">Credential {idx + 1}</p>
+                  <button type="button" onClick={() => removeCredential(cred.id)} className="text-red-400 hover:text-red-600 text-xs font-medium">Remove</button>
+                </div>
+
+                {/* Row 1: qualification type + year */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                  {/* Qualification searchable dropdown */}
+                  <div className="sm:col-span-2 relative">
+                    <label className="block text-xs text-brand-text-muted mb-1">Qualification <span className="text-red-500">*</span></label>
+                    <input
+                      type="text"
+                      value={credTypeOpen[cred.id] ? (credTypeSearch[cred.id] ?? '') : cred.qualificationName}
+                      onFocus={() => {
+                        setCredTypeSearch((s) => ({ ...s, [cred.id]: '' }));
+                        setCredTypeOpen((o) => ({ ...o, [cred.id]: true }));
+                      }}
+                      onBlur={() => setTimeout(() => setCredTypeOpen((o) => ({ ...o, [cred.id]: false })), 150)}
+                      onChange={(e) => setCredTypeSearch((s) => ({ ...s, [cred.id]: e.target.value }))}
+                      placeholder="Search CA, CFA, Solicitor…"
+                      className="input-base w-full text-sm"
+                    />
+                    {credTypeOpen[cred.id] && (
+                      <div className="absolute z-30 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl max-h-64 overflow-y-auto">
+                        {renderQualificationOptions(cred.id)}
                       </div>
-                      <button type="button" onClick={() => removeCredential(cred.id)} className="mt-5 p-2 text-red-400 hover:text-red-600 transition-colors" aria-label="Remove credential">
-                        <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden>
-                          <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                        </svg>
-                      </button>
+                    )}
+                  </div>
+                  {/* Year */}
+                  <div>
+                    <label className="block text-xs text-brand-text-muted mb-1">Year obtained</label>
+                    <select
+                      value={cred.year}
+                      onChange={(e) => updateCredential(cred.id, 'year', e.target.value === '' ? '' : Number(e.target.value))}
+                      className="input-base w-full text-sm"
+                    >
+                      <option value="">Select year</option>
+                      {YEAR_OPTIONS.map((y) => <option key={y} value={y}>{y}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                {/* "Other" — custom name + abbreviation inputs */}
+                {cred.qualificationTypeId === 'other' && (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs text-brand-text-muted mb-1">
+                        Qualification name <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={cred.qualificationName === 'Other (specify)' ? '' : cred.qualificationName}
+                        onChange={(e) => updateCredential(cred.id, 'qualificationName', e.target.value)}
+                        placeholder="e.g. Certified Treasury Professional"
+                        className={`input-base w-full text-sm ${errors[`cred_name_${cred.id}`] ? 'border-red-300' : ''}`}
+                      />
+                      {errors[`cred_name_${cred.id}`] && (
+                        <p className="mt-1 text-xs text-red-500">{errors[`cred_name_${cred.id}`]}</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-xs text-brand-text-muted mb-1">Abbreviation</label>
+                      <input
+                        type="text"
+                        value={cred.abbreviation}
+                        onChange={(e) => updateCredential(cred.id, 'abbreviation', e.target.value)}
+                        placeholder="e.g. CTP"
+                        className="input-base w-full text-sm"
+                        maxLength={10}
+                      />
                     </div>
                   </div>
                 )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
 
-      {/* ── Work experience ─────────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-6 sm:p-8">
-        <div className="flex items-center justify-between mb-5">
-          <div>
-            <h2 className="text-base font-bold text-brand-navy">Work Experience</h2>
-            <p className="text-xs text-brand-text-muted mt-0.5">Up to 5 entries</p>
-          </div>
-          {workExperience.length < 5 && (
-            <button type="button" onClick={addWorkExp} className="btn-outline text-sm px-4 py-2">+ Add entry</button>
-          )}
-        </div>
-        {workExperience.length === 0 ? (
-          <p className="text-sm text-brand-text-muted text-center py-4">No work experience added yet.</p>
-        ) : (
-          <div className="space-y-4">
-            {workExperience.map((exp, idx) => (
-              <div key={exp.id} className="rounded-xl border border-gray-100 bg-brand-surface p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-xs font-semibold text-brand-text-muted">Position {idx + 1}</p>
-                  <button type="button" onClick={() => removeWorkExp(exp.id)} className="text-red-400 hover:text-red-600 text-xs font-medium">Remove</button>
+                {/* Row 2: issuing body (editable, pre-filled from type) */}
+                <div className="mb-3">
+                  <label className="block text-xs text-brand-text-muted mb-1">Issuing body</label>
+                  <input
+                    type="text"
+                    value={cred.issuingBody}
+                    onChange={(e) => updateCredential(cred.id, 'issuingBody', e.target.value)}
+                    placeholder="e.g. ICAI, CFA Institute, Bar Council of India…"
+                    className="input-base w-full text-sm"
+                  />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs text-brand-text-muted mb-1">Job title</label>
-                    <input type="text" value={exp.title} onChange={(e) => updateWorkExp(exp.id, 'title', e.target.value)} placeholder="Partner" className="input-base w-full text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-brand-text-muted mb-1">Company</label>
-                    <input type="text" value={exp.company} onChange={(e) => updateWorkExp(exp.id, 'company', e.target.value)} placeholder="Firm name" className="input-base w-full text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-brand-text-muted mb-1">Start date</label>
-                    <input type="month" value={exp.startDate} onChange={(e) => updateWorkExp(exp.id, 'startDate', e.target.value)} className="input-base w-full text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-brand-text-muted mb-1">
-                      {exp.isCurrent ? 'End date (present)' : 'End date'}
-                    </label>
+
+                {/* Row 3: abbreviation badge + doc upload */}
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    {cred.abbreviation && cred.qualificationTypeId !== 'other' && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-brand-blue-subtle border border-blue-100 text-xs font-bold text-brand-blue">
+                        {cred.abbreviation}
+                      </span>
+                    )}
+
+                    {/* Document upload */}
+                    {cred.uploading ? (
+                      <span className="flex items-center gap-1.5 text-xs text-brand-text-muted">
+                        <svg className="animate-spin h-3.5 w-3.5 text-brand-blue" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Uploading…
+                      </span>
+                    ) : cred.documentUrl ? (
+                      <span className="flex items-center gap-1.5 text-xs text-green-600 font-medium">
+                        <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden>
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                        Document uploaded
+                        <button
+                          type="button"
+                          onClick={() => updateCredential(cred.id, 'documentUrl', '')}
+                          className="ml-1 text-gray-400 hover:text-red-400"
+                          aria-label="Remove document"
+                        >×</button>
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => credFileRefs.current[cred.id]?.click()}
+                        className={`text-xs font-medium flex items-center gap-1 transition-colors ${errors[`cred_doc_${cred.id}`] ? 'text-red-500 hover:text-red-700' : 'text-brand-blue hover:text-brand-navy'}`}
+                      >
+                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                        </svg>
+                        Attach certificate <span className="text-red-500">*</span>
+                      </button>
+                    )}
                     <input
-                      type="month"
-                      value={exp.endDate}
-                      disabled={exp.isCurrent}
-                      onChange={(e) => updateWorkExp(exp.id, 'endDate', e.target.value)}
-                      className="input-base w-full text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                      ref={(el) => { credFileRefs.current[cred.id] = el; }}
+                      type="file"
+                      accept="application/pdf,image/jpeg,image/png"
+                      className="hidden"
+                      onChange={(e) => void handleCredentialUpload(cred.id, e)}
                     />
                   </div>
+                  {errors[`cred_doc_${cred.id}`] && (
+                    <p className="text-xs text-red-500">{errors[`cred_doc_${cred.id}`]}</p>
+                  )}
                 </div>
-                <label className="flex items-center gap-2 mt-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={exp.isCurrent}
-                    onChange={(e) => updateWorkExp(exp.id, 'isCurrent', e.target.checked)}
-                    className="rounded border-gray-300 text-brand-blue focus:ring-brand-blue"
-                  />
-                  <span className="text-xs text-brand-text-secondary">I currently work here</span>
-                </label>
               </div>
             ))}
           </div>
         )}
       </div>
 
-      {/* ── Education ───────────────────────────────────────── */}
+      {/* ── Education ─────────────────────────────────────────── */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-6 sm:p-8">
         <div className="flex items-center justify-between mb-5">
           <div>
-            <h2 className="text-base font-bold text-brand-navy">Education</h2>
-            <p className="text-xs text-brand-text-muted mt-0.5">Up to 3 entries</p>
+            <h2 className="text-base font-bold text-brand-navy">Education <span className="text-red-500">*</span></h2>
+            <p className="text-xs text-brand-text-muted mt-0.5">At least 1 entry required · up to 3</p>
           </div>
           {education.length < 3 && (
             <button type="button" onClick={addEdu} className="btn-outline text-sm px-4 py-2">+ Add entry</button>
           )}
         </div>
+        {errors.education && <p className="mb-3 text-xs text-red-500">{errors.education}</p>}
         {education.length === 0 ? (
-          <p className="text-sm text-brand-text-muted text-center py-4">No education added yet.</p>
+          <p className="text-sm text-brand-text-muted text-center py-4">No education added yet. Click <span className="font-semibold">+ Add entry</span> to begin.</p>
         ) : (
           <div className="space-y-4">
             {education.map((edu, idx) => (

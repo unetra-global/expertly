@@ -17,14 +17,30 @@ export default function AuthPage() {
 
   const [tab, setTab] = useState<AuthTab>(initialTab);
   const [method, setMethod] = useState<AuthMethod>('linkedin');
+  const [sessionChecked, setSessionChecked] = useState(false);
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
+  const [showCreateSuggestion, setShowCreateSuggestion] = useState(false);
+  const [signUpConfirmPending, setSignUpConfirmPending] = useState(false);
   const redirectedRef = useRef(false);
 
   const error = searchParams.get('error');
   const authError = searchParams.get('authError');
+
+  // Redirect already-authenticated users away from the auth page
+  useEffect(() => {
+    getBrowserClient().auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        router.replace('/auth/redirect');
+      } else {
+        setSessionChecked(true);
+      }
+    });
+  }, [router]);
 
   // Persist returnTo from query params
   useEffect(() => {
@@ -37,8 +53,11 @@ export default function AuthPage() {
   // Reset form state when switching tabs or methods
   useEffect(() => {
     setFormError(null);
+    setShowCreateSuggestion(false);
     setEmail('');
     setPassword('');
+    setFirstName('');
+    setLastName('');
   }, [tab, method]);
 
   async function handleLinkedInAuth(intent: AuthTab) {
@@ -78,6 +97,10 @@ export default function AuthPage() {
       setFormError('Please enter your email and password.');
       return;
     }
+    if (intent === 'signup') {
+      if (!firstName.trim()) { setFormError('Please enter your first name.'); return; }
+      if (!lastName.trim()) { setFormError('Please enter your last name.'); return; }
+    }
 
     setLoading(true);
     const supabase = getBrowserClient();
@@ -91,16 +114,25 @@ export default function AuthPage() {
       if (signInError) {
         setLoading(false);
         if (signInError.message.toLowerCase().includes('invalid login')) {
-          setFormError('Incorrect email or password. Please try again.');
+          setFormError("We couldn't find an account with those credentials.");
+          setShowCreateSuggestion(true);
         } else {
           setFormError(signInError.message);
         }
         return;
       }
     } else {
-      const { error: signUpError } = await supabase.auth.signUp({
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin;
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: email.trim(),
         password,
+        options: {
+          emailRedirectTo: `${appUrl}/auth/callback`,
+          data: {
+            first_name: firstName.trim(),
+            last_name: lastName.trim(),
+          },
+        },
       });
 
       if (signUpError) {
@@ -110,6 +142,13 @@ export default function AuthPage() {
         } else {
           setFormError(signUpError.message);
         }
+        return;
+      }
+
+      // Email confirmation required — no session yet
+      if (!signUpData.session) {
+        setLoading(false);
+        setSignUpConfirmPending(true);
         return;
       }
     }
@@ -124,6 +163,10 @@ export default function AuthPage() {
       : authError === 'oauth_failed'
         ? 'Authentication failed. Please try again.'
         : null;
+
+  if (!sessionChecked) {
+    return <div className="min-h-screen bg-brand-navy" />;
+  }
 
   return (
     <div className="min-h-screen bg-brand-navy flex">
@@ -230,6 +273,17 @@ export default function AuthPage() {
               {(errorMessage || formError) && (
                 <div className="mb-6 rounded-lg bg-red-50 border border-red-200 p-4 text-sm text-red-700">
                   {errorMessage ?? formError}
+                  {showCreateSuggestion && (
+                    <span>
+                      {' '}
+                      <button
+                        onClick={() => setTab('signup')}
+                        className="font-semibold underline hover:text-red-900"
+                      >
+                        Create an account
+                      </button>
+                    </span>
+                  )}
                 </div>
               )}
 
@@ -339,7 +393,28 @@ export default function AuthPage() {
               )}
 
               {/* ── Sign Up / Create Account tab ────────── */}
-              {tab === 'signup' && (
+              {tab === 'signup' && signUpConfirmPending && (
+                <div className="py-4 text-center space-y-3">
+                  <div className="mx-auto w-12 h-12 rounded-full bg-green-50 flex items-center justify-center">
+                    <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <h2 className="text-lg font-bold text-brand-navy">Check your email</h2>
+                  <p className="text-sm text-gray-500 leading-relaxed">
+                    We sent a confirmation link to <span className="font-medium text-brand-navy">{email}</span>.
+                    Click it to activate your account, then come back to sign in.
+                  </p>
+                  <button
+                    onClick={() => { setSignUpConfirmPending(false); setTab('signin'); }}
+                    className="mt-2 text-sm font-semibold text-brand-blue hover:text-brand-blue-dark"
+                  >
+                    Back to Sign In
+                  </button>
+                </div>
+              )}
+
+              {tab === 'signup' && !signUpConfirmPending && (
                 <>
                   <h1 className="text-xl font-bold text-brand-navy mb-1">
                     Join Expertly
@@ -397,6 +472,34 @@ export default function AuthPage() {
                       onSubmit={(e) => { e.preventDefault(); void handleEmailAuth('signup'); }}
                       className="space-y-4"
                     >
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                            First name
+                          </label>
+                          <input
+                            type="text"
+                            autoComplete="given-name"
+                            value={firstName}
+                            onChange={(e) => setFirstName(e.target.value)}
+                            placeholder="Jane"
+                            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-brand-navy placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue transition"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                            Last name
+                          </label>
+                          <input
+                            type="text"
+                            autoComplete="family-name"
+                            value={lastName}
+                            onChange={(e) => setLastName(e.target.value)}
+                            placeholder="Smith"
+                            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-brand-navy placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue transition"
+                          />
+                        </div>
+                      </div>
                       <div>
                         <label className="block text-xs font-medium text-gray-700 mb-1.5">
                           Email address
