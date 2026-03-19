@@ -115,6 +115,50 @@ const PHONE_CODES = [
   { code: '+974', label: '+974 (QA)' },
 ];
 
+// ── LinkedIn response → store shape ───────────────────────────────────────────
+
+const MONTH_NUM: Record<string, string> = {
+  Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06',
+  Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12',
+};
+
+function liDate(d: { month?: string; year?: number } | null | undefined): string {
+  if (!d?.year) return '';
+  const m = d.month ? (MONTH_NUM[d.month] ?? '01') : '01';
+  return `${d.year}-${m}`;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function parseLinkedInResponse(raw: any, profileUrl: string): import('@/stores/onboardingStore').LinkedInPrefillResult {
+  return {
+    firstName:      raw.firstName ?? '',
+    lastName:       raw.lastName ?? '',
+    headline:       raw.headline ?? '',
+    bio:            raw.about ?? '',
+    linkedinUrl:    raw.linkedinUrl ?? profileUrl,
+    designation:    raw.experience?.[0]?.position ?? '',
+    profilePhotoUrl: raw.photo ?? raw.profilePicture?.url ?? '',
+    city:    raw.location?.parsed?.city ?? '',
+    country: raw.location?.parsed?.country ?? '',
+    state:   raw.location?.parsed?.state ?? '',
+    experience: (raw.experience ?? []).slice(0, 5).map((e: any) => ({
+      firm:      e.companyName ?? '',
+      title:     e.position ?? '',
+      startDate: liDate(e.startDate),
+      endDate:   e.endDate?.text === 'Present' ? '' : liDate(e.endDate),
+      isCurrent: e.endDate?.text === 'Present',
+      city:      e.location?.split(',')[0]?.trim() ?? '',
+    })),
+    education: (raw.education ?? []).slice(0, 3).map((e: any) => ({
+      institution: e.schoolName ?? '',
+      degree:      e.degree ?? '',
+      field:       e.fieldOfStudy ?? '',
+      startYear:   e.startDate?.year ?? '',
+      endYear:     e.endDate?.year ?? '',
+    })),
+  };
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -124,10 +168,13 @@ interface Props {
 type ToastState = { message: string; type: 'success' | 'error' } | null;
 
 export function Step1Identity({ onNext }: Props) {
-  const { formData, setStep1 } = useOnboardingStore();
+  const { formData, setStep1, applyLinkedInPrefill } = useOnboardingStore();
 
   const [photoPreview, setPhotoPreview] = useState<string>(formData.profilePhotoUrl);
   const [photoUploading, setPhotoUploading] = useState(false);
+  const [linkedinLoading, setLinkedinLoading] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [linkedinUrlInput, setLinkedinUrlInput] = useState('');
   const [toast, setToast] = useState<ToastState>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -166,6 +213,26 @@ export function Step1Identity({ onNext }: Props) {
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Sync fields when LinkedIn prefill populates the store
+  useEffect(() => {
+    setFields((f) => ({
+      firstName:      formData.firstName  || f.firstName,
+      lastName:       formData.lastName   || f.lastName,
+      phoneExtension: formData.phoneExtension || f.phoneExtension,
+      phone:          formData.phone      || f.phone,
+      contactEmail:   formData.contactEmail || f.contactEmail,
+      region:         formData.region     || f.region,
+      country:        formData.country    || f.country,
+      state:          formData.state      || f.state,
+      city:           formData.city       || f.city,
+      linkedinUrl:    formData.linkedinUrl || f.linkedinUrl,
+      designation:    formData.designation || f.designation,
+      headline:       formData.headline   || f.headline,
+      bio:            formData.bio        || f.bio,
+    }));
+    if (formData.profilePhotoUrl) setPhotoPreview(formData.profilePhotoUrl);
+  }, [formData]);
 
   // Auto-dismiss toast
   useEffect(() => {
@@ -223,6 +290,38 @@ export function Step1Identity({ onNext }: Props) {
       setToast({ message: 'Photo upload failed. Please try again.', type: 'error' });
     } finally {
       setPhotoUploading(false);
+    }
+  }
+
+  // ── LinkedIn import ───────────────────────────────────────────────────────────
+  async function handleLinkedInImport() {
+    const url = linkedinUrlInput.trim();
+    if (!url || !/^https?:\/\/(www\.)?linkedin\.com\/in\/.+/i.test(url)) {
+      setToast({ message: 'Please enter a valid LinkedIn URL (e.g. https://linkedin.com/in/yourname)', type: 'error' });
+      return;
+    }
+    setShowImportDialog(false);
+    setLinkedinLoading(true);
+    try {
+      const res = await fetch(
+        'https://n8n.shreyansmaloo.site/webhook/e3842ccc-130b-4170-b465-3188386e6298',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ profileUrl: url }),
+        },
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data: any = await res.json();
+      // Response is always an array — take first element
+      const raw = Array.isArray(data) ? data[0] : data;
+      applyLinkedInPrefill(parseLinkedInResponse(raw, url));
+      setToast({ message: 'LinkedIn profile imported! Review and edit your details below.', type: 'success' });
+    } catch {
+      setToast({ message: 'Import failed. Please check the URL and try again.', type: 'error' });
+    } finally {
+      setLinkedinLoading(false);
     }
   }
 
@@ -286,6 +385,17 @@ export function Step1Identity({ onNext }: Props) {
       <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-6 sm:p-8">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-bold text-brand-navy">Your Identity</h2>
+          <button
+            type="button"
+            onClick={() => { setLinkedinUrlInput(''); setShowImportDialog(true); }}
+            disabled={linkedinLoading}
+            className="inline-flex items-center gap-2 rounded-xl bg-[#0077B5] hover:bg-[#006097] disabled:opacity-60 disabled:cursor-not-allowed text-white text-xs font-semibold px-4 py-2 transition-colors"
+          >
+            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+            </svg>
+            Import from LinkedIn
+          </button>
         </div>
 
         {/* Profile photo */}
@@ -556,6 +666,80 @@ export function Step1Identity({ onNext }: Props) {
         </button>
       </div>
 
+      {/* LinkedIn full-screen loading overlay */}
+      {linkedinLoading && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-brand-navy/95 backdrop-blur-sm">
+          {/* Pulsing ring */}
+          <div className="relative mb-8">
+            <div className="w-20 h-20 rounded-full border-2 border-[#0077B5]/30 animate-ping absolute inset-0" />
+            <div className="w-20 h-20 rounded-full bg-[#0077B5]/10 border border-[#0077B5]/40 flex items-center justify-center relative">
+              <svg className="h-9 w-9 text-[#0077B5]" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+              </svg>
+            </div>
+          </div>
+
+          <h3 className="text-xl font-bold text-white mb-2">Reading your profile</h3>
+          <p className="text-white/50 text-sm mb-6">Fetching your experience, education &amp; more…</p>
+
+          {/* Animated progress dots */}
+          <div className="flex items-center gap-1.5">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="w-1.5 h-1.5 rounded-full bg-[#0077B5]"
+                style={{ animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite` }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* LinkedIn import dialog */}
+      {showImportDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 sm:p-8">
+            <div className="w-12 h-12 rounded-2xl bg-[#0077B5]/10 border border-[#0077B5]/20 flex items-center justify-center mb-5">
+              <svg className="h-6 w-6 text-[#0077B5]" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-bold text-brand-navy mb-2">Import from LinkedIn</h3>
+            <p className="text-sm text-brand-text-secondary mb-5">
+              Paste your LinkedIn profile URL and we&apos;ll auto-fill your name, headline, bio, work experience, education, and more.
+            </p>
+            <label className="block text-xs font-semibold text-brand-text-secondary mb-1.5">
+              LinkedIn Profile URL <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="url"
+              value={linkedinUrlInput}
+              onChange={(e) => setLinkedinUrlInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') void handleLinkedInImport(); }}
+              placeholder="https://www.linkedin.com/in/yourname"
+              className="input-base w-full mb-1"
+              autoFocus
+            />
+            <p className="text-xs text-brand-text-muted mb-6">e.g. https://www.linkedin.com/in/janesmith</p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowImportDialog(false)}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-brand-text hover:bg-brand-surface transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleLinkedInImport()}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-[#0077B5] hover:bg-[#006097] text-white text-sm font-semibold transition-colors"
+              >
+                Import
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

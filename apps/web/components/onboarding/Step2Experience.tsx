@@ -182,6 +182,46 @@ export function Step2Experience({ onBack, onNext }: Props) {
     return () => clearTimeout(t);
   }, [toast]);
 
+  // Sync from store when LinkedIn prefill populates data, and auto-calculate years
+  useEffect(() => {
+    if (formData.workExperience.length > 0 && workExperience.length === 0) {
+      setWorkExperience(formData.workExperience);
+
+      // Auto-calculate overall years of experience only if not already set
+      if (yearsOfExperience === '') {
+        const exps = formData.workExperience;
+        // Earliest start date across all entries
+        const sorted = exps
+          .filter((e) => e.startDate)
+          .sort((a, b) => a.startDate.localeCompare(b.startDate));
+        const earliest = sorted[0];
+        // End date: use current job's end (today), or the latest end date
+        const currentJob = exps.find((e) => e.isCurrent);
+        const endDate = currentJob ? new Date() : (() => {
+          const latest = [...exps]
+            .filter((e) => e.endDate)
+            .sort((a, b) => b.endDate.localeCompare(a.endDate))[0];
+          return latest?.endDate ? new Date(latest.endDate + '-01') : new Date();
+        })();
+        if (earliest?.startDate) {
+          const start = new Date(earliest.startDate + '-01');
+          const months =
+            (endDate.getFullYear() - start.getFullYear()) * 12 +
+            (endDate.getMonth() - start.getMonth());
+          const years = Math.round(months / 12);
+          if (years > 0) setYearsOfExperience(years);
+        }
+      }
+    }
+    if (formData.education.length > 0 && education.length === 0) {
+      setEducation(formData.education);
+    }
+    if (formData.yearsOfExperience !== '' && yearsOfExperience === '') {
+      setYearsOfExperience(formData.yearsOfExperience);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.workExperience, formData.education, formData.yearsOfExperience]);
+
   // ── Credential handlers ────────────────────────────────────────────────────
 
   function addCredential() {
@@ -300,7 +340,7 @@ export function Step2Experience({ onBack, onNext }: Props) {
     });
 
     const errs: Record<string, string> = {};
-    if (!yearsOfExperience && yearsOfExperience !== 0) errs.years = 'Years of experience is required';
+    if (!yearsOfExperience && yearsOfExperience !== 0) errs.years = 'Overall years of experience is required';
     if (credentials.length === 0) errs.credentials = 'At least one professional qualification is required';
     if (workExperience.length === 0) errs.workExperience = 'At least one work experience entry is required';
     if (education.length === 0) errs.education = 'At least one education entry is required';
@@ -376,7 +416,7 @@ export function Step2Experience({ onBack, onNext }: Props) {
 
         <div className="mb-4">
           <label className="block text-xs font-semibold text-brand-text-secondary mb-1.5">
-            Years of experience <span className="text-red-500">*</span>
+            Overall years of experience <span className="text-red-500">*</span>
           </label>
           <input
             type="number"

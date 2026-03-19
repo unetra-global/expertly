@@ -269,12 +269,15 @@ export function OnboardingLayout() {
                     />
                   )}
 
-                  {/* Step circle */}
-                  <div className="flex flex-col items-center">
+                  {/* Step circle — clickable for completed steps */}
+                  <div
+                    className="flex flex-col items-center"
+                    onClick={() => isCompleted && setStep(step.number)}
+                  >
                     <div
                       className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all duration-300 ${
                         isCompleted
-                          ? 'bg-brand-navy border-brand-blue'
+                          ? 'bg-brand-navy border-brand-blue cursor-pointer hover:bg-brand-blue/20 hover:scale-110'
                           : isCurrent
                           ? 'bg-brand-blue border-brand-blue text-white shadow-lg shadow-brand-blue/40'
                           : 'bg-transparent border-white/30 text-white/40'
@@ -295,7 +298,7 @@ export function OnboardingLayout() {
                         isCurrent
                           ? 'text-white'
                           : isCompleted
-                          ? 'text-brand-blue'
+                          ? 'text-brand-blue cursor-pointer hover:text-white'
                           : 'text-white/30'
                       }`}
                     >

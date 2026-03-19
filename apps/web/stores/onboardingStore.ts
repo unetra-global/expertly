@@ -108,19 +108,30 @@ export type OnboardingFormData = Step1Data & Step2Data & Step3Data & Step4Data;
 // ── LinkedIn prefill result shape ─────────────────────────────────────────────
 
 export interface LinkedInPrefillResult {
-  name?: string;
   firstName?: string;
   lastName?: string;
   headline?: string;
   bio?: string;
   linkedinUrl?: string;
   designation?: string;
+  city?: string;
+  country?: string;
+  state?: string;
+  profilePhotoUrl?: string;
   experience?: Array<{
     firm: string;
     title: string;
     startDate?: string;
     endDate?: string;
     isCurrent?: boolean;
+    city?: string;
+  }>;
+  education?: Array<{
+    institution: string;
+    degree: string;
+    field: string;
+    startYear?: number | '';
+    endYear?: number | '';
   }>;
 }
 
@@ -272,19 +283,63 @@ export const useOnboardingStore = create<OnboardingState & OnboardingActions>()(
           updates.designation = result.designation;
         }
 
+        if (!formData.city && result.city) updates.city = result.city;
+        if (!formData.profilePhotoUrl && result.profilePhotoUrl) {
+          updates.profilePhotoUrl = result.profilePhotoUrl;
+        }
+        if (!formData.country && result.country) {
+          updates.country = result.country;
+          if (!formData.state && result.state) updates.state = result.state;
+          if (!formData.region) {
+            const COUNTRY_REGION: Record<string, string> = {
+              Australia: 'asia_pacific', China: 'asia_pacific', 'Hong Kong': 'asia_pacific',
+              Indonesia: 'asia_pacific', Japan: 'asia_pacific', Malaysia: 'asia_pacific',
+              'New Zealand': 'asia_pacific', Philippines: 'asia_pacific', Singapore: 'asia_pacific',
+              'South Korea': 'asia_pacific', Thailand: 'asia_pacific', Vietnam: 'asia_pacific',
+              Belgium: 'europe', Denmark: 'europe', Finland: 'europe', France: 'europe',
+              Germany: 'europe', Greece: 'europe', Ireland: 'europe', Italy: 'europe',
+              Netherlands: 'europe', Norway: 'europe', Poland: 'europe', Portugal: 'europe',
+              Spain: 'europe', Sweden: 'europe', Switzerland: 'europe', Turkey: 'europe',
+              'United Kingdom': 'europe',
+              Argentina: 'latin_america', Brazil: 'latin_america', Chile: 'latin_america',
+              Colombia: 'latin_america', Mexico: 'latin_america', Peru: 'latin_america',
+              Bahrain: 'middle_east', Israel: 'middle_east', Jordan: 'middle_east',
+              Kuwait: 'middle_east', Oman: 'middle_east', Qatar: 'middle_east',
+              'Saudi Arabia': 'middle_east', 'United Arab Emirates': 'middle_east',
+              Canada: 'north_america', 'United States': 'north_america',
+              Bangladesh: 'south_asia', India: 'south_asia', Nepal: 'south_asia',
+              Pakistan: 'south_asia', 'Sri Lanka': 'south_asia',
+              Egypt: 'africa', Ghana: 'africa', Kenya: 'africa', Mauritius: 'africa',
+              Morocco: 'africa', Nigeria: 'africa', Rwanda: 'africa', 'South Africa': 'africa',
+              Tanzania: 'africa', Uganda: 'africa', Zimbabwe: 'africa',
+            };
+            const r = COUNTRY_REGION[result.country];
+            if (r) updates.region = r;
+          }
+        }
+
         // Work experience — only populate if list is currently empty
-        if (
-          formData.workExperience.length === 0 &&
-          result.experience &&
-          result.experience.length > 0
-        ) {
+        if (formData.workExperience.length === 0 && result.experience?.length) {
           updates.workExperience = result.experience.slice(0, 5).map((exp, i) => ({
             id: `li-${i}`,
             title: exp.title ?? '',
             company: exp.firm ?? '',
+            city: exp.city ?? '',
             startDate: exp.startDate ?? '',
             endDate: exp.endDate ?? '',
             isCurrent: exp.isCurrent ?? false,
+          }));
+        }
+
+        // Education — only populate if list is currently empty
+        if (formData.education.length === 0 && result.education?.length) {
+          updates.education = result.education.slice(0, 3).map((edu, i) => ({
+            id: `li-edu-${i}`,
+            institution: edu.institution ?? '',
+            degree: edu.degree ?? '',
+            field: edu.field ?? '',
+            startYear: edu.startYear ?? '',
+            endYear: edu.endYear ?? '',
           }));
         }
 
