@@ -177,19 +177,30 @@ export function Step5Review({ onBack }: Props) {
       )}
 
       {/* ── Header ───────────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-6 sm:p-8">
+      <div className={`rounded-2xl border shadow-card p-6 sm:p-8 ${applicationId ? 'bg-brand-navy border-brand-navy' : 'bg-white border-gray-100'}`}>
         <div className="flex items-start gap-4">
-          <div className="w-10 h-10 rounded-xl bg-green-50 border border-green-200 flex items-center justify-center shrink-0">
-            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${applicationId ? 'bg-white/10 border border-white/20' : 'bg-green-50 border border-green-200'}`}>
+            <svg className={`w-5 h-5 ${applicationId ? 'text-white' : 'text-green-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={applicationId ? 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' : 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'} />
             </svg>
           </div>
           <div>
-            <h2 className="text-lg font-bold text-brand-navy">Review your application</h2>
-            <p className="text-sm text-brand-text-muted mt-1">
-              Everything looks complete. Review the highlights below and submit when you&apos;re ready.
-              Use the Back button to make any changes.
-            </p>
+            {applicationId ? (
+              <>
+                <h2 className="text-lg font-bold text-white">Your application is under review</h2>
+                <p className="text-sm text-white/60 mt-1">
+                  We&apos;ll notify you via email once our team has reviewed your application. This usually takes 3–5 business days.
+                </p>
+              </>
+            ) : (
+              <>
+                <h2 className="text-lg font-bold text-brand-navy">Review your application</h2>
+                <p className="text-sm text-brand-text-muted mt-1">
+                  Everything looks complete. Review the highlights below and submit when you&apos;re ready.
+                  Use the Back button to make any changes.
+                </p>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -514,21 +525,6 @@ export function Step5Review({ onBack }: Props) {
 
         </div>
       </div>
-      )}
-
-      {/* Submitted banner — shown instead of consent + submit when already submitted */}
-      {applicationId && (
-        <div className="bg-green-50 border border-green-200 rounded-2xl p-6 flex items-start gap-4">
-          <div className="w-10 h-10 rounded-xl bg-green-100 border border-green-200 flex items-center justify-center shrink-0">
-            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <div>
-            <p className="text-sm font-bold text-green-800">Application submitted</p>
-            <p className="text-xs text-green-700 mt-1">Your application is under review. We&apos;ll be in touch via email.</p>
-          </div>
-        </div>
       )}
 
       {/* Navigation */}
