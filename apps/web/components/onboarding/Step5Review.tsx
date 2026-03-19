@@ -176,34 +176,25 @@ export function Step5Review({ onBack }: Props) {
         </div>
       )}
 
-      {/* ── Header ───────────────────────────────────────────── */}
-      <div className={`rounded-2xl border shadow-card p-6 sm:p-8 ${applicationId ? 'bg-brand-navy border-brand-navy' : 'bg-white border-gray-100'}`}>
+      {/* ── Header — only shown before submission ────────────── */}
+      {!applicationId && (
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-6 sm:p-8">
         <div className="flex items-start gap-4">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${applicationId ? 'bg-white/10 border border-white/20' : 'bg-green-50 border border-green-200'}`}>
-            <svg className={`w-5 h-5 ${applicationId ? 'text-white' : 'text-green-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={applicationId ? 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' : 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'} />
+          <div className="w-10 h-10 rounded-xl bg-green-50 border border-green-200 flex items-center justify-center shrink-0">
+            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
           <div>
-            {applicationId ? (
-              <>
-                <h2 className="text-lg font-bold text-white">Your application is under review</h2>
-                <p className="text-sm text-white/60 mt-1">
-                  We&apos;ll notify you via email once our team has reviewed your application. This usually takes 3–5 business days.
-                </p>
-              </>
-            ) : (
-              <>
-                <h2 className="text-lg font-bold text-brand-navy">Review your application</h2>
-                <p className="text-sm text-brand-text-muted mt-1">
-                  Everything looks complete. Review the highlights below and submit when you&apos;re ready.
-                  Use the Back button to make any changes.
-                </p>
-              </>
-            )}
+            <h2 className="text-lg font-bold text-brand-navy">Review your application</h2>
+            <p className="text-sm text-brand-text-muted mt-1">
+              Everything looks complete. Review the highlights below and submit when you&apos;re ready.
+              Use the Back button to make any changes.
+            </p>
           </div>
         </div>
       </div>
+      )}
 
       {/* ── Profile ──────────────────────────────────────────── */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-6 sm:p-8">
@@ -525,6 +516,16 @@ export function Step5Review({ onBack }: Props) {
 
         </div>
       </div>
+      )}
+
+      {/* Error summary */}
+      {Object.values(errors).some(Boolean) && (
+        <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+          <svg className="h-4 w-4 shrink-0 mt-0.5 text-red-500" fill="currentColor" viewBox="0 0 20 20" aria-hidden>
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+          </svg>
+          <span>You must agree to all three consents before submitting your application.</span>
+        </div>
       )}
 
       {/* Navigation */}

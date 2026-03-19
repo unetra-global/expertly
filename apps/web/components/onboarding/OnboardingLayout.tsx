@@ -249,70 +249,66 @@ export function OnboardingLayout() {
               Back to home
             </Link>
           </div>
-          <p className="section-label mb-2 text-center">Membership Application</p>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white text-center">
-            Apply to Join Expertly
-          </h1>
-
-          {/* ── Step progress bar ─────────────────────────── */}
-          <div className="mt-8 flex items-center justify-center gap-0">
-            {STEPS.map((step, idx) => {
-              const isCompleted = step.number < currentStep;
-              const isCurrent = step.number === currentStep;
-
-              return (
-                <div key={step.number} className="flex items-center">
-                  {/* Connector line before (not first) */}
-                  {idx > 0 && (
-                    <div
-                      className={`h-0.5 w-8 sm:w-14 transition-colors duration-300 ${
-                        isCompleted ? 'bg-brand-blue' : 'bg-white/20'
-                      }`}
-                    />
-                  )}
-
-                  {/* Step circle — clickable for completed steps (unless locked after submit) */}
-                  <div
-                    className="flex flex-col items-center"
-                    onClick={() => !isLocked && isCompleted && setStep(step.number)}
-                  >
-                    <div
-                      className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all duration-300 ${
-                        isCompleted
-                          ? isLocked
-                            ? 'bg-brand-navy border-brand-blue'
-                            : 'bg-brand-navy border-brand-blue cursor-pointer hover:bg-brand-blue/20 hover:scale-110'
-                          : isCurrent
-                          ? 'bg-brand-blue border-brand-blue text-white shadow-lg shadow-brand-blue/40'
-                          : 'bg-transparent border-white/30 text-white/40'
-                      }`}
-                    >
-                      {isCompleted ? (
-                        <svg className="h-4 w-4 text-brand-blue" fill="currentColor" viewBox="0 0 20 20" aria-hidden>
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      ) : (
-                        <span className={isCurrent ? 'text-white' : 'text-white/40'}>
-                          {step.number}
-                        </span>
+          {isLocked ? (
+            /* ── Submitted: no steps, just status ── */
+            <div className="text-center py-4">
+              <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-brand-blue/20 border border-brand-blue/40 mb-5">
+                <svg className="w-7 h-7 text-brand-blue-light" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <p className="section-label mb-2">Application Submitted</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white">
+                Your application is under review
+              </h1>
+              <p className="mt-3 text-sm sm:text-base text-white/50 max-w-md mx-auto leading-relaxed">
+                We&apos;ll notify you via email once our team has reviewed your application. This usually takes 3–5 business days.
+              </p>
+            </div>
+          ) : (
+            /* ── In-progress: label + step bar ── */
+            <>
+              <p className="section-label mb-2 text-center">Membership Application</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white text-center">
+                Apply to Join Expertly
+              </h1>
+              <div className="mt-8 flex items-center justify-center gap-0">
+                {STEPS.map((step, idx) => {
+                  const isCompleted = step.number < currentStep;
+                  const isCurrent = step.number === currentStep;
+                  return (
+                    <div key={step.number} className="flex items-center">
+                      {idx > 0 && (
+                        <div className={`h-0.5 w-8 sm:w-14 transition-colors duration-300 ${isCompleted ? 'bg-brand-blue' : 'bg-white/20'}`} />
                       )}
+                      <div className="flex flex-col items-center" onClick={() => isCompleted && setStep(step.number)}>
+                        <div
+                          className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all duration-300 ${
+                            isCompleted
+                              ? 'bg-brand-navy border-brand-blue cursor-pointer hover:bg-brand-blue/20 hover:scale-110'
+                              : isCurrent
+                              ? 'bg-brand-blue border-brand-blue text-white shadow-lg shadow-brand-blue/40'
+                              : 'bg-transparent border-white/30 text-white/40'
+                          }`}
+                        >
+                          {isCompleted ? (
+                            <svg className="h-4 w-4 text-brand-blue" fill="currentColor" viewBox="0 0 20 20" aria-hidden>
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          ) : (
+                            <span className={isCurrent ? 'text-white' : 'text-white/40'}>{step.number}</span>
+                          )}
+                        </div>
+                        <span className={`mt-1.5 text-[10px] sm:text-xs font-medium transition-colors duration-200 ${isCurrent ? 'text-white' : isCompleted ? 'text-brand-blue cursor-pointer hover:text-white' : 'text-white/30'}`}>
+                          {step.label}
+                        </span>
+                      </div>
                     </div>
-                    <span
-                      className={`mt-1.5 text-[10px] sm:text-xs font-medium transition-colors duration-200 ${
-                        isCurrent
-                          ? 'text-white'
-                          : isCompleted
-                          ? isLocked ? 'text-brand-blue' : 'text-brand-blue cursor-pointer hover:text-white'
-                          : 'text-white/30'
-                      }`}
-                    >
-                      {step.label}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
