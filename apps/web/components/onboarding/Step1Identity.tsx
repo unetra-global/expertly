@@ -666,31 +666,27 @@ export function Step1Identity({ onNext }: Props) {
         </button>
       </div>
 
-      {/* LinkedIn full-screen loading overlay */}
+      {/* LinkedIn loading card */}
       {linkedinLoading && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-brand-navy/95 backdrop-blur-sm">
-          {/* Pulsing ring */}
-          <div className="relative mb-8">
-            <div className="w-20 h-20 rounded-full border-2 border-[#0077B5]/30 animate-ping absolute inset-0" />
-            <div className="w-20 h-20 rounded-full bg-[#0077B5]/10 border border-[#0077B5]/40 flex items-center justify-center relative">
-              <svg className="h-9 w-9 text-[#0077B5]" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
-                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px]">
+          <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 px-8 py-6 flex items-center gap-5 max-w-sm w-full">
+            <div className="relative shrink-0">
+              <svg className="animate-spin h-10 w-10 text-[#0077B5]/20" fill="none" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2.5" />
               </svg>
+              <svg className="animate-spin h-10 w-10 text-[#0077B5] absolute inset-0" fill="none" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <svg className="h-4 w-4 text-[#0077B5]" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                </svg>
+              </div>
             </div>
-          </div>
-
-          <h3 className="text-xl font-bold text-white mb-2">Reading your profile</h3>
-          <p className="text-white/50 text-sm mb-6">Fetching your experience, education &amp; more…</p>
-
-          {/* Animated progress dots */}
-          <div className="flex items-center gap-1.5">
-            {[0, 1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className="w-1.5 h-1.5 rounded-full bg-[#0077B5]"
-                style={{ animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite` }}
-              />
-            ))}
+            <div>
+              <p className="text-sm font-semibold text-brand-navy">Importing from LinkedIn</p>
+              <p className="text-xs text-brand-text-muted mt-0.5">Fetching your profile data…</p>
+            </div>
           </div>
         </div>
       )}
