@@ -33,6 +33,10 @@ export class UpdateMemberDto {
 
   @IsOptional()
   @IsString()
+  profile_photo_base64?: string;
+
+  @IsOptional()
+  @IsString()
   avatar_url?: string;
 
   @IsOptional()
