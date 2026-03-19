@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Body,
   Controller,
   Post,
   Query,
@@ -29,10 +30,22 @@ export class UploadController {
   async uploadAvatar(
     @CurrentUser() user: AuthUser,
     @Req() req: FastifyRequest,
-  ): Promise<{ url: string }> {
+  ): Promise<{ base64: string }> {
     const file = await this.getFile(req);
     const buffer = await file.toBuffer();
     return this.upload.uploadAvatar(user.dbId, buffer, file.filename);
+  }
+
+  // Converts a remote image URL to a base64 data URI — used after LinkedIn import
+  // so the photo is processed server-side (avoids browser CORS issues).
+  @Post('avatar-from-url')
+  async avatarBase64FromUrl(
+    @Body('url') url: string,
+  ): Promise<{ base64: string }> {
+    if (!url || !/^https?:\/\//i.test(url)) {
+      throw new BadRequestException('A valid image URL is required');
+    }
+    return this.upload.avatarBase64FromUrl(url);
   }
 
   @Post('article-image')

@@ -63,6 +63,7 @@ export interface Step1Data {
   firstName: string;
   lastName: string;
   profilePhotoUrl: string;
+  profilePhotoBase64: string;
   designation: string;
   headline: string;
   bio: string;
@@ -167,6 +168,7 @@ const defaultFormData: OnboardingFormData = {
   firstName: '',
   lastName: '',
   profilePhotoUrl: '',
+  profilePhotoBase64: '',
   designation: '',
   headline: '',
   bio: '',

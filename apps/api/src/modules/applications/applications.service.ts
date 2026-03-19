@@ -16,7 +16,7 @@ import { SubmitDto } from './dto/submit.dto';
 
 const APPLICATION_SELECT =
   'id, user_id, status, current_step, first_name, last_name, designation, headline, bio, ' +
-  'linkedin_url, profile_photo_url, region, country, state, phone_extension, phone, contact_email, ' +
+  'linkedin_url, profile_photo_url, profile_photo_base64, region, country, state, phone_extension, phone, contact_email, ' +
   'years_of_experience, firm_name, firm_size, website_url, city, ' +
   'consultation_fee_min_usd, consultation_fee_max_usd, qualifications, credentials, ' +
   'work_experience, education, primary_service_id, secondary_service_ids, ' +
@@ -139,6 +139,7 @@ export class ApplicationsService {
       bio: dto.bio,
       linkedin_url: dto.linkedinUrl,
       profile_photo_url: dto.profilePhotoUrl,
+      profile_photo_base64: dto.profilePhotoBase64,
       region: dto.region,
       country: dto.country,
       state: dto.state,

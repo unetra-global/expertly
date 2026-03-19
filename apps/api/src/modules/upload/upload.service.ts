@@ -12,7 +12,7 @@ const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const ALLOWED_DOCUMENT_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
 const MAX_DOC_SIZE = 10 * 1024 * 1024;  // 10 MB
-const AVATAR_SIZE = 1200;
+const AVATAR_THUMB_SIZE = 256; // profile photos stored as 256×256 base64 in the DB
 
 @Injectable()
 export class UploadService {
@@ -20,11 +20,13 @@ export class UploadService {
 
   constructor(private readonly supabase: SupabaseService) {}
 
+  // Converts uploaded file to a 256×256 base64 data URI.
+  // No CDN upload — profile photos live entirely in the database.
   async uploadAvatar(
-    userId: string,
+    _userId: string,
     buffer: Buffer,
-    originalName: string,
-  ): Promise<{ url: string }> {
+    _originalName: string,
+  ): Promise<{ base64: string }> {
     if (buffer.length > MAX_IMAGE_SIZE) {
       throw new BadRequestException('FILE_TOO_LARGE');
     }
@@ -33,20 +35,37 @@ export class UploadService {
       throw new BadRequestException('INVALID_FILE_TYPE');
     }
 
-    const processed = await sharp(buffer)
-      .resize(AVATAR_SIZE, AVATAR_SIZE, { fit: 'cover', position: 'entropy' })
-      .sharpen(1.1)
-      .webp({ quality: 90 })
+    const thumb = await sharp(buffer)
+      .resize(AVATAR_THUMB_SIZE, AVATAR_THUMB_SIZE, { fit: 'cover', position: 'entropy' })
+      .webp({ quality: 80 })
       .toBuffer();
 
-    const path = `${userId}/profile.webp`;
-    const { error } = await this.supabase.adminClient.storage
-      .from('avatars')
-      .upload(path, processed, { contentType: 'image/webp', upsert: true });
-    if (error) throw error;
+    return { base64: `data:image/webp;base64,${thumb.toString('base64')}` };
+  }
 
-    const { data } = this.supabase.adminClient.storage.from('avatars').getPublicUrl(path);
-    return { url: data.publicUrl };
+  // Fetches a remote image URL server-side (avoids browser CORS) and returns
+  // a 256×256 base64 data URI.  Used for LinkedIn profile photo imports.
+  async avatarBase64FromUrl(imageUrl: string): Promise<{ base64: string }> {
+    let buffer: Buffer;
+    try {
+      const res = await fetch(imageUrl);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      buffer = Buffer.from(await res.arrayBuffer());
+    } catch (err) {
+      this.logger.warn(`avatarBase64FromUrl fetch failed: ${String(err)}`);
+      throw new BadRequestException('FETCH_FAILED');
+    }
+
+    if (buffer.length > MAX_IMAGE_SIZE) {
+      throw new BadRequestException('FILE_TOO_LARGE');
+    }
+
+    const thumb = await sharp(buffer)
+      .resize(AVATAR_THUMB_SIZE, AVATAR_THUMB_SIZE, { fit: 'cover', position: 'entropy' })
+      .webp({ quality: 80 })
+      .toBuffer();
+
+    return { base64: `data:image/webp;base64,${thumb.toString('base64')}` };
   }
 
   async uploadArticleImage(

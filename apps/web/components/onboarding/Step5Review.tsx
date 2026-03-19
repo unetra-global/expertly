@@ -105,6 +105,7 @@ export function Step5Review({ onBack }: Props) {
         firstName: formData.firstName,
         lastName: formData.lastName,
         profilePhotoUrl: formData.profilePhotoUrl || undefined,
+        profilePhotoBase64: formData.profilePhotoBase64 || undefined,
         designation: formData.designation || undefined,
         headline: formData.headline || undefined,
         bio: formData.bio || undefined,
@@ -200,9 +201,9 @@ export function Step5Review({ onBack }: Props) {
       <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-6 sm:p-8">
         <h3 className="text-xs font-bold uppercase tracking-widest text-brand-text-muted mb-4">Profile</h3>
         <div className="flex items-start gap-4">
-          {formData.profilePhotoUrl ? (
+          {(formData.profilePhotoBase64 || formData.profilePhotoUrl) ? (
             <img
-              src={formData.profilePhotoUrl}
+              src={formData.profilePhotoBase64 || formData.profilePhotoUrl}
               alt=""
               className="w-14 h-14 rounded-xl object-cover border border-gray-100 shrink-0"
             />

@@ -327,7 +327,7 @@ export class OpsService {
       .from('applications')
       .select(
         'id, status, user_id, first_name, last_name, designation, headline, bio, ' +
-          'linkedin_url, profile_photo_url, firm_name, firm_size, website_url, region, country, state, ' +
+          'linkedin_url, profile_photo_url, profile_photo_base64, firm_name, firm_size, website_url, region, country, state, ' +
           'phone_extension, phone, contact_email, city, ' +
           'years_of_experience, consultation_fee_min_usd, consultation_fee_max_usd, qualifications, ' +
           'credentials, work_experience, education, primary_service_id, ' +
@@ -397,6 +397,7 @@ export class OpsService {
         bio: a.bio,
         linkedin_url: a.linkedin_url,
         profile_photo_url: a.profile_photo_url,
+        profile_photo_base64: a.profile_photo_base64,
         firm_name: a.firm_name,
         firm_size: a.firm_size,
         website: a.website_url,

@@ -170,7 +170,7 @@ type ToastState = { message: string; type: 'success' | 'error' } | null;
 export function Step1Identity({ onNext }: Props) {
   const { formData, setStep1, applyLinkedInPrefill } = useOnboardingStore();
 
-  const [photoPreview, setPhotoPreview] = useState<string>(formData.profilePhotoUrl);
+  const [photoPreview, setPhotoPreview] = useState<string>(formData.profilePhotoBase64);
   const [photoUploading, setPhotoUploading] = useState(false);
   const [linkedinLoading, setLinkedinLoading] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
@@ -231,7 +231,7 @@ export function Step1Identity({ onNext }: Props) {
       headline:       formData.headline   || f.headline,
       bio:            formData.bio        || f.bio,
     }));
-    if (formData.profilePhotoUrl) setPhotoPreview(formData.profilePhotoUrl);
+    if (formData.profilePhotoBase64) setPhotoPreview(formData.profilePhotoBase64);
   }, [formData]);
 
   // Auto-dismiss toast
@@ -273,6 +273,7 @@ export function Step1Identity({ onNext }: Props) {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Show a local preview immediately while uploading
     const objectUrl = URL.createObjectURL(file);
     setPhotoPreview(objectUrl);
 
@@ -280,13 +281,13 @@ export function Step1Identity({ onNext }: Props) {
     try {
       const fd = new FormData();
       fd.append('file', file);
-      const result = await apiClient.upload<{ url: string }>('/upload/avatar', fd);
-      if (result?.url) {
-        setStep1({ profilePhotoUrl: result.url });
-        setPhotoPreview(result.url);
+      const result = await apiClient.upload<{ base64: string }>('/upload/avatar', fd);
+      if (result?.base64) {
+        setStep1({ profilePhotoBase64: result.base64 });
+        setPhotoPreview(result.base64);
       }
     } catch {
-      setPhotoPreview(formData.profilePhotoUrl);
+      setPhotoPreview(formData.profilePhotoBase64);
       setToast({ message: 'Photo upload failed. Please try again.', type: 'error' });
     } finally {
       setPhotoUploading(false);
@@ -316,7 +317,23 @@ export function Step1Identity({ onNext }: Props) {
       const data: any = await res.json();
       // Response is always an array — take first element
       const raw = Array.isArray(data) ? data[0] : data;
-      applyLinkedInPrefill(parseLinkedInResponse(raw, url));
+      const prefill = parseLinkedInResponse(raw, url);
+      applyLinkedInPrefill(prefill);
+
+      // Convert the LinkedIn photo URL → base64 via backend (avoids CORS)
+      if (prefill.profilePhotoUrl) {
+        try {
+          const b64 = await apiClient.post<{ base64: string }>('/upload/avatar-from-url', { url: prefill.profilePhotoUrl });
+          if (b64?.base64) {
+            // Store base64 and use it as the photo preview
+            setStep1({ profilePhotoBase64: b64.base64 });
+            setPhotoPreview(b64.base64);
+          }
+        } catch {
+          // Non-fatal — photo preview still shows via URL; base64 just won't be stored
+        }
+      }
+
       setToast({ message: 'LinkedIn profile imported! Review and edit your details below.', type: 'success' });
     } catch {
       setToast({ message: 'Import failed. Please check the URL and try again.', type: 'error' });
@@ -347,7 +364,7 @@ export function Step1Identity({ onNext }: Props) {
     if (!fields.designation.trim()) errs.designation = 'Designation is required';
     if (!fields.headline.trim()) errs.headline = 'Headline is required';
     if (!fields.bio.trim()) errs.bio = 'Bio is required';
-    if (!formData.profilePhotoUrl) errs.photo = 'Profile photo is required';
+    if (!formData.profilePhotoBase64) errs.photo = 'Profile photo is required';
 
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
