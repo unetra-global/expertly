@@ -9,6 +9,15 @@ import { apiClient, ApiError } from '@/lib/apiClient';
 interface ServiceItem { id: string; name: string; categoryId?: string; }
 interface CategoryItem { id: string; name: string; }
 
+// "2025-10" → "Oct 2025"
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function fmtDate(d: string): string {
+  if (!d) return '';
+  const [year, mon] = d.split('-');
+  const m = MONTHS[(Number(mon) || 1) - 1];
+  return m ? `${m} ${year}` : (year ?? '');
+}
+
 const MOTIVATION_QUESTIONS = [
   { field: 'motivationWhy' as const,        label: 'Why do you want to join Expertly?' },
   { field: 'motivationEngagement' as const, label: 'What types of clients or engagements are you looking for?' },
@@ -283,7 +292,7 @@ export function Step5Review({ onBack }: Props) {
                     </p>
                     {(exp.startDate || exp.endDate) && (
                       <p className="text-xs text-brand-text-muted mt-0.5">
-                        {exp.startDate || '—'} → {exp.isCurrent ? 'Present' : (exp.endDate || '—')}
+                        {fmtDate(exp.startDate) || '—'} → {exp.isCurrent ? 'Present' : (fmtDate(exp.endDate) || '—')}
                       </p>
                     )}
                   </div>
@@ -447,7 +456,8 @@ export function Step5Review({ onBack }: Props) {
         </div>
       </div>
 
-      {/* ── Declaration & Consent ────────────────────────────── */}
+      {/* ── Declaration & Consent — hidden once submitted ────── */}
+      {!applicationId && (
       <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-6 sm:p-8">
         <h2 className="text-base font-bold text-brand-navy mb-1">Declaration &amp; Consent</h2>
         <p className="text-xs text-brand-text-muted mb-5">All three consents are required to submit your application.</p>
@@ -504,33 +514,55 @@ export function Step5Review({ onBack }: Props) {
 
         </div>
       </div>
+      )}
+
+      {/* Submitted banner — shown instead of consent + submit when already submitted */}
+      {applicationId && (
+        <div className="bg-green-50 border border-green-200 rounded-2xl p-6 flex items-start gap-4">
+          <div className="w-10 h-10 rounded-xl bg-green-100 border border-green-200 flex items-center justify-center shrink-0">
+            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-sm font-bold text-green-800">Application submitted</p>
+            <p className="text-xs text-green-700 mt-1">Your application is under review. We&apos;ll be in touch via email.</p>
+          </div>
+        </div>
+      )}
 
       {/* Navigation */}
       <div className="flex items-center justify-between">
-        <button type="button" onClick={onBack} className="btn-outline px-6 py-3">
-          <svg className="mr-2 h-4 w-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Back
-        </button>
-        <button
-          type="button"
-          onClick={() => void handleSubmit()}
-          disabled={isSubmitting}
-          className="btn-primary px-8 py-3 text-base disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          {isSubmitting ? (
-            <>
-              <svg className="animate-spin h-4 w-4 mr-2 inline" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-              Submitting…
-            </>
-          ) : (
-            'Submit Application'
-          )}
-        </button>
+        {!applicationId ? (
+          <button type="button" onClick={onBack} className="btn-outline px-6 py-3">
+            <svg className="mr-2 h-4 w-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back
+          </button>
+        ) : (
+          <div />
+        )}
+        {!applicationId && (
+          <button
+            type="button"
+            onClick={() => void handleSubmit()}
+            disabled={isSubmitting}
+            className="btn-primary px-8 py-3 text-base disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {isSubmitting ? (
+              <>
+                <svg className="animate-spin h-4 w-4 mr-2 inline" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Submitting…
+              </>
+            ) : (
+              'Submit Application'
+            )}
+          </button>
+        )}
       </div>
     </div>
   );

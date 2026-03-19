@@ -218,6 +218,7 @@ export function Step3Services({ onBack, onNext }: Props) {
     if (!pref1) errs.primaryService = 'Please select your 1st preference service';
     if (cleanKeyEngagements.length === 0) errs.keyEngagements = 'Add at least one reason why you are the best for this service area';
     if (feeMin === '') errs.feeMin = 'Minimum consultation rate is required';
+    if (feeMin !== '' && feeMax !== '' && (feeMax as number) <= (feeMin as number)) errs.feeMax = 'Maximum must be greater than minimum';
     if (availability.days.length === 0) errs.availabilityDays = 'Select at least one available day';
     if (!availability.timezone) errs.availabilityTimezone = 'Please select your timezone';
 
@@ -474,10 +475,11 @@ export function Step3Services({ onBack, onNext }: Props) {
               type="number"
               min={0}
               value={feeMax}
-              onChange={(e) => setFeeMax(e.target.value === '' ? '' : Number(e.target.value))}
+              onChange={(e) => { setFeeMax(e.target.value === '' ? '' : Number(e.target.value)); setErrors((err) => ({ ...err, feeMax: '' })); }}
               placeholder="e.g. 2000"
-              className="input-base w-full"
+              className={`input-base w-full ${errors.feeMax ? 'border-red-300' : ''}`}
             />
+            {errors.feeMax && <p className="mt-1 text-xs text-red-500">{errors.feeMax}</p>}
           </div>
         </div>
       </div>
