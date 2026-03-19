@@ -27,6 +27,11 @@ export class QueryMembersDto {
   @IsUUID()
   serviceId?: string;
 
+  /** Comma-separated service UUIDs for multi-select filtering */
+  @IsOptional()
+  @IsString()
+  serviceIds?: string;
+
   @IsOptional()
   @IsString()
   memberTier?: string;

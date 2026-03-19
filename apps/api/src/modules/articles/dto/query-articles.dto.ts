@@ -27,6 +27,11 @@ export class QueryArticlesDto {
   @IsUUID()
   serviceId?: string;
 
+  /** Comma-separated service UUIDs for multi-select filtering */
+  @IsOptional()
+  @IsString()
+  serviceIds?: string;
+
   @IsOptional()
   @IsString()
   @Matches(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)

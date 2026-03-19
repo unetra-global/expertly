@@ -9,6 +9,8 @@ import { queryKeys } from '@/hooks/queryKeys';
 import { MemberCard } from './MemberCard';
 import { FilterSheet } from '@/components/ui/FilterSheet';
 import { HeroSearchBar } from '@/components/search/HeroSearchBar';
+import { CategoryServiceFilter } from '@/components/ui/CategoryServiceFilter';
+import type { TaxonomyCategory, TaxonomyService } from '@/components/ui/CategoryServiceFilter';
 import type { MemberListItem, PaginatedResponse } from '@/types/api';
 
 const MEMBER_PLACEHOLDERS = [
@@ -48,7 +50,12 @@ export default function MemberDirectory({
   const searchParams = useSearchParams();
   const searchParamsKey = searchParams.toString();
 
-  const [service, setService] = useState(initialFilters.serviceId ?? initialFilters.service ?? '');
+  // Multi-select: set of selected service IDs
+  const initServiceIds = (() => {
+    const raw = initialFilters.serviceIds ?? initialFilters.serviceId ?? '';
+    return new Set(raw ? raw.split(',').filter(Boolean) : []);
+  })();
+  const [selectedServiceIds, setSelectedServiceIds] = useState<Set<string>>(initServiceIds);
   const [country, setCountry] = useState(initialFilters.country ?? '');
   const [search, setSearch] = useState(initialFilters.q ?? '');
   const [debouncedSearch, setDebouncedSearch] = useState(initialFilters.q ?? '');
@@ -58,7 +65,13 @@ export default function MemberDirectory({
   const [page, setPage] = useState(1);
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  const { data: taxonomyData } = useQuery<Array<{ id: string; name: string; slug?: string; category?: { name: string } }>>({
+  const { data: categoriesData } = useQuery<TaxonomyCategory[]>({
+    queryKey: queryKeys.taxonomy.categories(),
+    queryFn: () => apiClient.get('/taxonomy/categories'),
+    staleTime: 3600 * 1000,
+  });
+
+  const { data: servicesData } = useQuery<TaxonomyService[]>({
     queryKey: queryKeys.taxonomy.services(),
     queryFn: () => apiClient.get('/taxonomy/services'),
     staleTime: 3600 * 1000,
@@ -72,28 +85,11 @@ export default function MemberDirectory({
     return () => clearTimeout(timer);
   }, [search]);
 
-  useEffect(() => {
-    if (!service || !taxonomyData?.length) return;
-    const existsById = taxonomyData.some((s) => s.id === service);
-    if (existsById) return;
-    const normalized = service.trim().toLowerCase();
-    const mapped = taxonomyData.find((s) =>
-      s.name.trim().toLowerCase() === normalized ||
-      s.slug?.trim().toLowerCase() === normalized,
-    );
-    if (mapped) {
-      setService(mapped.id);
-    }
-  }, [service, taxonomyData]);
+  const serviceIdsString = Array.from(selectedServiceIds).sort().join(',');
 
-  const hasServiceById = !!service && (taxonomyData ?? []).some((s) => s.id === service);
-  const resolvedServiceId = hasServiceById ? service : '';
-  const isWaitingForTaxonomy = !!service && !hasServiceById && taxonomyData === undefined;
-  const isResolvingLegacyService = !!service && !hasServiceById && !!taxonomyData?.length;
-
-  const syncUrl = useCallback((s: string, c: string, q: string, my: string, mh: number, so: string) => {
+  const syncUrl = useCallback((svcs: string, c: string, q: string, my: string, mh: number, so: string) => {
     const params = new URLSearchParams();
-    if (s) params.set('serviceId', s);
+    if (svcs) params.set('serviceIds', svcs);
     if (c) params.set('country', c);
     if (q) params.set('q', q);
     if (my) params.set('minYears', my);
@@ -105,22 +101,12 @@ export default function MemberDirectory({
   }, [router, searchParamsKey]);
 
   useEffect(() => {
-    if (isWaitingForTaxonomy || isResolvingLegacyService) return;
-    syncUrl(resolvedServiceId, country, debouncedSearch, minYears, maxHourly, sort);
-  }, [
-    resolvedServiceId,
-    isWaitingForTaxonomy,
-    isResolvingLegacyService,
-    country,
-    debouncedSearch,
-    minYears,
-    maxHourly,
-    sort,
-    syncUrl,
-  ]);
+    syncUrl(serviceIdsString, country, debouncedSearch, minYears, maxHourly, sort);
+  }, [serviceIdsString, country, debouncedSearch, minYears, maxHourly, sort, syncUrl]);
 
   useEffect(() => {
-    setService(searchParams.get('serviceId') ?? searchParams.get('service') ?? '');
+    const raw = searchParams.get('serviceIds') ?? searchParams.get('serviceId') ?? '';
+    setSelectedServiceIds(new Set(raw ? raw.split(',').filter(Boolean) : []));
     setCountry(searchParams.get('country') ?? '');
     setSearch(searchParams.get('q') ?? '');
     setMinYears(searchParams.get('minYears') ?? '');
@@ -130,7 +116,7 @@ export default function MemberDirectory({
   }, [searchParamsKey, searchParams]);
 
   const activeFilters: Record<string, string> = {
-    ...(resolvedServiceId && { serviceId: resolvedServiceId }),
+    ...(serviceIdsString && { serviceIds: serviceIdsString }),
     ...(country && { country }),
     ...(debouncedSearch && { search: debouncedSearch }),
     ...(minYears && { minYearsExperience: minYears }),
@@ -152,11 +138,43 @@ export default function MemberDirectory({
   const members = data?.data ?? [];
   const meta = data?.meta;
   const totalResults = meta?.total ?? members.length;
-  const hasFilters = !!(resolvedServiceId || country || debouncedSearch || minYears || maxHourly < MAX_HOURLY_MAX);
-  const activeFilterCount = [resolvedServiceId, country, minYears, maxHourly < MAX_HOURLY_MAX ? 'hourly' : ''].filter(Boolean).length;
+  const hasFilters = !!(serviceIdsString || country || debouncedSearch || minYears || maxHourly < MAX_HOURLY_MAX);
+  const activeFilterCount = [
+    serviceIdsString,
+    country,
+    minYears,
+    maxHourly < MAX_HOURLY_MAX ? 'hourly' : '',
+  ].filter(Boolean).length;
+
+  function toggleCategory(categoryId: string, serviceIds: string[]) {
+    setSelectedServiceIds((prev) => {
+      const next = new Set(prev);
+      const allSelected = serviceIds.every((id) => next.has(id));
+      if (allSelected) {
+        serviceIds.forEach((id) => next.delete(id));
+      } else {
+        serviceIds.forEach((id) => next.add(id));
+      }
+      return next;
+    });
+    setPage(1);
+  }
+
+  function toggleService(serviceId: string) {
+    setSelectedServiceIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(serviceId)) {
+        next.delete(serviceId);
+      } else {
+        next.add(serviceId);
+      }
+      return next;
+    });
+    setPage(1);
+  }
 
   function clearFilters() {
-    setService('');
+    setSelectedServiceIds(new Set());
     setCountry('');
     setSearch('');
     setDebouncedSearch('');
@@ -172,24 +190,16 @@ export default function MemberDirectory({
   // Shared filter controls (used in both sidebar and bottom sheet)
   const filterControls = (
     <>
-      {/* CATEGORY */}
+      {/* CATEGORY + SERVICES (hierarchical) */}
       <div>
-        <p className="text-xs font-bold text-brand-navy uppercase tracking-wider mb-2">Category</p>
-        <div className="space-y-2.5">
-          {(taxonomyData ?? []).map((s) => (
-            <label key={s.id} className="flex items-center gap-3 cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={service === s.id}
-                onChange={() => { setService(service === s.id ? '' : s.id); setPage(1); }}
-                className="h-4 w-4 accent-brand-blue cursor-pointer rounded"
-              />
-              <span className="text-sm text-brand-text group-hover:text-brand-navy transition-colors">
-                {s.name}
-              </span>
-            </label>
-          ))}
-        </div>
+        <p className="text-xs font-bold text-brand-navy uppercase tracking-wider mb-3">Category</p>
+        <CategoryServiceFilter
+          categories={categoriesData ?? []}
+          services={servicesData ?? []}
+          selectedServiceIds={selectedServiceIds}
+          onToggleCategory={toggleCategory}
+          onToggleService={toggleService}
+        />
       </div>
 
       {/* COUNTRY (mobile sheet only shows this here) */}

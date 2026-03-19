@@ -94,7 +94,7 @@ export class ArticlesService {
       ? this.cache.buildKey(
         'articles',
         'list',
-        `p${page}l${limit}${dto.categoryId ?? ''}${dto.serviceId ?? ''}${dto.q ?? ''}${dto.sort ?? ''}${dto.minReadTime ?? ''}${dto.maxReadTime ?? ''}`,
+        `p${page}l${limit}${dto.categoryId ?? ''}${dto.serviceId ?? ''}${dto.serviceIds ?? ''}${dto.q ?? ''}${dto.sort ?? ''}${dto.minReadTime ?? ''}${dto.maxReadTime ?? ''}`,
       )
       : null;
 
@@ -122,7 +122,12 @@ export class ArticlesService {
     if (dto.categoryId) {
       query = query.eq('category_id', dto.categoryId);
     }
-    if (dto.serviceId) {
+    if (dto.serviceIds) {
+      const ids = dto.serviceIds.split(',').map((id) => id.trim()).filter(Boolean);
+      if (ids.length > 0) {
+        query = query.in('service_id', ids);
+      }
+    } else if (dto.serviceId) {
       query = query.eq('service_id', dto.serviceId);
     }
     if (dto.memberId) {

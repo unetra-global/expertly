@@ -8,6 +8,8 @@ import { apiClient } from '@/lib/apiClient';
 import { queryKeys } from '@/hooks/queryKeys';
 import { FilterSheet } from '@/components/ui/FilterSheet';
 import { HeroSearchBar } from '@/components/search/HeroSearchBar';
+import { CategoryServiceFilter } from '@/components/ui/CategoryServiceFilter';
+import type { TaxonomyCategory, TaxonomyService } from '@/components/ui/CategoryServiceFilter';
 import type { ArticleListItem, PaginatedResponse } from '@/types/api';
 
 const ARTICLE_PLACEHOLDERS = [
@@ -131,7 +133,12 @@ export default function ArticleList({
   const searchParams = useSearchParams();
   const searchParamsKey = searchParams.toString();
 
-  const [serviceId, setServiceId] = useState(initialServiceId);
+  // Multi-select: set of selected service IDs
+  const initServiceIds = (() => {
+    const raw = initialServiceId ?? '';
+    return new Set(raw ? raw.split(',').filter(Boolean) : []);
+  })();
+  const [selectedServiceIds, setSelectedServiceIds] = useState<Set<string>>(initServiceIds);
   const [readTime, setReadTime] = useState('');
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -139,7 +146,13 @@ export default function ArticleList({
   const [page, setPage] = useState(1);
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  const { data: servicesData } = useQuery<Array<{ id: string; name: string; slug?: string }>>({
+  const { data: categoriesData } = useQuery<TaxonomyCategory[]>({
+    queryKey: queryKeys.taxonomy.categories(),
+    queryFn: () => apiClient.get('/taxonomy/categories'),
+    staleTime: 3600 * 1000,
+  });
+
+  const { data: servicesData } = useQuery<TaxonomyService[]>({
     queryKey: queryKeys.taxonomy.services(),
     queryFn: () => apiClient.get('/taxonomy/services'),
     staleTime: 3600 * 1000,
@@ -150,28 +163,11 @@ export default function ArticleList({
     return () => clearTimeout(timer);
   }, [search]);
 
-  useEffect(() => {
-    if (!serviceId || !servicesData?.length) return;
-    const existsById = servicesData.some((s) => s.id === serviceId);
-    if (existsById) return;
-    const normalized = serviceId.trim().toLowerCase();
-    const mapped = servicesData.find((s) =>
-      s.name.trim().toLowerCase() === normalized ||
-      s.slug?.trim().toLowerCase() === normalized,
-    );
-    if (mapped) {
-      setServiceId(mapped.id);
-    }
-  }, [serviceId, servicesData]);
+  const serviceIdsString = Array.from(selectedServiceIds).sort().join(',');
 
-  const resolvedServiceId =
-    serviceId && (servicesData ?? []).some((s) => s.id === serviceId) ? serviceId : '';
-  const isWaitingForServiceTaxonomy = !!serviceId && !resolvedServiceId && servicesData === undefined;
-  const isResolvingLegacyService = !!serviceId && !resolvedServiceId && !!servicesData?.length;
-
-  const syncUrl = useCallback((svcId: string, q: string, rt: string, so: string) => {
+  const syncUrl = useCallback((svcs: string, q: string, rt: string, so: string) => {
     const params = new URLSearchParams();
-    if (svcId) params.set('serviceId', svcId);
+    if (svcs) params.set('serviceIds', svcs);
     if (q) params.set('q', q);
     if (rt) params.set('readTime', rt);
     if (so) params.set('sort', so);
@@ -181,22 +177,12 @@ export default function ArticleList({
   }, [router, searchParamsKey]);
 
   useEffect(() => {
-    if (isWaitingForServiceTaxonomy || isResolvingLegacyService) {
-      return;
-    }
-    syncUrl(resolvedServiceId, debouncedSearch, readTime, sort);
-  }, [
-    resolvedServiceId,
-    isWaitingForServiceTaxonomy,
-    isResolvingLegacyService,
-    debouncedSearch,
-    readTime,
-    sort,
-    syncUrl,
-  ]);
+    syncUrl(serviceIdsString, debouncedSearch, readTime, sort);
+  }, [serviceIdsString, debouncedSearch, readTime, sort, syncUrl]);
 
   useEffect(() => {
-    setServiceId(searchParams.get('serviceId') ?? searchParams.get('service') ?? '');
+    const raw = searchParams.get('serviceIds') ?? searchParams.get('serviceId') ?? '';
+    setSelectedServiceIds(new Set(raw ? raw.split(',').filter(Boolean) : []));
     setSearch(searchParams.get('q') ?? '');
     setReadTime(searchParams.get('readTime') ?? '');
     setSort(searchParams.get('sort') ?? '');
@@ -212,7 +198,7 @@ export default function ArticleList({
     status: 'published',
     limit: '9',
     page: String(page),
-    ...(resolvedServiceId && { serviceId: resolvedServiceId }),
+    ...(serviceIdsString && { serviceIds: serviceIdsString }),
     ...(debouncedSearch && { q: debouncedSearch }),
     ...(sort && { sort }),
     ...readTimeFilter,
@@ -230,12 +216,38 @@ export default function ArticleList({
   const articles = data?.data ?? [];
   const meta = data?.meta;
   const totalResults = meta?.total ?? articles.length;
-  const selectedServiceName = (servicesData ?? []).find((service) => service.id === resolvedServiceId)?.name ?? '';
-  const hasFilters = !!(resolvedServiceId || debouncedSearch || readTime);
-  const activeFilterCount = [resolvedServiceId, readTime].filter(Boolean).length;
+  const hasFilters = !!(serviceIdsString || debouncedSearch || readTime);
+  const activeFilterCount = [serviceIdsString, readTime].filter(Boolean).length;
+
+  function toggleCategory(categoryId: string, serviceIds: string[]) {
+    setSelectedServiceIds((prev) => {
+      const next = new Set(prev);
+      const allSelected = serviceIds.every((id) => next.has(id));
+      if (allSelected) {
+        serviceIds.forEach((id) => next.delete(id));
+      } else {
+        serviceIds.forEach((id) => next.add(id));
+      }
+      return next;
+    });
+    setPage(1);
+  }
+
+  function toggleService(serviceId: string) {
+    setSelectedServiceIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(serviceId)) {
+        next.delete(serviceId);
+      } else {
+        next.add(serviceId);
+      }
+      return next;
+    });
+    setPage(1);
+  }
 
   function clearFilters() {
-    setServiceId('');
+    setSelectedServiceIds(new Set());
     setSearch('');
     setReadTime('');
     setSort('');
@@ -244,21 +256,16 @@ export default function ArticleList({
 
   const filterControls = (
     <>
-      {/* SERVICE */}
+      {/* CATEGORY + SERVICES (hierarchical) */}
       <div>
-        <label className="block text-xs font-bold text-brand-navy uppercase tracking-wider mb-2">
-          Service
-        </label>
-        <select
-          value={resolvedServiceId}
-          onChange={(e) => { setServiceId(e.target.value); setPage(1); }}
-          className="w-full px-3 py-2.5 text-sm text-brand-text bg-brand-surface border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue appearance-none cursor-pointer"
-        >
-          <option value="">All Services</option>
-          {(servicesData ?? []).map((service) => (
-            <option key={service.id} value={service.id}>{service.name}</option>
-          ))}
-        </select>
+        <p className="text-xs font-bold text-brand-navy uppercase tracking-wider mb-3">Category</p>
+        <CategoryServiceFilter
+          categories={categoriesData ?? []}
+          services={servicesData ?? []}
+          selectedServiceIds={selectedServiceIds}
+          onToggleCategory={toggleCategory}
+          onToggleService={toggleService}
+        />
       </div>
 
       {/* READING TIME */}
@@ -356,7 +363,6 @@ export default function ArticleList({
                     Showing{' '}
                     <span className="font-semibold text-brand-navy">{totalResults.toLocaleString()}</span>
                     {' '}article{totalResults !== 1 ? 's' : ''}
-                    {selectedServiceName && ` for ${selectedServiceName}`}
                   </>
                 )}
               </p>
@@ -418,7 +424,7 @@ export default function ArticleList({
                   <div className="rounded-2xl bg-white border border-gray-100 p-12 text-center">
                     <p className="text-base font-semibold text-brand-navy mb-1">No articles yet</p>
                     <p className="text-sm text-brand-text-muted">
-                      {selectedServiceName ? `No articles for ${selectedServiceName} yet.` : 'Check back soon for expert insights.'}
+                      {'Check back soon for expert insights.'}
                     </p>
                     {hasFilters && (
                       <button onClick={clearFilters} className="mt-4 text-sm font-medium text-brand-blue hover:underline">

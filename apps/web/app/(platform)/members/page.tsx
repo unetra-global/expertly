@@ -54,9 +54,12 @@ export default async function MembersPage({ searchParams }: PageProps) {
   } = await supabase.auth.getUser();
 
   const sp = searchParams as Record<string, string>;
-  const serviceId = isUuid(sp.serviceId) ? sp.serviceId : undefined;
+  // Support both legacy single serviceId and new multi-select serviceIds
+  const serviceIds = sp.serviceIds
+    ? sp.serviceIds.split(',').filter(isUuid).join(',')
+    : isUuid(sp.serviceId) ? sp.serviceId : undefined;
   const filters: Record<string, string> = {
-    ...(serviceId && { serviceId }),
+    ...(serviceIds && { serviceIds }),
     ...(sp.country && { country: sp.country }),
     ...((sp.search || sp.q) && { search: sp.search ?? sp.q }),
     ...(sp.minYears && { minYearsExperience: sp.minYears }),

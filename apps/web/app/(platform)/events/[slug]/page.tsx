@@ -102,7 +102,7 @@ export default async function EventSlugPage({ params }: PageProps) {
 
       {/* Hero band */}
       <div className="bg-brand-navy">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
           {/* Breadcrumb */}
           <nav className="flex items-center gap-2 text-xs text-white/40 mb-4" aria-label="Breadcrumb">
             <Link href="/" className="hover:text-white/70 transition-colors">Home</Link>
@@ -146,7 +146,7 @@ export default async function EventSlugPage({ params }: PageProps) {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="flex flex-col lg:flex-row gap-8">
 
           {/* Main content */}

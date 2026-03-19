@@ -83,6 +83,7 @@ function buildListCacheKey(cache: CacheService, dto: QueryMembersDto): string {
     dto.search ? `s${dto.search}` : '',
     dto.country ? `c${dto.country}` : '',
     dto.serviceId ? `svc${dto.serviceId}` : '',
+    dto.serviceIds ? `svcs${dto.serviceIds}` : '',
     dto.memberTier ? `t${dto.memberTier}` : '',
     dto.minYearsExperience !== undefined ? `y${dto.minYearsExperience}` : '',
     dto.maxHourlyRate !== undefined ? `hr${dto.maxHourlyRate}` : '',
@@ -216,7 +217,12 @@ export class MembersService {
             query = query.or(countryFilters);
           }
         }
-        if (dto.serviceId) {
+        if (dto.serviceIds) {
+          const ids = dto.serviceIds.split(',').map((id) => id.trim()).filter(Boolean);
+          if (ids.length > 0) {
+            query = query.in('primary_service_id', ids);
+          }
+        } else if (dto.serviceId) {
           query = query.eq('primary_service_id', dto.serviceId);
         }
         if (dto.memberTier) {

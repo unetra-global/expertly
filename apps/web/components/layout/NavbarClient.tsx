@@ -163,7 +163,9 @@ export function NavbarClient({
                           <Link href="/member/articles/new" className="block px-4 py-2 text-sm font-medium text-brand-blue hover:bg-brand-blue-subtle" onClick={() => setUserMenuOpen(false)}>✏ Write Article</Link>
                         </>
                       )}
-                      <Link href="/member/settings" className="block px-4 py-2 text-sm text-brand-text hover:bg-brand-surface" onClick={() => setUserMenuOpen(false)}>Settings</Link>
+                      {(isMember || isOps) && (
+                        <Link href="/member/settings" className="block px-4 py-2 text-sm text-brand-text hover:bg-brand-surface" onClick={() => setUserMenuOpen(false)}>Settings</Link>
+                      )}
                       <div className="border-t border-gray-100 mt-1 pt-1">
                         <button
                           onClick={() => { setUserMenuOpen(false); void signOut(); }}

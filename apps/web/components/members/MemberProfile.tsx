@@ -472,7 +472,7 @@ export function MemberProfile({ member, isAuthenticated }: MemberProfileProps) {
   return (
     <>
       <div className="bg-gray-50">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
           {/* ── Profile header card ──────────────────────────── */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-6 mb-6">
