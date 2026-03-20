@@ -31,10 +31,6 @@ export class Step1Dto {
 
   @IsOptional()
   @IsString()
-  profilePhotoBase64?: string;
-
-  @IsOptional()
-  @IsString()
   region?: string;
 
   @IsOptional()

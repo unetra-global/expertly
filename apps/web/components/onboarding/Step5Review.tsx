@@ -105,7 +105,6 @@ export function Step5Review({ onBack }: Props) {
         firstName: formData.firstName,
         lastName: formData.lastName,
         profilePhotoUrl: formData.profilePhotoUrl || undefined,
-        profilePhotoBase64: formData.profilePhotoBase64 || undefined,
         designation: formData.designation || undefined,
         headline: formData.headline || undefined,
         bio: formData.bio || undefined,

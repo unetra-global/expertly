@@ -40,12 +40,13 @@ export class UploadController {
   // so the photo is processed server-side (avoids browser CORS issues).
   @Post('avatar-from-url')
   async avatarBase64FromUrl(
+    @CurrentUser() user: AuthUser,
     @Body('url') url: string,
   ): Promise<{ base64: string }> {
     if (!url || !/^https?:\/\//i.test(url)) {
       throw new BadRequestException('A valid image URL is required');
     }
-    return this.upload.avatarBase64FromUrl(url);
+    return this.upload.avatarBase64FromUrl(user.dbId, url);
   }
 
   @Post('article-image')

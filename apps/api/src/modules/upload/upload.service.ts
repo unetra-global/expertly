@@ -20,10 +20,10 @@ export class UploadService {
 
   constructor(private readonly supabase: SupabaseService) {}
 
-  // Converts uploaded file to a 256×256 base64 data URI.
-  // No CDN upload — profile photos live entirely in the database.
+  // Converts uploaded file to a 256×256 base64 data URI and persists it
+  // to the users table.  No CDN upload — profile photos live in the DB.
   async uploadAvatar(
-    _userId: string,
+    userId: string,
     buffer: Buffer,
     _originalName: string,
   ): Promise<{ base64: string }> {
@@ -40,12 +40,14 @@ export class UploadService {
       .webp({ quality: 80 })
       .toBuffer();
 
-    return { base64: `data:image/webp;base64,${thumb.toString('base64')}` };
+    const base64 = `data:image/webp;base64,${thumb.toString('base64')}`;
+    await this.saveAvatarToUser(userId, base64);
+    return { base64 };
   }
 
-  // Fetches a remote image URL server-side (avoids browser CORS) and returns
-  // a 256×256 base64 data URI.  Used for LinkedIn profile photo imports.
-  async avatarBase64FromUrl(imageUrl: string): Promise<{ base64: string }> {
+  // Fetches a remote image URL server-side (avoids browser CORS), converts to
+  // a 256×256 base64 data URI and persists it to users.  Used for LinkedIn imports.
+  async avatarBase64FromUrl(userId: string, imageUrl: string): Promise<{ base64: string }> {
     let buffer: Buffer;
     try {
       const res = await fetch(imageUrl);
@@ -65,7 +67,20 @@ export class UploadService {
       .webp({ quality: 80 })
       .toBuffer();
 
-    return { base64: `data:image/webp;base64,${thumb.toString('base64')}` };
+    const base64 = `data:image/webp;base64,${thumb.toString('base64')}`;
+    await this.saveAvatarToUser(userId, base64);
+    return { base64 };
+  }
+
+  private async saveAvatarToUser(userId: string, base64: string): Promise<void> {
+    const { error } = await this.supabase.adminClient
+      .from('users')
+      .update({ profile_photo_base64: base64 })
+      .eq('id', userId);
+    if (error) {
+      this.logger.error(`saveAvatarToUser failed for ${userId}: ${error.message}`);
+      throw error;
+    }
   }
 
   async uploadArticleImage(

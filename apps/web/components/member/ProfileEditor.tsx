@@ -164,7 +164,7 @@ export default function ProfileEditor({ profile }: Props) {
 
   // ── Photo Section ────────────────────────────────────────────────────────────
 
-  const [photoUrl, setPhotoUrl] = useState(profile.profilePhotoBase64 ?? profile.profilePhotoUrl ?? '');
+  const [photoUrl, setPhotoUrl] = useState(profile.users?.profilePhotoBase64 ?? profile.profilePhotoUrl ?? '');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
@@ -176,7 +176,6 @@ export default function ProfileEditor({ profile }: Props) {
       const result = await apiClient.upload<{ base64: string }>('/upload/avatar', form);
       if (result?.base64) {
         setPhotoUrl(result.base64);
-        await apiClient.patch('/members/me', { profile_photo_base64: result.base64 });
         void queryClient.invalidateQueries({ queryKey: queryKeys.members.me() });
         showToast('Profile photo updated.', 'success');
       }

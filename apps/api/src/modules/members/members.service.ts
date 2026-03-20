@@ -41,14 +41,14 @@ const EMBEDDABLE_FIELDS: (keyof UpdateMemberDto)[] = [
 
 // Teaser fields for guests (no auth)
 const TEASER_FIELDS =
-  'id, slug, designation, headline, profile_photo_url, profile_photo_base64, avatar_url, ' +
+  'id, slug, designation, headline, profile_photo_url, avatar_url, ' +
   'city, country, member_tier, is_verified, primary_service_id, ' +
-  'users!user_id(first_name, last_name), ' +
+  'users!user_id(first_name, last_name, profile_photo_base64), ' +
   'services!primary_service_id(id, name, service_categories!category_id(id, name))';
 
 // Full fields for authenticated users
 const FULL_FIELDS =
-  'id, slug, designation, headline, bio, profile_photo_url, profile_photo_base64, avatar_url, ' +
+  'id, slug, designation, headline, bio, profile_photo_url, avatar_url, ' +
   'city, country, member_tier, is_verified, primary_service_id, firm_name, ' +
   'years_of_experience, consultation_fee_min_usd, consultation_fee_max_usd, ' +
   'website, linkedin_url, ' +
@@ -56,12 +56,12 @@ const FULL_FIELDS =
   'availability, engagement, engagements, ' +
   'work_experience, education, credentials, qualifications, testimonials, ' +
   'is_featured, view_count, membership_status, created_at, updated_at, ' +
-  'users!user_id(first_name, last_name, email), ' +
+  'users!user_id(first_name, last_name, email, profile_photo_base64), ' +
   'services!primary_service_id(id, name, service_categories!category_id(id, name))';
 
 // Full fields for /me endpoint (all JSONB, no embedding)
 const ME_FIELDS =
-  'id, user_id, slug, designation, headline, bio, profile_photo_url, profile_photo_base64, avatar_url, ' +
+  'id, user_id, slug, designation, headline, bio, profile_photo_url, avatar_url, ' +
   'city, country, website, linkedin_url, ' +
   'membership_status, member_tier, is_verified, verified_at, is_featured, ' +
   'primary_service_id, years_of_experience, consultation_fee_min_usd, ' +
@@ -71,7 +71,7 @@ const ME_FIELDS =
   're_verification_requested_at, re_verification_reason, ' +
   'pending_service_change, pending_service_change_at, ' +
   'created_at, updated_at, ' +
-  'users!user_id(id, email, first_name, last_name, role), ' +
+  'users!user_id(id, email, first_name, last_name, role, profile_photo_base64), ' +
   'services!primary_service_id(id, name, slug)';
 
 // ─── Helper ───────────────────────────────────────────────────────────────────
