@@ -16,7 +16,7 @@ export default function LatestArticlesSection({
           <div>
             <p className="section-label mb-1">KNOWLEDGE BASE</p>
             <h2 className="text-2xl sm:text-3xl font-bold text-brand-navy">
-              Latest Insights
+              Latest Articles
             </h2>
           </div>
           <Link
@@ -32,7 +32,7 @@ export default function LatestArticlesSection({
 
         {articles.length === 0 ? (
           <div className="rounded-2xl bg-white border border-gray-100 py-12 text-center">
-            <p className="text-sm text-brand-text-muted">No insights published yet.</p>
+            <p className="text-sm text-brand-text-muted">No articles published yet.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

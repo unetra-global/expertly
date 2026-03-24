@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useSignOut } from '@/hooks/useAuth';
 import { GlobalSearchBar } from '@/components/search/GlobalSearchBar';
 
@@ -16,6 +17,7 @@ export function NavbarClient({
   userEmail,
   userAvatarUrl,
 }: NavbarClientProps) {
+  const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -77,15 +79,22 @@ export function NavbarClient({
 
           {/* ── Desktop nav links ─────────────────────────── */}
           <div className="hidden md:flex items-center gap-6">
-            {navLinks.map(({ href, label }) => (
-              <Link
-                key={href}
-                href={href}
-                className="text-sm font-medium text-white/70 hover:text-white transition-colors whitespace-nowrap"
-              >
-                {label}
-              </Link>
-            ))}
+            {navLinks.map(({ href, label }) => {
+              const isActive = pathname.startsWith(href);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`text-sm font-medium transition-colors whitespace-nowrap pb-0.5 ${
+                    isActive
+                      ? 'text-white border-b-2 border-brand-blue'
+                      : 'text-white/70 hover:text-white border-b-2 border-transparent'
+                  }`}
+                >
+                  {label}
+                </Link>
+              );
+            })}
           </div>
 
           {/* ── Desktop search bar ────────────────────────── */}
@@ -279,16 +288,23 @@ export function NavbarClient({
         {/* Nav links */}
         <div className="flex-1 overflow-y-auto px-4 py-6">
           <div className="space-y-1 mb-6">
-            {navLinks.map(({ href, label }) => (
-              <Link
-                key={href}
-                href={href}
-                className="flex items-center py-3 px-3 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 transition-colors"
-                onClick={() => setMobileOpen(false)}
-              >
-                {label}
-              </Link>
-            ))}
+            {navLinks.map(({ href, label }) => {
+              const isActive = pathname.startsWith(href);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`flex items-center py-3 px-3 rounded-xl text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'text-white bg-white/10 border-l-2 border-brand-blue pl-[10px]'
+                      : 'text-white/70 hover:text-white hover:bg-white/10'
+                  }`}
+                  onClick={() => setMobileOpen(false)}
+                >
+                  {label}
+                </Link>
+              );
+            })}
           </div>
 
           {/* CTA */}

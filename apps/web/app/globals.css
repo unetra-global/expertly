@@ -19,6 +19,12 @@
   html {
     scroll-behavior: smooth;
   }
+
+  /* Brand text selection */
+  ::selection {
+    background-color: #2563EB;
+    color: #ffffff;
+  }
 }
 
 @layer components {

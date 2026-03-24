@@ -12,13 +12,14 @@ interface MemberProfileProps {
   isAuthenticated: boolean;
 }
 
-type Tab = 'about' | 'credentials' | 'insights' | 'reviews';
+type Tab = 'about' | 'credentials' | 'articles' | 'reviews' | 'contact';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'about', label: 'About' },
   { id: 'credentials', label: 'Credentials' },
-  { id: 'insights', label: 'Insights' },
+  { id: 'articles', label: 'Articles' },
   { id: 'reviews', label: 'Reviews & Recognition' },
+  { id: 'contact', label: 'Contact Information' },
 ];
 
 // ── Small reusable pieces ────────────────────────────────────────────────────
@@ -51,9 +52,6 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 function AboutTab({ member }: { member: MemberFullProfile }) {
   const hasEngagements = (member.engagements ?? []).length > 0;
-  const contactEmail = member.contactEmail || member.users?.email;
-  const contactPhone = member.contactPhone;
-  const hasContact = !!(contactPhone || contactEmail || member.linkedinUrl || member.website || member.firmWebsite);
 
   return (
     <div className="space-y-8">
@@ -70,88 +68,6 @@ function AboutTab({ member }: { member: MemberFullProfile }) {
               {member.bio}
             </p>
           )}
-        </section>
-      )}
-
-      {/* Contact Options */}
-      {hasContact && (
-        <section>
-          <SectionLabel>
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-            </svg>
-            Contact Options
-          </SectionLabel>
-          <div className="grid sm:grid-cols-2 gap-3">
-            {contactPhone && (
-              <a
-                href={`tel:${contactPhone}`}
-                className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3.5 hover:border-brand-blue/30 hover:bg-brand-blue-subtle transition-colors group"
-              >
-                <div className="w-8 h-8 rounded-lg bg-brand-blue-subtle flex items-center justify-center flex-shrink-0 group-hover:bg-brand-blue/10">
-                  <svg className="h-4 w-4 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                  </svg>
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] text-brand-text-muted font-medium uppercase tracking-wide">Phone</p>
-                  <p className="text-sm font-semibold text-brand-navy truncate">{contactPhone}</p>
-                </div>
-              </a>
-            )}
-            {contactEmail && (
-              <a
-                href={`mailto:${contactEmail}`}
-                className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3.5 hover:border-brand-blue/30 hover:bg-brand-blue-subtle transition-colors group"
-              >
-                <div className="w-8 h-8 rounded-lg bg-brand-blue-subtle flex items-center justify-center flex-shrink-0 group-hover:bg-brand-blue/10">
-                  <svg className="h-4 w-4 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] text-brand-text-muted font-medium uppercase tracking-wide">Email</p>
-                  <p className="text-sm font-semibold text-brand-navy truncate">{contactEmail}</p>
-                </div>
-              </a>
-            )}
-            {member.linkedinUrl && (
-              <a
-                href={member.linkedinUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3.5 hover:border-brand-blue/30 hover:bg-brand-blue-subtle transition-colors group"
-              >
-                <div className="w-8 h-8 rounded-lg bg-brand-blue-subtle flex items-center justify-center flex-shrink-0">
-                  <svg className="h-4 w-4 text-brand-blue" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-                  </svg>
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] text-brand-text-muted font-medium uppercase tracking-wide">LinkedIn</p>
-                  <p className="text-sm font-semibold text-brand-navy truncate">View Profile</p>
-                </div>
-              </a>
-            )}
-            {(member.website || member.firmWebsite) && (
-              <a
-                href={(member.website || member.firmWebsite)!}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3.5 hover:border-brand-blue/30 hover:bg-brand-blue-subtle transition-colors group"
-              >
-                <div className="w-8 h-8 rounded-lg bg-brand-blue-subtle flex items-center justify-center flex-shrink-0">
-                  <svg className="h-4 w-4 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9" />
-                  </svg>
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] text-brand-text-muted font-medium uppercase tracking-wide">Website</p>
-                  <p className="text-sm font-semibold text-brand-navy truncate">{(member.website || member.firmWebsite)!.replace(/^https?:\/\//, '')}</p>
-                </div>
-              </a>
-            )}
-          </div>
         </section>
       )}
 
@@ -227,25 +143,22 @@ function AboutTab({ member }: { member: MemberFullProfile }) {
         </section>
       )}
 
-      {!member.headline && !member.bio && !hasContact && !hasEngagements && (
+      {!member.headline && !member.bio && !hasEngagements && (
         <p className="text-sm text-brand-text-muted py-6 text-center">No information available yet.</p>
       )}
     </div>
   );
 }
 
+
 function CredentialsTab({ member }: { member: MemberFullProfile }) {
   const hasQuals = (member.qualifications ?? []).length > 0;
   const hasEdu = (member.educations ?? []).length > 0;
   const hasExp = (member.workExperiences ?? []).length > 0;
   const hasCreds = (member.credentials ?? []).length > 0;
-  const tierLabel = member.memberTier
-    ? member.memberTier.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
-    : null;
 
   return (
     <div className="space-y-8">
-      {/* Education — shown first */}
       {hasEdu && (
         <section>
           <SectionLabel>
@@ -266,7 +179,6 @@ function CredentialsTab({ member }: { member: MemberFullProfile }) {
         </section>
       )}
 
-      {/* Qualifications */}
       {hasQuals && (
         <section>
           <SectionLabel>
@@ -283,7 +195,6 @@ function CredentialsTab({ member }: { member: MemberFullProfile }) {
         </section>
       )}
 
-      {/* Work experience */}
       {hasExp && (
         <section>
           <SectionLabel>
@@ -316,7 +227,6 @@ function CredentialsTab({ member }: { member: MemberFullProfile }) {
         </section>
       )}
 
-      {/* Verified credentials */}
       {hasCreds && (
         <section>
           <SectionLabel>
@@ -339,9 +249,6 @@ function CredentialsTab({ member }: { member: MemberFullProfile }) {
                     <p className="text-xs text-brand-text-muted">{cred.issuingBody}{cred.issuingBody && cred.year ? ` · ${cred.year}` : cred.year}</p>
                   )}
                 </div>
-                {cred.url && (
-                  <a href={cred.url} target="_blank" rel="noopener noreferrer" className="text-xs text-brand-blue hover:underline flex-shrink-0">View ↗</a>
-                )}
               </div>
             ))}
           </div>
@@ -355,7 +262,92 @@ function CredentialsTab({ member }: { member: MemberFullProfile }) {
   );
 }
 
-function InsightsTab({ member, displayName }: { member: MemberFullProfile; displayName: string }) {
+function ContactTab({ member }: { member: MemberFullProfile }) {
+  const contactEmail = member.contactEmail || member.users?.email;
+  const contactPhone = member.contactPhone;
+  const hasContact = !!(contactPhone || contactEmail || member.linkedinUrl || member.website || member.firmWebsite);
+
+  if (!hasContact) {
+    return <p className="text-sm text-brand-text-muted py-6 text-center">No contact information available.</p>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="grid sm:grid-cols-2 gap-3">
+        {contactEmail && (
+          <a
+            href={`mailto:${contactEmail}`}
+            className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3.5 hover:border-brand-blue/30 hover:bg-brand-blue-subtle transition-colors group"
+          >
+            <div className="w-8 h-8 rounded-lg bg-brand-blue-subtle flex items-center justify-center flex-shrink-0 group-hover:bg-brand-blue/10">
+              <svg className="h-4 w-4 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] text-brand-text-muted font-medium uppercase tracking-wide">Email</p>
+              <p className="text-sm font-semibold text-brand-navy truncate">{contactEmail}</p>
+            </div>
+          </a>
+        )}
+        {contactPhone && (
+          <a
+            href={`tel:${contactPhone}`}
+            className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3.5 hover:border-brand-blue/30 hover:bg-brand-blue-subtle transition-colors group"
+          >
+            <div className="w-8 h-8 rounded-lg bg-brand-blue-subtle flex items-center justify-center flex-shrink-0 group-hover:bg-brand-blue/10">
+              <svg className="h-4 w-4 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+              </svg>
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] text-brand-text-muted font-medium uppercase tracking-wide">Phone</p>
+              <p className="text-sm font-semibold text-brand-navy truncate">{contactPhone}</p>
+            </div>
+          </a>
+        )}
+        {member.linkedinUrl && (
+          <a
+            href={member.linkedinUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3.5 hover:border-brand-blue/30 hover:bg-brand-blue-subtle transition-colors group"
+          >
+            <div className="w-8 h-8 rounded-lg bg-brand-blue-subtle flex items-center justify-center flex-shrink-0">
+              <svg className="h-4 w-4 text-brand-blue" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+              </svg>
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] text-brand-text-muted font-medium uppercase tracking-wide">LinkedIn</p>
+              <p className="text-sm font-semibold text-brand-navy truncate">View Profile</p>
+            </div>
+          </a>
+        )}
+        {(member.website || member.firmWebsite) && (
+          <a
+            href={(member.website || member.firmWebsite)!}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3.5 hover:border-brand-blue/30 hover:bg-brand-blue-subtle transition-colors group"
+          >
+            <div className="w-8 h-8 rounded-lg bg-brand-blue-subtle flex items-center justify-center flex-shrink-0">
+              <svg className="h-4 w-4 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9" />
+              </svg>
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] text-brand-text-muted font-medium uppercase tracking-wide">Website</p>
+              <p className="text-sm font-semibold text-brand-navy truncate">{(member.website || member.firmWebsite)!.replace(/^https?:\/\//, '')}</p>
+            </div>
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ArticlesTab({ member, displayName }: { member: MemberFullProfile; displayName: string }) {
   const { data: response, isLoading } = useQuery({
     queryKey: ['member-articles', member.id],
     queryFn: () =>
@@ -587,7 +579,7 @@ export function MemberProfile({ member, isAuthenticated }: MemberProfileProps) {
             {/* ── Left: tabs + content ──────────────────────── */}
             <div className="flex-1 min-w-0">
               {/* Tab nav */}
-              <div className="bg-white rounded-xl border border-gray-100 shadow-sm mb-4 overflow-x-auto">
+              <div className="bg-white rounded-xl border border-gray-100 shadow-sm mb-4">
                 <div className="flex">
                   {TABS.map((tab) => (
                     <button
@@ -609,7 +601,8 @@ export function MemberProfile({ member, isAuthenticated }: MemberProfileProps) {
               <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
                 {activeTab === 'about' && <AboutTab member={member} />}
                 {activeTab === 'credentials' && <CredentialsTab member={member} />}
-                {activeTab === 'insights' && <InsightsTab member={member} displayName={displayName} />}
+                {activeTab === 'articles' && <ArticlesTab member={member} displayName={displayName} />}
+                {activeTab === 'contact' && <ContactTab member={member} />}
                 {activeTab === 'reviews' && <ReviewsTab />}
               </div>
             </div>

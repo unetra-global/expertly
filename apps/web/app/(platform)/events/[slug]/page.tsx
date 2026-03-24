@@ -119,12 +119,9 @@ export default async function EventSlugPage({ params }: PageProps) {
                   {formatLabel}
                 </span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-white leading-tight mb-2">
+              <h1 className="text-2xl sm:text-3xl font-bold text-white leading-tight">
                 {event.title}
               </h1>
-              {event.description && (
-                <p className="text-white/60 text-base">{event.description}</p>
-              )}
             </div>
 
             {event.registrationUrl && (

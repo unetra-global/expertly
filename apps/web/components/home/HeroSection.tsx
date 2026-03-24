@@ -64,11 +64,11 @@ export default function HeroSection() {
         {/* Headline */}
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-[1.12] tracking-tight max-w-3xl mx-auto">
           The World&apos;s Premier{' '}
-          <span className="text-brand-blue-light">Financial &amp; Legal Experts</span>
+          <span className="text-brand-blue-light">Finance &amp; Legal Experts</span>
         </h1>
 
         <p className="mt-5 text-base sm:text-lg text-white/60 max-w-xl mx-auto leading-relaxed">
-          Connect with verified professionals. Read expert insights.
+          Connect with verified professionals. Read expert articles.
           Discover events that advance your career.
         </p>
 

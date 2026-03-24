@@ -11,7 +11,7 @@ export const revalidate = 300;
 export const metadata: Metadata = {
   title: 'Articles | Expertly',
   description:
-    'Read expert insights and analysis from verified finance and legal professionals on the Expertly network.',
+    'Read expert articles and analysis from verified finance and legal professionals on the Expertly network.',
 };
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002') + '/api/v1';

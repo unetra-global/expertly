@@ -8,6 +8,7 @@ import { apiClient } from '@/lib/apiClient';
 import { queryKeys } from '@/hooks/queryKeys';
 import { MemberCard } from './MemberCard';
 import { FilterSheet } from '@/components/ui/FilterSheet';
+import { Pagination } from '@/components/shared/Pagination';
 import { HeroSearchBar } from '@/components/search/HeroSearchBar';
 import { CategoryServiceFilter } from '@/components/ui/CategoryServiceFilter';
 import type { TaxonomyCategory, TaxonomyService } from '@/components/ui/CategoryServiceFilter';
@@ -287,7 +288,7 @@ export default function MemberDirectory({
       <div className="bg-brand-navy">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
           <p className="section-label mb-2">Our Network</p>
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white">Find Financial &amp; Legal Experts</h1>
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white">Find Finance &amp; Legal Experts</h1>
           <p className="mt-2 text-white/60 text-sm sm:text-base max-w-xl">
             Browse verified finance and legal professionals from around the world.
           </p>
@@ -439,31 +440,7 @@ export default function MemberDirectory({
 
                 {/* Pagination */}
                 {isAuthenticated && meta && meta.totalPages > 1 && (
-                  <div className="mt-8 flex items-center justify-center gap-2">
-                    <button
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      disabled={page === 1}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-brand-text hover:bg-brand-surface disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                    >
-                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                      </svg>
-                      Previous
-                    </button>
-                    <span className="px-3 py-2 text-sm text-brand-text-secondary">
-                      {page} / {meta.totalPages}
-                    </span>
-                    <button
-                      onClick={() => setPage((p) => Math.min(meta.totalPages, p + 1))}
-                      disabled={page >= meta.totalPages}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-brand-text hover:bg-brand-surface disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                    >
-                      Next
-                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                  </div>
+                  <Pagination page={page} totalPages={meta.totalPages} onPageChange={setPage} />
                 )}
               </>
             )}

@@ -134,7 +134,7 @@ export function ArticleCard({ article, className }: ArticleCardProps) {
               )}
 
               {article.serviceCategory?.name && (
-                <p className="text-xs font-medium text-brand-blue truncate leading-tight">
+                <p className="text-xs font-medium text-gray-500 truncate leading-tight">
                   {article.serviceCategory.name}
                 </p>
               )}

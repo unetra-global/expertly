@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   title:
     'Expertly — The Professional Network for Finance & Legal Experts',
   description:
-    'Connect with verified finance and legal professionals. Read expert insights. Discover events.',
+    'Connect with verified finance and legal professionals. Read expert articles. Discover events.',
 };
 
 interface HomepageData {

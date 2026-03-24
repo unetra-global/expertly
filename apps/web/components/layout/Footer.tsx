@@ -14,7 +14,7 @@ const NAV_COLUMNS = [
     heading: 'Quick Links',
     links: [
       { label: 'Member Directory', href: '/members' },
-      { label: 'Latest Insights', href: '/articles' },
+      { label: 'Latest Articles', href: '/articles' },
       { label: 'Upcoming Events', href: '/events' },
       { label: 'Apply for Membership', href: '/application' },
     ],

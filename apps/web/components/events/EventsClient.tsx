@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { apiClient } from '@/lib/apiClient';
 import { queryKeys } from '@/hooks/queryKeys';
 import { FilterSheet } from '@/components/ui/FilterSheet';
+import { Pagination } from '@/components/shared/Pagination';
 import { HeroSearchBar } from '@/components/search/HeroSearchBar';
 import type { EventListItem, PaginatedResponse } from '@/types/api';
 
@@ -429,29 +430,7 @@ export default function EventsClient({ initialFilters }: EventsClientProps) {
                 )}
 
                 {meta && meta.totalPages > 1 && (
-                  <div className="mt-10 flex items-center justify-center gap-2">
-                    <button
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      disabled={page === 1}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-brand-text hover:bg-brand-surface disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                    >
-                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                      </svg>
-                      Previous
-                    </button>
-                    <span className="px-3 py-2 text-sm text-brand-text-secondary">{page} / {meta.totalPages}</span>
-                    <button
-                      onClick={() => setPage((p) => Math.min(meta.totalPages, p + 1))}
-                      disabled={page >= meta.totalPages}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-brand-text hover:bg-brand-surface disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                    >
-                      Next
-                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                  </div>
+                  <Pagination page={page} totalPages={meta.totalPages} onPageChange={setPage} />
                 )}
               </>
             )}
