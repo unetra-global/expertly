@@ -3,7 +3,6 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
-  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -68,8 +67,6 @@ function sanitizeBody(html: string): string {
 
 @Injectable()
 export class ArticlesService {
-  private readonly logger = new Logger(ArticlesService.name);
-
   constructor(
     private readonly supabase: SupabaseService,
     private readonly cache: CacheService,
@@ -82,17 +79,13 @@ export class ArticlesService {
 
   async getList(
     dto: QueryArticlesDto,
-    user: AuthUser | null,
   ): Promise<{ data: unknown[]; meta: PaginationMeta }> {
     const page = dto.page ?? 1;
     const limit = Math.min(dto.limit ?? 20, 50);
     const offset = (page - 1) * limit;
 
-    const isAuth = !!user;
-    const isMember = user?.role === 'member';
-
     // Build cache key for public published list
-    const cacheKey = !isMember && !dto.memberId
+    const cacheKey = !dto.memberId
       ? this.cache.buildKey(
         'articles',
         'list',
@@ -110,14 +103,12 @@ export class ArticlesService {
       .select(ARTICLE_PUBLIC_SELECT, { count: 'exact' })
       .range(offset, offset + limit - 1);
 
-    if (isMember && user?.memberId && !dto.memberId) {
-      // Members see their own articles at any status (only when not viewing another member's profile)
-      query = query.eq('author_id', user.memberId);
-      if (dto.status) {
-        query = query.eq('status', dto.status);
-      }
+    if (dto.memberId) {
+      // Viewing a specific member's published articles (e.g. profile page)
+      query = query.eq('status', 'published').eq('author_id', dto.memberId);
     } else {
-      // Guests/users/member viewing another profile see only published articles
+      // Public listing — everyone sees all published articles.
+      // Members manage their own drafts via GET /articles/member/me, not here.
       query = query.eq('status', 'published');
     }
 

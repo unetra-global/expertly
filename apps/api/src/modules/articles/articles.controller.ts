@@ -431,10 +431,9 @@ export class ArticlesController {
   @Get()
   @UseGuards(OptionalJwtGuard, RolesGuard)
   getList(
-    @CurrentUser() user: AuthUser | null,
     @Query() dto: QueryArticlesDto,
   ): Promise<{ data: unknown[]; meta: unknown }> {
-    return this.articles.getList(dto, user);
+    return this.articles.getList(dto);
   }
 
   // 5. POST /articles (JWT + Member)
