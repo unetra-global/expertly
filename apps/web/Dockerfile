@@ -9,6 +9,9 @@ FROM base AS builder
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
+# Explicitly set development to ensure pnpm installs devDependencies
+ENV NODE_ENV=development
+
 # Enable corepack for pnpm
 RUN corepack enable
 

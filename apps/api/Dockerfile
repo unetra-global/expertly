@@ -4,7 +4,13 @@
 # ── Stage 1: Build ────────────────────────────────────────────────────────────
 FROM node:20-alpine AS builder
 
+# Add libc6-compat as it might be needed by some node-gyp native modules or turbo
+RUN apk add --no-cache libc6-compat
+
 WORKDIR /app
+
+# Explicitly set to development to ensure devDependencies are installed by pnpm
+ENV NODE_ENV=development
 
 # Enable corepack for pnpm
 RUN corepack enable
