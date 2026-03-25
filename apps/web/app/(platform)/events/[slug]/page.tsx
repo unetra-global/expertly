@@ -103,15 +103,6 @@ export default async function EventSlugPage({ params }: PageProps) {
       {/* Hero band */}
       <div className="bg-brand-navy">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-          {/* Breadcrumb */}
-          <nav className="flex items-center gap-2 text-xs text-white/40 mb-4" aria-label="Breadcrumb">
-            <Link href="/" className="hover:text-white/70 transition-colors">Home</Link>
-            <span>/</span>
-            <Link href="/events" className="hover:text-white/70 transition-colors">Events</Link>
-            <span>/</span>
-            <span className="text-white/60 truncate max-w-[200px]">{event.title}</span>
-          </nav>
-
           <div className="flex flex-col sm:flex-row sm:items-start gap-4">
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2 mb-3">
@@ -123,22 +114,6 @@ export default async function EventSlugPage({ params }: PageProps) {
                 {event.title}
               </h1>
             </div>
-
-            {event.registrationUrl && (
-              <div className="flex-shrink-0">
-                <a
-                  href={event.registrationUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 btn-primary-dark px-6 py-3 text-base"
-                >
-                  Register Now
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                </a>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -238,9 +213,12 @@ export default async function EventSlugPage({ params }: PageProps) {
                     href={event.registrationUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block w-full btn-primary text-center mt-2"
+                    className="inline-flex items-center justify-center gap-2 w-full btn-primary mt-2"
                   >
                     Register Now
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
                   </a>
                 )}
               </div>
