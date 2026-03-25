@@ -135,7 +135,7 @@ export interface Member {
   user?: User;
 }
 
-export interface ServiceCategory {
+export interface Category {
   id: string;
   name: string;
   slug: string;
@@ -153,7 +153,7 @@ export interface Service {
   isActive: boolean;
   createdAt: string;
   // joined
-  category?: ServiceCategory;
+  category?: Category;
 }
 
 export interface MemberService {
@@ -252,7 +252,7 @@ export interface Application {
   updatedAt: string;
   // joined
   user?: User;
-  primaryCategory?: ServiceCategory;
+  primaryCategory?: Category;
 }
 
 export interface ConsultationRequest {

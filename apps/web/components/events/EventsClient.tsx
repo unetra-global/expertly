@@ -10,6 +10,7 @@ import { FilterSheet } from '@/components/ui/FilterSheet';
 import { Pagination } from '@/components/shared/Pagination';
 import { HeroSearchBar } from '@/components/search/HeroSearchBar';
 import type { EventListItem, PaginatedResponse } from '@/types/api';
+import { COUNTRY_NAMES } from '@expertly/utils';
 
 const EVENT_PLACEHOLDERS = [
   'Finance conference in Singapore this April...',
@@ -18,11 +19,6 @@ const EVENT_PLACEHOLDERS = [
   'M&A networking in Dubai...',
   'Online legal tech summit...',
   'SEBI compliance workshop in Mumbai...',
-];
-
-const COUNTRIES = [
-  'Australia', 'Canada', 'Hong Kong', 'India', 'Malaysia', 'Singapore',
-  'United Arab Emirates', 'United Kingdom', 'United States',
 ];
 
 const FORMAT_LABELS: Record<string, string> = {
@@ -238,7 +234,7 @@ export default function EventsClient({ initialFilters }: EventsClientProps) {
           className="w-full px-3 py-2.5 text-sm text-brand-text bg-brand-surface border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue appearance-none cursor-pointer"
         >
           <option value="">All Countries</option>
-          {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          {COUNTRY_NAMES.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
       </div>
 

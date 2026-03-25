@@ -8,6 +8,7 @@ import {
 import { Queue } from 'bullmq';
 import { ConfigService } from '@nestjs/config';
 import { SupabaseService } from '../../common/services/supabase.service';
+import { MEMBER_TIERS } from '@expertly/utils';
 import { CacheService } from '../../common/services/cache.service';
 import { EmailService } from '../../common/services/email.service';
 import { AuthUser } from '@expertly/types';
@@ -420,7 +421,7 @@ export class OpsService {
         motivation_why: a.motivation_why,
         motivation_engagement: a.motivation_engagement,
         motivation_unique: a.motivation_unique,
-        member_tier: 'standard',
+        member_tier: 'budding_entrepreneur',
         membership_status: 'active',
         membership_start_date: new Date().toISOString().split('T')[0],
         membership_expiry_date: expiryAt,
@@ -578,9 +579,9 @@ export class OpsService {
   }
 
   async updateMemberTier(id: string, body: { tier: string }) {
-    const validTiers = ['budding_entrepreneur', 'seasoned_professional'];
+    const validTiers: readonly string[] = MEMBER_TIERS;
     if (!validTiers.includes(body.tier)) {
-      throw new BadRequestException(`Invalid tier: ${body.tier}. Must be one of: ${validTiers.join(', ')}`);
+      throw new BadRequestException(`Invalid tier: ${body.tier}. Must be one of: ${MEMBER_TIERS.join(', ')}`);
     }
 
     await this.supabase.adminClient

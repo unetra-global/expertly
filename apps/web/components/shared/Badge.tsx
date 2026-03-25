@@ -36,32 +36,23 @@ export function VerifiedBadge({ className, size = 'md' }: VerifiedBadgeProps) {
 
 // ── Tier badge ────────────────────────────────────────────────────────────────
 
-type MemberTier = 'seasoned' | 'budding' | string;
+import { MEMBER_TIER_LABELS, type MemberTier } from '@expertly/utils';
 
 interface TierBadgeProps {
-  tier: MemberTier;
+  tier: string;
   className?: string;
   size?: 'sm' | 'md';
 }
 
 const TIER_STYLES: Record<string, string> = {
-  seasoned: 'bg-amber-50 text-amber-700 border-amber-200',
   seasoned_professional: 'bg-amber-50 text-amber-700 border-amber-200',
-  budding: 'bg-gray-50 text-gray-600 border-gray-200',
-  rising_expert: 'bg-gray-50 text-gray-600 border-gray-200',
-};
-
-const TIER_LABELS: Record<string, string> = {
-  seasoned: 'Seasoned Pro',
-  seasoned_professional: 'Seasoned Pro',
-  budding: 'Rising Expert',
-  rising_expert: 'Rising Expert',
+  budding_entrepreneur: 'bg-gray-50 text-gray-600 border-gray-200',
 };
 
 export function TierBadge({ tier, className, size = 'md' }: TierBadgeProps) {
   const normTier = tier?.toLowerCase() ?? '';
   const styles = TIER_STYLES[normTier] ?? 'bg-gray-50 text-gray-600 border-gray-200';
-  const label = TIER_LABELS[normTier] ?? tier;
+  const label = MEMBER_TIER_LABELS[normTier as MemberTier] ?? tier;
 
   return (
     <span

@@ -209,17 +209,17 @@ async function resolveContextLabel(
   if (serviceId) {
     const { data } = await supabase.adminClient
       .from('services')
-      .select('name, service_categories(name)')
+      .select('name, categories(name)')
       .eq('id', serviceId)
       .single();
     if (data) {
-      const row = data as { name: string; service_categories?: { name?: string } | null };
+      const row = data as { name: string; categories?: { name?: string } | null };
       serviceName = row.name ?? null;
-      categoryName = row.service_categories?.name ?? null;
+      categoryName = row.categories?.name ?? null;
     }
   } else if (categoryId) {
     const { data } = await supabase.adminClient
-      .from('service_categories')
+      .from('categories')
       .select('name')
       .eq('id', categoryId)
       .single();

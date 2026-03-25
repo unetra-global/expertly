@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { SupabaseService } from '../../common/services/supabase.service';
 import { CacheService } from '../../common/services/cache.service';
 import { PaginationMeta } from '@expertly/types';
+import { resolveCountryName } from '@expertly/utils';
 import { QueryEventsDto } from './dto/query-events.dto';
 
 const EVENT_TTL = 300;        // 5 min
@@ -12,35 +13,6 @@ const EVENT_LIST_FIELDS =
   'id, title, slug, description, cover_image_url, start_date, end_date, ' +
   'country, city, venue_name, event_format, is_published, is_featured, ' +
   'registration_url, capacity, tags, event_type';
-
-function getCountryAliases(country: string): string[] {
-  const normalized = country.trim().toLowerCase();
-  const aliases = new Set<string>([country.trim()]);
-
-  if (normalized === 'united kingdom' || normalized === 'uk') {
-    aliases.add('United Kingdom');
-    aliases.add('UK');
-  }
-
-  if (
-    normalized === 'united states' ||
-    normalized === 'united states of america' ||
-    normalized === 'usa' ||
-    normalized === 'us'
-  ) {
-    aliases.add('United States');
-    aliases.add('United States of America');
-    aliases.add('USA');
-    aliases.add('US');
-  }
-
-  if (normalized === 'united arab emirates' || normalized === 'uae') {
-    aliases.add('United Arab Emirates');
-    aliases.add('UAE');
-  }
-
-  return Array.from(aliases);
-}
 
 @Injectable()
 export class EventsService {
@@ -84,14 +56,9 @@ export class EventsService {
         }
 
         if (dto.country) {
-          const aliases = getCountryAliases(dto.country);
-          if (aliases.length === 1) {
-            query = query.ilike('country', `%${aliases[0]}%`);
-          } else {
-            const countryFilters = aliases
-              .map((alias) => `country.ilike.%${alias.replace(/[,]/g, ' ')}%`)
-              .join(',');
-            query = query.or(countryFilters);
+          const canonical = resolveCountryName(dto.country);
+          if (canonical) {
+            query = query.eq('country', canonical);
           }
         }
 

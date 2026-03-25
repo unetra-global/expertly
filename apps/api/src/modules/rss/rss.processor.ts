@@ -280,7 +280,7 @@ export class RssProcessor implements OnModuleInit, OnModuleDestroy {
       .from('members')
       .select(
         'id, first_name, last_name, user_id, ' +
-          'member_services(service_id, is_primary, services(name, category_id, service_categories(slug))), ' +
+          'member_services(service_id, is_primary, services(name, category_id, categories(slug))), ' +
           'member_notification_preferences(regulatory_nudges)',
       )
       .eq('status', 'active');
@@ -299,7 +299,7 @@ export class RssProcessor implements OnModuleInit, OnModuleDestroy {
         (ms: any) => ms.is_primary,
       );
       const categorySlug =
-        primaryService?.services?.service_categories?.slug ?? '';
+        primaryService?.services?.categories?.slug ?? '';
       const categoryId = primaryService?.services?.category_id ?? '';
 
       const matches =

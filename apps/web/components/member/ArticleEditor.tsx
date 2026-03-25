@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { apiClient } from '@/lib/apiClient';
 import { queryKeys } from '@/hooks/queryKeys';
-import type { MemberArticle, ServiceCategory } from '@/types/api';
+import type { MemberArticle, Category } from '@/types/api';
 import AIGeneratePanel from './AIGeneratePanel';
 
 // ── Word Count Helper ────────────────────────────────────────────────────────
@@ -164,7 +164,7 @@ export default function ArticleEditor({ articleId: initialArticleId }: Props) {
 
   const { data: categories = [] } = useQuery({
     queryKey: queryKeys.taxonomy.categories(),
-    queryFn: () => apiClient.get<ServiceCategory[]>('/taxonomy/categories'),
+    queryFn: () => apiClient.get<Category[]>('/taxonomy/categories'),
     staleTime: 3600_000,
   });
 

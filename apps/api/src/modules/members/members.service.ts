@@ -7,6 +7,7 @@ import { EmailService } from '../../common/services/email.service';
 import { EmbeddingService } from '../../common/services/embedding.service';
 import { QUEUE_NAMES, QUEUE_JOB_TYPES, getQueueConnection, isQueueDisabled } from '../../config/queue.config';
 import { AuthUser, PaginationMeta } from '@expertly/types';
+import { resolveCountryName } from '@expertly/utils';
 import { QueryMembersDto } from './dto/query-members.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
 import { UpdateNotificationsDto } from './dto/update-notifications.dto';
@@ -44,7 +45,7 @@ const TEASER_FIELDS =
   'id, slug, designation, headline, profile_photo_url, avatar_url, ' +
   'city, country, member_tier, is_verified, primary_service_id, ' +
   'users!user_id(first_name, last_name, profile_photo_base64), ' +
-  'services!primary_service_id(id, name, service_categories!category_id(id, name))';
+  'services!primary_service_id(id, name, categories!category_id(id, name))';
 
 // Full fields for authenticated users
 const FULL_FIELDS =
@@ -57,7 +58,7 @@ const FULL_FIELDS =
   'work_experience, education, credentials, qualifications, testimonials, ' +
   'is_featured, view_count, membership_status, created_at, updated_at, ' +
   'users!user_id(first_name, last_name, email, profile_photo_base64), ' +
-  'services!primary_service_id(id, name, service_categories!category_id(id, name))';
+  'services!primary_service_id(id, name, categories!category_id(id, name))';
 
 // Full fields for /me endpoint (all JSONB, no embedding)
 const ME_FIELDS =
@@ -96,34 +97,6 @@ function buildListCacheKey(cache: CacheService, dto: QueryMembersDto): string {
   return cache.buildKey('members', 'list', parts);
 }
 
-function getCountryAliases(country: string): string[] {
-  const normalized = country.trim().toLowerCase();
-  const aliases = new Set<string>([country.trim()]);
-
-  if (normalized === 'united kingdom' || normalized === 'uk') {
-    aliases.add('United Kingdom');
-    aliases.add('UK');
-  }
-
-  if (
-    normalized === 'united states' ||
-    normalized === 'united states of america' ||
-    normalized === 'usa' ||
-    normalized === 'us'
-  ) {
-    aliases.add('United States');
-    aliases.add('United States of America');
-    aliases.add('USA');
-    aliases.add('US');
-  }
-
-  if (normalized === 'united arab emirates' || normalized === 'uae') {
-    aliases.add('United Arab Emirates');
-    aliases.add('UAE');
-  }
-
-  return Array.from(aliases);
-}
 
 // ─── Service ──────────────────────────────────────────────────────────────────
 
@@ -207,14 +180,9 @@ export class MembersService {
           query = query.or(`headline.ilike.%${dto.search}%,designation.ilike.%${dto.search}%`);
         }
         if (dto.country) {
-          const aliases = getCountryAliases(dto.country);
-          if (aliases.length === 1) {
-            query = query.ilike('country', `%${aliases[0]}%`);
-          } else {
-            const countryFilters = aliases
-              .map((alias) => `country.ilike.%${alias.replace(/[,]/g, ' ')}%`)
-              .join(',');
-            query = query.or(countryFilters);
+          const canonical = resolveCountryName(dto.country);
+          if (canonical) {
+            query = query.eq('country', canonical);
           }
         }
         if (dto.serviceIds) {

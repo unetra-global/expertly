@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { COUNTRY_NAMES } from '@expertly/utils';
 
 const PROFESSIONS = [
   'Corporate Law',
@@ -12,17 +13,6 @@ const PROFESSIONS = [
   'Forensic Accounting',
   'Intellectual Property',
   'Financial Advisory',
-];
-
-const COUNTRIES = [
-  'Singapore',
-  'United Kingdom',
-  'United Arab Emirates',
-  'United States',
-  'Australia',
-  'India',
-  'Hong Kong',
-  'Malaysia',
 ];
 
 export default function HeroSection() {
@@ -120,7 +110,7 @@ export default function HeroSection() {
               className="w-full pl-9 pr-4 py-3 text-sm text-brand-text bg-transparent rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue appearance-none cursor-pointer"
             >
               <option value="">Select Country</option>
-              {COUNTRIES.map((c) => (
+              {COUNTRY_NAMES.map((c) => (
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>

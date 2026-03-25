@@ -13,6 +13,7 @@ import { HeroSearchBar } from '@/components/search/HeroSearchBar';
 import { CategoryServiceFilter } from '@/components/ui/CategoryServiceFilter';
 import type { TaxonomyCategory, TaxonomyService } from '@/components/ui/CategoryServiceFilter';
 import type { MemberListItem, PaginatedResponse } from '@/types/api';
+import { COUNTRY_NAMES } from '@expertly/utils';
 
 const MEMBER_PLACEHOLDERS = [
   'US incorporation specialist in Singapore...',
@@ -21,11 +22,6 @@ const MEMBER_PLACEHOLDERS = [
   'M&A advisor in London...',
   'GST consultant in Bangalore...',
   'Corporate law expert in Dubai...',
-];
-
-const COUNTRIES = [
-  'Australia', 'Canada', 'Hong Kong', 'India', 'Malaysia', 'Singapore',
-  'United Arab Emirates', 'United Kingdom', 'United States',
 ];
 
 const EXPERIENCE_OPTIONS = [
@@ -214,7 +210,7 @@ export default function MemberDirectory({
           className="w-full px-3 py-2.5 text-sm text-brand-text bg-brand-surface border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue appearance-none cursor-pointer"
         >
           <option value="">All Countries</option>
-          {COUNTRIES.map((c) => (
+          {COUNTRY_NAMES.map((c) => (
             <option key={c} value={c}>{c}</option>
           ))}
         </select>

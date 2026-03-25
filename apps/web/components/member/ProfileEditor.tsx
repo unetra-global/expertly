@@ -14,18 +14,13 @@ import type {
   Engagement,
   Availability,
 } from '@/types/api';
+import { COUNTRY_NAMES } from '@expertly/utils';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
 const SENSITIVE_FIELDS = [
   'headline', 'bio', 'designation', 'qualifications',
   'credentials', 'workExperiences', 'educations',
-];
-
-const COUNTRIES = [
-  'United Arab Emirates', 'United Kingdom', 'United States', 'Australia',
-  'Canada', 'Singapore', 'India', 'South Africa', 'Nigeria', 'Kenya',
-  'Germany', 'France', 'Netherlands', 'Switzerland', 'Hong Kong',
 ];
 
 const TIMEZONES = [
@@ -498,7 +493,7 @@ export default function ProfileEditor({ profile }: Props) {
             <label className={labelCls}>Country</label>
             <select className={inputCls} value={country} onChange={(e) => setCountry(e.target.value)}>
               <option value="">Select country</option>
-              {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              {COUNTRY_NAMES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
           <div>

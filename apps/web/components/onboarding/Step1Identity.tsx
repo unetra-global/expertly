@@ -5,115 +5,20 @@ import { State } from 'country-state-city';
 import { useOnboardingStore } from '@/stores/onboardingStore';
 import { getBrowserClient } from '@/lib/supabase';
 import { apiClient } from '@/lib/apiClient';
+import {
+  REGIONS,
+  COUNTRIES_BY_REGION,
+  COUNTRY_TO_REGION,
+  COUNTRY_NAMES,
+  NAME_TO_CODE,
+  PHONE_CODES,
+} from '@expertly/utils';
 
-// ── Geographic data ───────────────────────────────────────────────────────────
+// ── Derived: region → country name[] (for dropdown options) ──────────────────
 
-const REGIONS = [
-  { value: 'africa', label: 'Africa' },
-  { value: 'asia_pacific', label: 'Asia-Pacific' },
-  { value: 'europe', label: 'Europe' },
-  { value: 'latin_america', label: 'Latin America' },
-  { value: 'middle_east', label: 'Middle East' },
-  { value: 'north_america', label: 'North America' },
-  { value: 'south_asia', label: 'South Asia' },
-];
-
-// Country names for each region
-const COUNTRIES_BY_REGION: Record<string, string[]> = {
-  africa: ['Egypt', 'Ghana', 'Kenya', 'Mauritius', 'Morocco', 'Nigeria', 'Rwanda', 'South Africa', 'Tanzania', 'Uganda', 'Zimbabwe'],
-  asia_pacific: ['Australia', 'China', 'Hong Kong', 'Indonesia', 'Japan', 'Malaysia', 'New Zealand', 'Philippines', 'Singapore', 'South Korea', 'Thailand', 'Vietnam'],
-  europe: ['Belgium', 'Denmark', 'Finland', 'France', 'Germany', 'Greece', 'Ireland', 'Italy', 'Netherlands', 'Norway', 'Poland', 'Portugal', 'Spain', 'Sweden', 'Switzerland', 'Turkey', 'United Kingdom'],
-  latin_america: ['Argentina', 'Brazil', 'Chile', 'Colombia', 'Mexico', 'Peru'],
-  middle_east: ['Bahrain', 'Egypt', 'Israel', 'Jordan', 'Kuwait', 'Lebanon', 'Oman', 'Qatar', 'Saudi Arabia', 'United Arab Emirates'],
-  north_america: ['Canada', 'United States'],
-  south_asia: ['Bangladesh', 'India', 'Nepal', 'Pakistan', 'Sri Lanka'],
-};
-
-// Reverse map: country name → region (for auto-selecting region when country is chosen)
-const COUNTRY_TO_REGION: Record<string, string> = Object.entries(COUNTRIES_BY_REGION).reduce(
-  (acc, [region, countries]) => {
-    countries.forEach((c) => { acc[c] = region; });
-    return acc;
-  },
-  {} as Record<string, string>,
+const COUNTRIES_BY_REGION_NAMES: Record<string, string[]> = Object.fromEntries(
+  Object.entries(COUNTRIES_BY_REGION).map(([region, countries]) => [region, countries.map((c) => c.name)]),
 );
-
-// All countries (alphabetically, deduplicated) — shown when no region is selected
-const ALL_COUNTRIES = [...new Set(Object.values(COUNTRIES_BY_REGION).flat())].sort();
-
-// Country name → ISO 3166-1 alpha-2 code (for state lookups via country-state-city)
-const COUNTRY_ISO: Record<string, string> = {
-  // Africa
-  Egypt: 'EG', Ghana: 'GH', Kenya: 'KE', Mauritius: 'MU', Morocco: 'MA',
-  Nigeria: 'NG', Rwanda: 'RW', 'South Africa': 'ZA', Tanzania: 'TZ', Uganda: 'UG', Zimbabwe: 'ZW',
-  // Asia-Pacific
-  Australia: 'AU', China: 'CN', 'Hong Kong': 'HK', Indonesia: 'ID', Japan: 'JP',
-  Malaysia: 'MY', 'New Zealand': 'NZ', Singapore: 'SG', 'South Korea': 'KR',
-  // Europe
-  France: 'FR', Germany: 'DE', Ireland: 'IE', Netherlands: 'NL',
-  Switzerland: 'CH', Turkey: 'TR', 'United Kingdom': 'GB',
-  // Latin America
-  Argentina: 'AR', Brazil: 'BR', Chile: 'CL', Colombia: 'CO', Mexico: 'MX',
-  // Middle East
-  Bahrain: 'BH', Israel: 'IL', Jordan: 'JO', Kuwait: 'KW', Oman: 'OM',
-  Qatar: 'QA', 'Saudi Arabia': 'SA', 'United Arab Emirates': 'AE',
-  // North America
-  Canada: 'CA', 'United States': 'US',
-  // South Asia
-  India: 'IN', Pakistan: 'PK', 'Sri Lanka': 'LK',
-};
-
-// ── Phone calling codes ───────────────────────────────────────────────────────
-
-const PHONE_CODES = [
-  { code: '+1', label: '+1 (US / CA)' },
-  { code: '+20', label: '+20 (EG)' },
-  { code: '+27', label: '+27 (ZA)' },
-  { code: '+31', label: '+31 (NL)' },
-  { code: '+33', label: '+33 (FR)' },
-  { code: '+41', label: '+41 (CH)' },
-  { code: '+44', label: '+44 (UK)' },
-  { code: '+49', label: '+49 (DE)' },
-  { code: '+52', label: '+52 (MX)' },
-  { code: '+54', label: '+54 (AR)' },
-  { code: '+55', label: '+55 (BR)' },
-  { code: '+56', label: '+56 (CL)' },
-  { code: '+57', label: '+57 (CO)' },
-  { code: '+60', label: '+60 (MY)' },
-  { code: '+61', label: '+61 (AU)' },
-  { code: '+62', label: '+62 (ID)' },
-  { code: '+63', label: '+63 (PH)' },
-  { code: '+64', label: '+64 (NZ)' },
-  { code: '+65', label: '+65 (SG)' },
-  { code: '+81', label: '+81 (JP)' },
-  { code: '+82', label: '+82 (KR)' },
-  { code: '+86', label: '+86 (CN)' },
-  { code: '+90', label: '+90 (TR)' },
-  { code: '+91', label: '+91 (IN)' },
-  { code: '+92', label: '+92 (PK)' },
-  { code: '+94', label: '+94 (LK)' },
-  { code: '+212', label: '+212 (MA)' },
-  { code: '+230', label: '+230 (MU)' },
-  { code: '+233', label: '+233 (GH)' },
-  { code: '+234', label: '+234 (NG)' },
-  { code: '+250', label: '+250 (RW)' },
-  { code: '+253', label: '+253 (DJ)' },
-  { code: '+254', label: '+254 (KE)' },
-  { code: '+255', label: '+255 (TZ)' },
-  { code: '+256', label: '+256 (UG)' },
-  { code: '+263', label: '+263 (ZW)' },
-  { code: '+353', label: '+353 (IE)' },
-  { code: '+357', label: '+357 (CY)' },
-  { code: '+852', label: '+852 (HK)' },
-  { code: '+962', label: '+962 (JO)' },
-  { code: '+965', label: '+965 (KW)' },
-  { code: '+966', label: '+966 (SA)' },
-  { code: '+968', label: '+968 (OM)' },
-  { code: '+971', label: '+971 (AE)' },
-  { code: '+972', label: '+972 (IL)' },
-  { code: '+973', label: '+973 (BH)' },
-  { code: '+974', label: '+974 (QA)' },
-];
 
 // ── LinkedIn response → store shape ───────────────────────────────────────────
 
@@ -198,7 +103,7 @@ export function Step1Identity({ onNext }: Props) {
 
   // States available for selected country (from country-state-city library)
   const [availableStates, setAvailableStates] = useState<{ name: string; isoCode: string }[]>(() => {
-    const iso = COUNTRY_ISO[formData.country];
+    const iso = NAME_TO_CODE[formData.country];
     return iso ? State.getStatesOfCountry(iso) : [];
   });
 
@@ -247,7 +152,7 @@ export function Step1Identity({ onNext }: Props) {
   }
 
   function handleRegionChange(region: string) {
-    const countries = COUNTRIES_BY_REGION[region] ?? [];
+    const countries = COUNTRIES_BY_REGION_NAMES[region] ?? [];
     setFields((f) => ({
       ...f,
       region,
@@ -259,7 +164,7 @@ export function Step1Identity({ onNext }: Props) {
   }
 
   function handleCountryChange(country: string) {
-    const iso = COUNTRY_ISO[country];
+    const iso = NAME_TO_CODE[country];
     const states = iso ? State.getStatesOfCountry(iso) : [];
     setAvailableStates(states);
     // Auto-set region if we know which one this country belongs to
@@ -557,7 +462,7 @@ export function Step1Identity({ onNext }: Props) {
               className={`input-base w-full ${errors.country ? 'border-red-300 focus:ring-red-200' : ''}`}
             >
               <option value="">Select country</option>
-              {(fields.region ? COUNTRIES_BY_REGION[fields.region] ?? [] : ALL_COUNTRIES).map((c) => (
+              {(fields.region ? COUNTRIES_BY_REGION_NAMES[fields.region] ?? [] : COUNTRY_NAMES).map((c) => (
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>

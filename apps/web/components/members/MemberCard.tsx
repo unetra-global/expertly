@@ -138,12 +138,12 @@ export function MemberCard({ member, variant = 'teaser', onConsult, className }:
 
           {/* Service tags + fee */}
           <div className="mt-3 flex flex-wrap items-center gap-1.5">
-            {member.services?.serviceCategories?.name && (
+            {member.services?.categories?.name && (
               <span className="inline-flex items-center rounded-full bg-blue-50 border border-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-700">
-                {member.services.serviceCategories.name}
+                {member.services.categories.name}
               </span>
             )}
-            {member.services?.name && member.services.name !== member.services?.serviceCategories?.name && (
+            {member.services?.name && member.services.name !== member.services?.categories?.name && (
               <span className="inline-flex items-center rounded-full bg-blue-50 border border-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-700">
                 {member.services.name}
               </span>

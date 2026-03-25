@@ -8,7 +8,7 @@ import { queryKeys } from '@/hooks/queryKeys';
 import type {
   MemberMe,
   NotificationPreferences,
-  ServiceCategory,
+  Category,
   DigestSubscription,
 } from '@/types/api';
 
@@ -148,7 +148,7 @@ export default function SettingsPage() {
 
   const { data: categories = [] } = useQuery({
     queryKey: queryKeys.taxonomy.categories(),
-    queryFn: () => apiClient.get<ServiceCategory[]>('/taxonomy/categories'),
+    queryFn: () => apiClient.get<Category[]>('/taxonomy/categories'),
     staleTime: 3600_000,
   });
 
@@ -169,7 +169,7 @@ export default function SettingsPage() {
         categories.map((cat) => ({
           categoryId: cat.id,
           categoryName: cat.name,
-          isSubscribed: cat.id === profile?.services?.serviceCategories?.id,
+          isSubscribed: cat.id === profile?.services?.categories?.id,
           frequency: 'weekly' as const,
         })),
       );

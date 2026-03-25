@@ -1,4 +1,5 @@
-import { IsOptional, IsString, IsNumber, Min, Max } from 'class-validator';
+import { IsOptional, IsString, IsNumber, IsIn, Min, Max } from 'class-validator';
+import { COUNTRY_NAMES } from '@expertly/utils';
 
 export class Step1Dto {
   @IsOptional()
@@ -34,7 +35,7 @@ export class Step1Dto {
   region?: string;
 
   @IsOptional()
-  @IsString()
+  @IsIn(COUNTRY_NAMES)
   country?: string;
 
   @IsOptional()

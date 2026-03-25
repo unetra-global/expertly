@@ -5,9 +5,11 @@ import {
   IsArray,
   IsObject,
   IsUUID,
+  IsIn,
   Min,
   Max,
 } from 'class-validator';
+import { COUNTRY_NAMES, MEMBER_TIERS } from '@expertly/utils';
 import { Type } from 'class-transformer';
 
 export class UpdateMemberDto {
@@ -41,7 +43,7 @@ export class UpdateMemberDto {
 
 
   @IsOptional()
-  @IsString()
+  @IsIn(COUNTRY_NAMES)
   country?: string;
 
   @IsOptional()
@@ -77,7 +79,7 @@ export class UpdateMemberDto {
   education?: unknown[];
 
   @IsOptional()
-  @IsString()
+  @IsIn(MEMBER_TIERS as readonly string[])
   member_tier?: string;
 
   @IsOptional()

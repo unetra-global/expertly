@@ -19,7 +19,7 @@ export interface PaginatedResponse<T> {
 
 // ── Taxonomy ──────────────────────────────────────────────────────────────────
 
-export interface ServiceCategory {
+export interface Category {
   id: string;
   name: string;
   domain?: string;
@@ -30,7 +30,7 @@ export interface Service {
   id: string;
   name: string;
   sortOrder?: number;
-  category?: ServiceCategory;
+  category?: Category;
 }
 
 // ── Members ───────────────────────────────────────────────────────────────────
@@ -117,8 +117,8 @@ export interface MemberListItem {
   primaryServiceId?: string;
   /** Supabase join — plural because of the FK relationship name */
   users?: { firstName?: string; lastName?: string; fullName?: string; email?: string; profilePhotoBase64?: string };
-  /** Joined primary service (serviceCategories is the camelCased join from service_categories) */
-  services?: { id?: string; name?: string; serviceCategories?: { id?: string; name?: string } };
+  /** Joined primary service (categories is the join from categories table) */
+  services?: { id?: string; name?: string; categories?: { id?: string; name?: string } };
   // Authenticated-only fields (omitted by API for guests)
   headline?: string;
   yearsOfExperience?: number;
@@ -172,7 +172,7 @@ export interface ArticleListItem {
   publishedAt?: string;
   updatedAt?: string;
   tags?: string[];
-  serviceCategory?: { id: string; name: string };
+  category?: { id: string; name: string };
   author?: ArticleAuthor;
 }
 

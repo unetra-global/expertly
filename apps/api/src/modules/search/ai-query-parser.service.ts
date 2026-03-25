@@ -5,6 +5,7 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { z } from 'zod';
+import { COUNTRY_NAMES } from '@expertly/utils';
 
 export interface ParsedQuery {
   intent: 'members' | 'articles' | 'events' | 'all';
@@ -189,7 +190,7 @@ const CITY_MAP: Array<{ regex: RegExp; city: string; country: string }> = [
   { regex: /\bmanchester\b/i,          city: 'Manchester',    country: 'United Kingdom' },
   { regex: /\bedinburgh\b/i,           city: 'Edinburgh',     country: 'United Kingdom' },
   { regex: /\bsingapore\b/i,           city: 'Singapore',     country: 'Singapore' },
-  { regex: /\bdubai\b/i,               city: 'Dubai',         country: 'UAE' },
+  { regex: /\bdubai\b/i,               city: 'Dubai',         country: 'United Arab Emirates' },
   { regex: /\bkuwait city\b/i,         city: 'Kuwait City',   country: 'Kuwait' },
   { regex: /\bnairobi\b/i,             city: 'Nairobi',       country: 'Kenya' },
   { regex: /\blagos\b/i,               city: 'Lagos',         country: 'Nigeria' },
@@ -217,25 +218,38 @@ const CITY_MAP: Array<{ regex: RegExp; city: string; country: string }> = [
   { regex: /\btokyo\b/i,               city: 'Tokyo',         country: 'Japan' },
   { regex: /\bs[aã]o paulo\b/i,        city: 'São Paulo',     country: 'Brazil' },
   { regex: /\bsydney\b/i,              city: 'Sydney',        country: 'Australia' },
-  { regex: /\bnew york\b/i,            city: 'New York',      country: 'US' },
+  { regex: /\bnew york\b/i,            city: 'New York',      country: 'United States' },
 ];
 
+// Demonyms & common abbreviations not derivable from canonical names
+const COUNTRY_DEMONYMS: Array<{ regex: RegExp; country: string }> = [
+  { regex: /\b(us|usa)\b/i,              country: 'United States' },
+  { regex: /\bamerican\b/i,              country: 'United States' },
+  { regex: /\b(uk)\b/i,                  country: 'United Kingdom' },
+  { regex: /\b(british|english)\b/i,     country: 'United Kingdom' },
+  { regex: /\b(uae|emirates)\b/i,        country: 'United Arab Emirates' },
+  { regex: /\bemirati\b/i,               country: 'United Arab Emirates' },
+  { regex: /\bindian\b/i,                country: 'India' },
+  { regex: /\bsingaporean\b/i,           country: 'Singapore' },
+  { regex: /\baustralian\b/i,            country: 'Australia' },
+  { regex: /\bgerman\b/i,                country: 'Germany' },
+  { regex: /\bfrench\b/i,                country: 'France' },
+  { regex: /\bnigerian\b/i,              country: 'Nigeria' },
+  { regex: /\bkenyan\b/i,                country: 'Kenya' },
+  { regex: /\bsouth african\b/i,         country: 'South Africa' },
+  { regex: /\bpakistani\b/i,             country: 'Pakistan' },
+  { regex: /\bchinese\b/i,               country: 'China' },
+  { regex: /\bjapanese\b/i,              country: 'Japan' },
+  { regex: /\bbrazilian\b/i,             country: 'Brazil' },
+];
+
+// Canonical country names from shared constant + demonym/alias patterns
 const COUNTRY_MAP: Array<{ regex: RegExp; country: string }> = [
-  { regex: /\b(india|indian)\b/i,          country: 'India' },
-  { regex: /\b(us|usa|united states|american)\b/i, country: 'US' },
-  { regex: /\b(uk|united kingdom|british|england)\b/i, country: 'United Kingdom' },
-  { regex: /\b(uae|emirates|emirati)\b/i,  country: 'UAE' },
-  { regex: /\b(singapore|singaporean)\b/i, country: 'Singapore' },
-  { regex: /\b(australia|australian)\b/i,  country: 'Australia' },
-  { regex: /\b(germany|german)\b/i,        country: 'Germany' },
-  { regex: /\b(france|french)\b/i,         country: 'France' },
-  { regex: /\b(nigeria|nigerian)\b/i,      country: 'Nigeria' },
-  { regex: /\b(kenya|kenyan)\b/i,          country: 'Kenya' },
-  { regex: /\b(south africa|south african)\b/i, country: 'South Africa' },
-  { regex: /\b(pakistan|pakistani)\b/i,    country: 'Pakistan' },
-  { regex: /\b(china|chinese)\b/i,         country: 'China' },
-  { regex: /\b(japan|japanese)\b/i,        country: 'Japan' },
-  { regex: /\b(brazil|brazilian)\b/i,      country: 'Brazil' },
+  ...COUNTRY_DEMONYMS,
+  ...COUNTRY_NAMES.map(name => ({
+    regex: new RegExp(`\\b${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i'),
+    country: name,
+  })),
 ];
 
 function applyLocationFallback(query: string, filters: ParsedQuery['filters']): ParsedQuery['filters'] {

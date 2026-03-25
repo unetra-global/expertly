@@ -15,7 +15,7 @@ export interface MemberCardData {
   /** Joined primary service — Supabase returns table name 'services' */
   services?: {
     name?: string;
-    serviceCategories?: { id?: string; name?: string };
+    categories?: { id?: string; name?: string };
   };
   /** Joined user — Supabase returns table name 'users' */
   users?: {

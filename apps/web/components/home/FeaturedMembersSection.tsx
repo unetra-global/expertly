@@ -13,7 +13,7 @@ function HomeMemberCard({ member }: { member: MemberCardData }) {
     'Expert';
 
   const location = [member.city, member.country].filter(Boolean).join(', ');
-  const serviceName = member.services?.name || member.services?.serviceCategories?.name;
+  const serviceName = member.services?.name || member.services?.categories?.name;
 
   const initials = displayName
     .split(' ')

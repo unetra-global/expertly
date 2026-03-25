@@ -22,9 +22,9 @@ function SidebarArticleList({ articles }: { articles: ArticleFull[] }) {
     <div className="flex flex-col divide-y divide-gray-100">
       {articles.map((a) => (
         <Link key={a.id} href={`/articles/${a.slug}`} className="py-3 first:pt-0 last:pb-0 group">
-          {a.serviceCategory && (
+          {a.category && (
             <p className="text-[10px] font-semibold text-brand-blue uppercase tracking-wide mb-1">
-              {a.serviceCategory.name}
+              {a.category.name}
             </p>
           )}
           <p className="text-xs font-semibold text-brand-navy leading-snug group-hover:text-brand-blue transition-colors line-clamp-2">
@@ -82,9 +82,9 @@ export function ArticleDetail({ article, related, moreByAuthor }: ArticleDetailP
               </Link>
 
               <div className="flex flex-wrap items-center gap-3 text-xs text-brand-text-muted">
-                {article.serviceCategory && (
+                {article.category && (
                   <span className="inline-flex items-center rounded-full bg-brand-blue-subtle border border-blue-100 px-2.5 py-0.5 text-[11px] font-semibold text-brand-blue uppercase tracking-wide">
-                    {article.serviceCategory.name}
+                    {article.category.name}
                   </span>
                 )}
                 {article.publishedAt && (

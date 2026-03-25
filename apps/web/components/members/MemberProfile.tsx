@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ConsultationModal } from './ConsultationModal';
 import { apiClient } from '@/lib/apiClient';
 import type { MemberFullProfile, ArticleListItem } from '@/types/api';
+import { MEMBER_TIER_LABELS, type MemberTier } from '@expertly/utils';
 
 interface MemberProfileProps {
   member: MemberFullProfile;
@@ -400,9 +401,9 @@ function ArticlesTab({ member, displayName }: { member: MemberFullProfile; displ
               />
             )}
             <div className="min-w-0 flex-1">
-              {article.serviceCategory && (
+              {article.category && (
                 <span className="text-xs font-semibold text-brand-blue uppercase tracking-wide">
-                  {article.serviceCategory.name}
+                  {article.category.name}
                 </span>
               )}
               <p className="text-sm font-semibold text-brand-navy mt-0.5 group-hover:text-brand-blue transition-colors line-clamp-2">
@@ -455,10 +456,10 @@ export function MemberProfile({ member, isAuthenticated }: MemberProfileProps) {
     .toUpperCase();
 
   const location = [member.city, member.country].filter(Boolean).join(', ');
-  const isSeasoned = member.memberTier?.toLowerCase().includes('seasoned') ?? false;
+  const isSeasoned = member.memberTier === 'seasoned_professional';
   const hasFeeRange = isSeasoned && isAuthenticated && (member.feeRangeMin || member.feeRangeMax);
   const tierLabel = member.memberTier
-    ? member.memberTier.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+    ? MEMBER_TIER_LABELS[member.memberTier as MemberTier] ?? member.memberTier
     : null;
 
   return (

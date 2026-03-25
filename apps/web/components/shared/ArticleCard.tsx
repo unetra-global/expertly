@@ -12,7 +12,7 @@ export interface ArticleCardData {
   readTime?: number;
   readTimeMinutes?: number;
   publishedAt?: string;
-  serviceCategory?: { id?: string; name: string };
+  category?: { id?: string; name: string };
   author?: {
     slug?: string;
     profilePhotoUrl?: string;
@@ -92,9 +92,9 @@ export function ArticleCard({ article, className }: ArticleCardProps) {
           </div>
         )}
         {/* Category badge — overlaid on image */}
-        {article.serviceCategory?.name && (
+        {article.category?.name && (
           <span className="absolute top-3 left-3 inline-flex items-center rounded-full bg-white/90 backdrop-blur-sm border border-gray-200/50 px-2.5 py-1 text-xs font-semibold text-brand-navy shadow-sm uppercase tracking-wide">
-            {article.serviceCategory.name}
+            {article.category.name}
           </span>
         )}
       </div>
@@ -133,9 +133,9 @@ export function ArticleCard({ article, className }: ArticleCardProps) {
                 </p>
               )}
 
-              {article.serviceCategory?.name && (
+              {article.category?.name && (
                 <p className="text-xs font-medium text-gray-500 truncate leading-tight">
-                  {article.serviceCategory.name}
+                  {article.category.name}
                 </p>
               )}
             </div>

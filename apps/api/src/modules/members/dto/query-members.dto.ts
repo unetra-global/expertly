@@ -1,4 +1,5 @@
 import { IsOptional, IsString, IsInt, IsBoolean, IsUUID, Min, Max, IsIn } from 'class-validator';
+import { MEMBER_TIERS } from '@expertly/utils';
 import { Type, Transform } from 'class-transformer';
 
 export class QueryMembersDto {
@@ -33,7 +34,7 @@ export class QueryMembersDto {
   serviceIds?: string;
 
   @IsOptional()
-  @IsString()
+  @IsIn(MEMBER_TIERS as readonly string[])
   memberTier?: string;
 
   @IsOptional()

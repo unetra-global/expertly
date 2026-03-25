@@ -6,8 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { apiClient } from '@/lib/apiClient';
 import { queryKeys } from '@/hooks/queryKeys';
 import type { OpsMember, Service } from '@/types/api';
-
-const TIER_OPTIONS = ['standard', 'professional', 'premium', 'elite'];
+import { MEMBER_TIERS, MEMBER_TIER_LABELS, type MemberTier } from '@expertly/utils';
 const RENEWAL_MONTHS = [3, 6, 12, 24];
 
 interface CredentialForm {
@@ -199,7 +198,7 @@ export default function MemberDetailPage() {
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
                 <p className="text-slate-500 text-xs">Tier</p>
-                <p className="font-medium text-slate-900 capitalize">{member.membershipTier ?? '—'}</p>
+                <p className="font-medium text-slate-900">{member.membershipTier ? (MEMBER_TIER_LABELS[member.membershipTier as MemberTier] ?? member.membershipTier) : '—'}</p>
               </div>
               <div>
                 <p className="text-slate-500 text-xs">Status</p>
@@ -303,12 +302,12 @@ export default function MemberDetailPage() {
               Change Tier
             </h4>
             <select
-              value={selectedTier || member.membershipTier || 'standard'}
+              value={selectedTier || member.membershipTier || 'budding_entrepreneur'}
               onChange={(e) => setSelectedTier(e.target.value)}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm capitalize focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
             >
-              {TIER_OPTIONS.map((t) => (
-                <option key={t} value={t} className="capitalize">{t}</option>
+              {MEMBER_TIERS.map((t) => (
+                <option key={t} value={t}>{MEMBER_TIER_LABELS[t]}</option>
               ))}
             </select>
             <button

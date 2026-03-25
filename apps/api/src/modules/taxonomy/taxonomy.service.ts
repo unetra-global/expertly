@@ -4,7 +4,7 @@ import { CacheService } from '../../common/services/cache.service';
 
 const TAXONOMY_TTL = 3600; // 1 hour
 
-interface ServiceCategory {
+interface Category {
   id: string;
   name: string;
   slug: string;
@@ -28,20 +28,20 @@ export class TaxonomyService {
     private readonly cache: CacheService,
   ) {}
 
-  async getCategories(): Promise<ServiceCategory[]> {
+  async getCategories(): Promise<Category[]> {
     const key = this.cache.buildKey('taxonomy', 'categories');
 
-    return this.cache.getOrFetch<ServiceCategory[]>(
+    return this.cache.getOrFetch<Category[]>(
       key,
       async () => {
         const { data, error } = await this.supabase.adminClient
-          .from('service_categories')
+          .from('categories')
           .select('id, name, slug, domain, sort_order')
           .eq('is_active', true)
           .order('sort_order');
 
         if (error) throw error;
-        return (data ?? []) as ServiceCategory[];
+        return (data ?? []) as Category[];
       },
       TAXONOMY_TTL,
     );

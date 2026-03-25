@@ -1,3 +1,21 @@
+export {
+  COUNTRIES,
+  COUNTRY_NAMES,
+  COUNTRY_NAME_SET,
+  COUNTRIES_BY_REGION,
+  COUNTRY_TO_REGION,
+  NAME_TO_CODE,
+  CODE_TO_NAME,
+  PHONE_CODES,
+  REGIONS,
+  resolveCountryName,
+  resolveCountryCode,
+} from './countries';
+export type { CountryDef, RegionValue } from './countries';
+
+export { MEMBER_TIERS, MEMBER_TIER_LABELS } from './member-tiers';
+export type { MemberTier } from './member-tiers';
+
 /**
  * Convert a string to a URL-friendly slug.
  * Handles unicode, removes special chars, collapses hyphens.

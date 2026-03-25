@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { SupabaseService } from '../../common/services/supabase.service';
 import { EmbeddingService } from '../../common/services/embedding.service';
 import { AuthUser } from '@expertly/types';
+import { resolveCountryName } from '@expertly/utils';
 import { AiQueryParserService, type ParsedQuery } from './ai-query-parser.service';
 
 // ── Field selects ────────────────────────────────────────────────────────────
@@ -159,14 +160,14 @@ export class SearchService {
       query = query.ilike('city', `%${filters.city}%`);
     }
 
-    // Country stored as ISO-2 — try single country first, then continent/region
+    // Country stored as canonical name (country_enum) — try single country, then continent/region
     if (filters.country) {
-      const iso = countryToIso(filters.country);
-      if (iso) {
-        query = query.eq('country', iso);
+      const canonical = resolveCountry(filters.country);
+      if (canonical) {
+        query = query.eq('country', canonical);
       } else {
-        const isos = continentToIsos(filters.country);
-        if (isos) query = query.in('country', isos);
+        const names = continentToCountryNames(filters.country);
+        if (names) query = query.in('country', names);
       }
     }
 
@@ -242,14 +243,14 @@ export class SearchService {
       );
     }
 
-    // Country stored as ISO-2 — try single country first, then continent/region
+    // Country stored as canonical name (country_enum) — try single country, then continent/region
     if (filters.country) {
-      const iso = countryToIso(filters.country);
-      if (iso) {
-        query = query.eq('country', iso);
+      const canonical = resolveCountry(filters.country);
+      if (canonical) {
+        query = query.eq('country', canonical);
       } else {
-        const isos = continentToIsos(filters.country);
-        if (isos) query = query.in('country', isos);
+        const names = continentToCountryNames(filters.country);
+        if (names) query = query.in('country', names);
       }
     }
 
@@ -264,74 +265,55 @@ export class SearchService {
   }
 }
 
-// ── Country name → ISO-2 code ─────────────────────────────────────────────────
-// The LLM returns full country names; the DB stores ISO-2 codes.
-// Returns null if the name is unrecognised (filter is skipped).
+// ── Country name resolution ───────────────────────────────────────────────────
+// DB stores canonical country names (country_enum). The LLM returns full names
+// or aliases — resolveCountryName (from @expertly/utils) normalises them.
 
-const COUNTRY_ISO_MAP: Record<string, string> = {
-  india: 'IN', 'united kingdom': 'GB', uk: 'GB', britain: 'GB', england: 'GB',
-  'united states': 'US', usa: 'US', us: 'US', america: 'US',
-  uae: 'AE', 'united arab emirates': 'AE', emirates: 'AE',
-  singapore: 'SG', australia: 'AU', germany: 'DE', france: 'FR',
-  nigeria: 'NG', kenya: 'KE', 'south africa': 'ZA', ghana: 'GH',
-  senegal: 'SN', egypt: 'EG', lebanon: 'LB', kuwait: 'KW',
-  pakistan: 'PK', china: 'CN', japan: 'JP', 'south korea': 'KR', korea: 'KR',
-  brazil: 'BR', spain: 'ES', italy: 'IT', portugal: 'PT',
-  belgium: 'BE', ireland: 'IE', denmark: 'DK', norway: 'NO',
-  netherlands: 'NL', holland: 'NL', sweden: 'SE', finland: 'FI',
-  switzerland: 'CH', austria: 'AT', poland: 'PL', czechia: 'CZ', 'czech republic': 'CZ',
-  hungary: 'HU', romania: 'RO', greece: 'GR', turkey: 'TR',
-  'saudi arabia': 'SA', ksa: 'SA', qatar: 'QA', bahrain: 'BH', oman: 'OM',
-  'new zealand': 'NZ', canada: 'CA', mexico: 'MX',
-  indonesia: 'ID', malaysia: 'MY', thailand: 'TH', vietnam: 'VN', philippines: 'PH',
-  bangladesh: 'BD', 'sri lanka': 'LK', nepal: 'NP',
-  ethiopia: 'ET', tanzania: 'TZ', uganda: 'UG', rwanda: 'RW', zimbabwe: 'ZW',
-  morocco: 'MA', tunisia: 'TN', algeria: 'DZ', libya: 'LY',
-  'ivory coast': 'CI', cameroon: 'CM', angola: 'AO', mozambique: 'MZ',
-  argentina: 'AR', chile: 'CL', colombia: 'CO', peru: 'PE', venezuela: 'VE',
-  ukraine: 'UA', russia: 'RU', israel: 'IL', jordan: 'JO', iraq: 'IQ', iran: 'IR',
+// ── Continent/region → canonical country names ──────────────────────────────
+// When the LLM extracts a continent or regional name, expand to country names
+// matching the country_enum values stored in the DB.
+
+const CONTINENT_COUNTRY_MAP: Record<string, string[]> = {
+  europe: ['United Kingdom', 'Germany', 'France', 'Spain', 'Italy', 'Portugal', 'Belgium',
+           'Ireland', 'Netherlands', 'Sweden', 'Denmark', 'Norway', 'Finland',
+           'Switzerland', 'Austria', 'Poland', 'Czech Republic', 'Hungary', 'Romania',
+           'Greece', 'Turkey', 'Ukraine', 'Russia'],
+  'western europe': ['United Kingdom', 'Germany', 'France', 'Spain', 'Italy', 'Portugal',
+                     'Belgium', 'Ireland', 'Netherlands', 'Switzerland', 'Austria'],
+  'eastern europe': ['Poland', 'Czech Republic', 'Hungary', 'Romania', 'Ukraine', 'Russia', 'Greece'],
+  'northern europe': ['Sweden', 'Denmark', 'Norway', 'Finland', 'Ireland', 'United Kingdom'],
+  'southern europe': ['Spain', 'Italy', 'Portugal', 'Greece', 'Turkey'],
+  africa: ['Nigeria', 'Kenya', 'South Africa', 'Ghana', 'Senegal', 'Egypt', 'Ethiopia',
+           'Tanzania', 'Uganda', 'Rwanda', 'Zimbabwe', 'Morocco', 'Tunisia', 'Algeria',
+           'Libya', "Côte d'Ivoire", 'Cameroon', 'Angola', 'Mozambique'],
+  'west africa': ['Nigeria', 'Ghana', 'Senegal', "Côte d'Ivoire", 'Cameroon'],
+  'east africa': ['Kenya', 'Ethiopia', 'Tanzania', 'Uganda', 'Rwanda'],
+  'north africa': ['Egypt', 'Morocco', 'Tunisia', 'Algeria', 'Libya'],
+  'southern africa': ['South Africa', 'Zimbabwe', 'Mozambique', 'Angola'],
+  'middle east': ['United Arab Emirates', 'Saudi Arabia', 'Qatar', 'Kuwait', 'Bahrain',
+                  'Oman', 'Lebanon', 'Jordan', 'Egypt', 'Iraq', 'Iran', 'Israel'],
+  mena: ['United Arab Emirates', 'Saudi Arabia', 'Qatar', 'Kuwait', 'Bahrain', 'Oman',
+         'Lebanon', 'Jordan', 'Egypt', 'Iraq', 'Iran', 'Morocco', 'Tunisia', 'Algeria'],
+  gulf: ['United Arab Emirates', 'Saudi Arabia', 'Qatar', 'Kuwait', 'Bahrain', 'Oman'],
+  gcc: ['United Arab Emirates', 'Saudi Arabia', 'Qatar', 'Kuwait', 'Bahrain', 'Oman'],
+  asia: ['India', 'China', 'Japan', 'South Korea', 'Singapore', 'Malaysia', 'Indonesia',
+         'Thailand', 'Vietnam', 'Philippines', 'Pakistan', 'Bangladesh', 'Sri Lanka', 'Nepal'],
+  'south asia': ['India', 'Pakistan', 'Bangladesh', 'Sri Lanka', 'Nepal'],
+  'southeast asia': ['Singapore', 'Malaysia', 'Indonesia', 'Thailand', 'Vietnam', 'Philippines'],
+  'east asia': ['China', 'Japan', 'South Korea'],
+  'north america': ['United States', 'Canada', 'Mexico'],
+  'latin america': ['Brazil', 'Mexico', 'Argentina', 'Chile', 'Colombia', 'Peru', 'Venezuela'],
+  'south america': ['Brazil', 'Argentina', 'Chile', 'Colombia', 'Peru', 'Venezuela'],
+  oceania: ['Australia', 'New Zealand'],
 };
 
-// ── Continent/region → ISO-2 codes ───────────────────────────────────────────
-// When the LLM extracts a continent or regional name, expand to known ISO codes.
-
-const CONTINENT_ISO_MAP: Record<string, string[]> = {
-  europe: ['GB', 'DE', 'FR', 'ES', 'IT', 'PT', 'BE', 'IE', 'NL', 'SE', 'DK', 'NO', 'FI',
-           'CH', 'AT', 'PL', 'CZ', 'HU', 'RO', 'GR', 'TR', 'UA', 'RU'],
-  'western europe': ['GB', 'DE', 'FR', 'ES', 'IT', 'PT', 'BE', 'IE', 'NL', 'CH', 'AT'],
-  'eastern europe': ['PL', 'CZ', 'HU', 'RO', 'UA', 'RU', 'GR'],
-  'northern europe': ['SE', 'DK', 'NO', 'FI', 'IE', 'GB'],
-  'southern europe': ['ES', 'IT', 'PT', 'GR', 'TR'],
-  africa: ['NG', 'KE', 'ZA', 'GH', 'SN', 'EG', 'ET', 'TZ', 'UG', 'RW', 'ZW',
-           'MA', 'TN', 'DZ', 'LY', 'CI', 'CM', 'AO', 'MZ'],
-  'west africa': ['NG', 'GH', 'SN', 'CI', 'CM'],
-  'east africa': ['KE', 'ET', 'TZ', 'UG', 'RW'],
-  'north africa': ['EG', 'MA', 'TN', 'DZ', 'LY'],
-  'southern africa': ['ZA', 'ZW', 'MZ', 'AO'],
-  'middle east': ['AE', 'SA', 'QA', 'KW', 'BH', 'OM', 'LB', 'JO', 'EG', 'IQ', 'IR', 'IL'],
-  mena: ['AE', 'SA', 'QA', 'KW', 'BH', 'OM', 'LB', 'JO', 'EG', 'IQ', 'IR', 'MA', 'TN', 'DZ'],
-  gulf: ['AE', 'SA', 'QA', 'KW', 'BH', 'OM'],
-  gcc: ['AE', 'SA', 'QA', 'KW', 'BH', 'OM'],
-  asia: ['IN', 'CN', 'JP', 'KR', 'SG', 'MY', 'ID', 'TH', 'VN', 'PH', 'PK', 'BD', 'LK', 'NP'],
-  'south asia': ['IN', 'PK', 'BD', 'LK', 'NP'],
-  'southeast asia': ['SG', 'MY', 'ID', 'TH', 'VN', 'PH'],
-  'east asia': ['CN', 'JP', 'KR'],
-  'north america': ['US', 'CA', 'MX'],
-  'latin america': ['BR', 'MX', 'AR', 'CL', 'CO', 'PE', 'VE'],
-  'south america': ['BR', 'AR', 'CL', 'CO', 'PE', 'VE'],
-  oceania: ['AU', 'NZ'],
-};
-
-/** Returns a single ISO-2 code for a country name, or null. */
-function countryToIso(name: string): string | null {
-  const key = name.trim().toLowerCase();
-  // Already an ISO-2 code (e.g. "IN", "GB") — pass through
-  if (/^[a-z]{2}$/i.test(key)) return key.toUpperCase();
-  return COUNTRY_ISO_MAP[key] ?? null;
+/** Returns the canonical country name, or null if unrecognised. */
+function resolveCountry(name: string): string | null {
+  return resolveCountryName(name);
 }
 
-/** Returns a list of ISO-2 codes for a continent/region name, or null. */
-function continentToIsos(name: string): string[] | null {
+/** Returns a list of canonical country names for a continent/region, or null. */
+function continentToCountryNames(name: string): string[] | null {
   const key = name.trim().toLowerCase();
-  return CONTINENT_ISO_MAP[key] ?? null;
+  return CONTINENT_COUNTRY_MAP[key] ?? null;
 }

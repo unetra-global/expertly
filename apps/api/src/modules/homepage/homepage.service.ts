@@ -13,7 +13,7 @@ const FEATURED_MEMBER_FIELDS =
 const ARTICLE_FIELDS =
   'id, title, slug, excerpt, cover_image_url, tags, read_time, published_at, author_id, ' +
   'author:members!author_id(id, slug, designation, profile_photo_url, user:users!user_id(first_name, last_name)), ' +
-  'service_category:service_categories!category_id(id, name)';
+  'category:categories!category_id(id, name)';
 
 const EVENT_FIELDS =
   'id, title, slug, description, cover_image_url, start_date, end_date, ' +
