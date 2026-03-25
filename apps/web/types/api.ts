@@ -503,17 +503,23 @@ export interface OpsEvent {
   title: string;
   shortDescription?: string;
   description?: string;
-  format?: string;
+  /** DB: event_format → camelCased to eventFormat */
+  eventFormat?: string;
   country?: string;
   city?: string;
-  venue?: string;
+  /** DB: venue_name → camelCased to venueName */
+  venueName?: string;
+  /** DB: start_date → camelCased to startDate */
   startDate: string;
+  /** DB: end_date → camelCased to endDate */
   endDate?: string;
   registrationUrl?: string;
   coverImageUrl?: string;
   isPublished?: boolean;
-  regions?: string[];
+  isFeatured?: boolean;
   tags?: string[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface AdminUser {

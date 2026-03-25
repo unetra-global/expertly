@@ -1075,11 +1075,46 @@ export class OpsService {
 
   // ── Events ────────────────────────────────────────────────────────────────
 
-  async createEvent(body: Record<string, unknown>) {
+  async listEvents() {
     const { data, error } = await this.supabase.adminClient
       .from('events')
-      .insert(body)
-      .select()
+      .select(
+        'id, slug, title, short_description, description, event_format, ' +
+          'country, city, venue_name, start_date, end_date, ' +
+          'registration_url, cover_image_url, is_published, is_featured, tags, ' +
+          'created_at, updated_at',
+      )
+      .order('start_date', { ascending: false });
+
+    if (error) throw new BadRequestException(error.message);
+    return data ?? [];
+  }
+
+  async createEvent(body: Record<string, unknown>) {
+    // Map camelCase frontend fields to snake_case DB columns
+    const slug = slugify(String(body.title ?? '')) + '-' + randomSuffix();
+    const row: Record<string, unknown> = {
+      slug,
+      title: body.title,
+      short_description: body.shortDescription ?? null,
+      description: body.description ?? '',
+      event_format: body.format ?? 'online',
+      country: body.country ?? null,
+      city: body.city ?? null,
+      venue_name: body.venue ?? null,
+      start_date: body.startDate,
+      end_date: body.endDate ?? null,
+      registration_url: body.registrationUrl ?? null,
+      cover_image_url: body.coverImageUrl ?? null,
+      tags: body.tags ?? [],
+      is_published: body.isPublished ?? false,
+      source: 'ops',
+    };
+
+    const { data, error } = await this.supabase.adminClient
+      .from('events')
+      .insert(row)
+      .select('id, slug, title, short_description, event_format, country, city, start_date, is_published')
       .single();
 
     if (error) throw new BadRequestException(error.message);
@@ -1093,21 +1128,54 @@ export class OpsService {
     return data;
   }
 
-  async updateEvent(id: string, body: Record<string, unknown>) {
+  async publishEvent(id: string, isPublished: boolean) {
     const { data, error } = await this.supabase.adminClient
       .from('events')
-      .update(body)
+      .update({ is_published: isPublished })
       .eq('id', id)
-      .select()
+      .select('id, is_published')
+      .single();
+
+    if (error || !data) throw new BadRequestException(error?.message ?? 'Event not found');
+    await this.cache.delByPattern('expertly:events:*');
+    return data;
+  }
+
+  async updateEvent(id: string, body: Record<string, unknown>) {
+    // Map camelCase frontend fields to snake_case DB columns
+    const updates: Record<string, unknown> = {};
+    const fieldMap: Record<string, string> = {
+      title: 'title',
+      shortDescription: 'short_description',
+      description: 'description',
+      format: 'event_format',
+      country: 'country',
+      city: 'city',
+      venue: 'venue_name',
+      startDate: 'start_date',
+      endDate: 'end_date',
+      registrationUrl: 'registration_url',
+      coverImageUrl: 'cover_image_url',
+      isPublished: 'is_published',
+      isFeatured: 'is_featured',
+      tags: 'tags',
+    };
+    for (const [camel, snake] of Object.entries(fieldMap)) {
+      if (camel in body) updates[snake] = body[camel];
+    }
+
+    const { data, error } = await this.supabase.adminClient
+      .from('events')
+      .update(updates)
+      .eq('id', id)
+      .select('id, slug, title, short_description, event_format, country, city, start_date, is_published')
       .single();
 
     if (error) throw new BadRequestException(error.message);
     await this.cache.delByPattern('expertly:events:*');
 
-    // Re-embed if any embeddable field changed (jobId deduplicates rapid edits)
-    const eventEmbeddableFields = ['title', 'description', 'event_type', 'country', 'city'];
-    const needsReEmbed = eventEmbeddableFields.some((f) => f in body);
-    if (needsReEmbed) {
+    const embeddableFields = ['title', 'description', 'format', 'country', 'city'];
+    if (embeddableFields.some((f) => f in body)) {
       await this.aiQueue?.add(
         QUEUE_JOB_TYPES.GENERATE_EMBEDDING,
         { entityType: 'event', entityId: id },

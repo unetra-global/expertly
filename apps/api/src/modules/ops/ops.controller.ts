@@ -212,12 +212,24 @@ export class OpsController {
     return this.ops.archiveArticle(id, body);
   }
 
-  // ── Events (backend_admin only for create/delete) ─────────────────────────
+  // ── Events ────────────────────────────────────────────────────────────────
+
+  @Get('events')
+  listEvents() {
+    return this.ops.listEvents();
+  }
 
   @Post('events')
-  @Roles('backend_admin')
   createEvent(@Body() body: Record<string, unknown>) {
     return this.ops.createEvent(body);
+  }
+
+  @Patch('events/:id/publish')
+  publishEvent(
+    @Param('id') id: string,
+    @Body() body: { isPublished: boolean },
+  ) {
+    return this.ops.publishEvent(id, body.isPublished);
   }
 
   @Patch('events/:id')
@@ -229,7 +241,6 @@ export class OpsController {
   }
 
   @Delete('events/:id')
-  @Roles('backend_admin')
   deleteEvent(@Param('id') id: string) {
     return this.ops.deleteEvent(id);
   }

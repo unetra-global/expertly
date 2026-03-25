@@ -49,6 +49,7 @@ export default function EventsPage() {
   const { data: events = [], isLoading } = useQuery({
     queryKey: queryKeys.ops.events(),
     queryFn: () => apiClient.get<OpsEvent[]>('/ops/events'),
+    select: (data) => (Array.isArray(data) ? data : (data as { data?: OpsEvent[] }).data ?? []),
   });
 
   const invalidate = () =>
@@ -163,7 +164,7 @@ export default function EventsPage() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-slate-600 capitalize">
-                      {event.format?.replace('_', ' ') ?? '—'}
+                      {event.eventFormat?.replace('_', ' ') ?? '—'}
                     </td>
                     <td className="px-4 py-3 text-slate-600">
                       {[event.city, event.country].filter(Boolean).join(', ') || '—'}
