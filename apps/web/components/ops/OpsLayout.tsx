@@ -17,7 +17,6 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Members', href: '/ops/members', icon: '👥' },
   { label: 'Articles', href: '/ops/articles', icon: '📝' },
   { label: 'Events', href: '/ops/events', icon: '📅' },
-  { label: 'Seat Allocations', href: '/ops/seats', icon: '🪑' },
   { label: 'Regulatory', href: '/ops/regulatory', icon: '📡' },
   { label: 'Broadcast', href: '/ops/broadcast', icon: '📢', adminOnly: true },
   { label: 'Admin', href: '/ops/admin', icon: '⚙️', adminOnly: true },

@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ConflictException,
   Injectable,
   Logger,
   NotFoundException,
@@ -96,10 +95,14 @@ export class OpsService {
       .from('applications')
       .select(
         'id, user_id, status, current_step, first_name, last_name, designation, headline, bio, ' +
-          'linkedin_url, profile_photo_url, firm_name, firm_size, country, city, ' +
+          'linkedin_url, profile_photo_url, profile_photo_base64, ' +
+          'region, state, city, country, phone_extension, phone, contact_email, ' +
+          'years_of_experience, firm_name, firm_size, website_url, ' +
           'consultation_fee_min_usd, consultation_fee_max_usd, qualifications, credentials, ' +
           'work_experience, education, primary_service_id, secondary_service_ids, ' +
-          'engagements, availability, submitted_at, reviewed_at, ' +
+          'key_engagements, engagements, availability, ' +
+          'motivation_why, motivation_engagement, motivation_unique, ' +
+          'membership_tier, submitted_at, reviewed_at, ' +
           'rejection_reason, re_application_eligible_at, created_at, updated_at',
       )
       .eq('id', id)
@@ -277,9 +280,14 @@ export class OpsService {
     if (error) throw new BadRequestException(error.message);
 
     // Flatten user.first_name / user.last_name to top level
-    type MemberRow = { user: { first_name: string; last_name: string } | null; [key: string]: unknown };
-    const flat = (data as unknown as MemberRow[] ?? []).map(({ user, ...m }) => ({
+    type MemberRow = {
+      user: { first_name: string; last_name: string } | null;
+      membership_expiry_date: string | null;
+      [key: string]: unknown;
+    };
+    const flat = (data as unknown as MemberRow[] ?? []).map(({ user, membership_expiry_date, ...m }) => ({
       ...m,
+      membership_expiry_at: membership_expiry_date,
       first_name: user?.first_name ?? '',
       last_name: user?.last_name ?? '',
     }));
@@ -300,21 +308,35 @@ export class OpsService {
       .from('members')
       .select(
         'id, slug, designation, headline, bio, ' +
-          'membership_status, is_verified, is_featured, member_tier, membership_expiry_date, ' +
-          'linkedin_url, profile_photo_url, country, city, ' +
-          'pending_service_change, re_verification_requested_at, user_id, created_at, ' +
-          'user:users!user_id(first_name, last_name)',
+          'membership_status, is_verified, is_featured, member_tier, ' +
+          'membership_start_date, membership_expiry_date, ' +
+          'linkedin_url, profile_photo_url, profile_photo_base64, ' +
+          'country, city, region, state, ' +
+          'contact_phone, contact_email, firm_name, firm_size, website, ' +
+          'years_of_experience, consultation_fee_min_usd, consultation_fee_max_usd, ' +
+          'qualifications, credentials, work_experience, education, testimonials, engagements, ' +
+          'primary_service_id, key_engagements, ' +
+          'motivation_why, motivation_engagement, motivation_unique, ' +
+          'pending_service_change, re_verification_requested_at, user_id, created_at, updated_at, ' +
+          'user:users!user_id(first_name, last_name, email)',
       )
       .eq('id', id)
       .single();
 
     if (error || !data) throw new NotFoundException('Member not found');
 
-    const { user, ...m } = data as unknown as { user: { first_name: string; last_name: string } | null; [key: string]: unknown };
+    const { user, membership_expiry_date, ...m } = data as unknown as {
+      user: { first_name: string; last_name: string; email: string } | null;
+      membership_expiry_date: string | null;
+      [key: string]: unknown;
+    };
     return {
       ...m,
+      // Rename to match frontend interface (membershipExpiryAt after camelCase conversion)
+      membership_expiry_at: membership_expiry_date,
       first_name: user?.first_name ?? '',
       last_name: user?.last_name ?? '',
+      email: user?.email ?? '',
     };
   }
 
@@ -357,15 +379,7 @@ export class OpsService {
       );
     }
 
-    // Step 3: claim_seat atomically via DB function
-    const seatClaimed = await this.claimSeat(a.primary_service_id, a.country ?? '');
-    if (!seatClaimed) {
-      throw new ConflictException(
-        'No seats available for this service category. Create a seat first.',
-      );
-    }
-
-    // Step 4: Generate unique slug
+    // Step 3: Generate unique slug
     const baseName = slugify(`${a.first_name ?? ''} ${a.last_name ?? ''}`);
     let slug = baseName;
     for (let i = 0; i < 10; i++) {
@@ -524,18 +538,6 @@ export class OpsService {
     });
 
     return { memberId, slug };
-  }
-
-  private async claimSeat(serviceId: string, country: string): Promise<boolean> {
-    const { data, error } = await this.supabase.adminClient.rpc('claim_seat', {
-      p_service_id: serviceId,
-      p_country: country,
-    });
-    if (error) {
-      this.logger.error('claim_seat RPC error', error);
-      return false;
-    }
-    return !!data;
   }
 
   async verifyMember(id: string) {
@@ -749,25 +751,35 @@ export class OpsService {
   async renewMembership(
     id: string,
     operator: AuthUser,
-    body: { paymentReceivedAt?: string; renewalPeriodYears?: number; paymentReceivedBy?: string },
+    body: {
+      paymentReceivedAt?: string;
+      renewalPeriodYears?: number;
+      paymentReceivedBy?: string;
+      membershipExpiryAt?: string;
+    },
   ) {
     const sb = this.supabase.adminClient;
 
     const { data: member } = await sb
       .from('members')
-      .select('id, first_name, last_name, user_id, membership_expiry_date, membership_status')
+      .select('id, user_id, membership_expiry_date, membership_status, user:users!user_id(first_name, last_name)')
       .eq('id', id)
       .single();
 
     if (!member) throw new NotFoundException('Member not found');
     const m = member as any;
 
-    const years = body.renewalPeriodYears ?? 1;
-    const base = m.membership_expiry_date
-      ? new Date(m.membership_expiry_date)
-      : new Date();
-    base.setFullYear(base.getFullYear() + years);
-    const newExpiry = base.toISOString();
+    let newExpiry: string;
+    if (body.membershipExpiryAt) {
+      newExpiry = new Date(body.membershipExpiryAt).toISOString();
+    } else {
+      const years = body.renewalPeriodYears ?? 1;
+      const base = m.membership_expiry_date
+        ? new Date(m.membership_expiry_date)
+        : new Date();
+      base.setFullYear(base.getFullYear() + years);
+      newExpiry = base.toISOString();
+    }
 
     await sb
       .from('members')
@@ -789,7 +801,7 @@ export class OpsService {
 
     const { data: user } = await sb
       .from('users')
-      .select('email')
+      .select('email, first_name, last_name')
       .eq('id', m.user_id)
       .single();
 
@@ -799,14 +811,28 @@ export class OpsService {
       year: 'numeric',
     });
 
+    const u = user as any;
     await this.email.sendK22MembershipRenewed({
-      to: (user as any)?.email ?? '',
-      memberName: `${m.first_name ?? ''} ${m.last_name ?? ''}`.trim(),
+      to: u?.email ?? '',
+      memberName: `${u?.first_name ?? ''} ${u?.last_name ?? ''}`.trim(),
       newExpiryDate: formatted,
     });
 
     await this.cache.delByPattern('expertly:members:*');
     return { message: 'Membership renewed', newExpiryAt: newExpiry };
+  }
+
+  // ── Ops Users ──────────────────────────────────────────────────────────────
+
+  async listOpsUsers() {
+    const { data, error } = await this.supabase.adminClient
+      .from('users')
+      .select('id, email, first_name, last_name, role')
+      .in('role', ['ops', 'backend_admin'])
+      .order('first_name', { ascending: true });
+
+    if (error) throw new BadRequestException(error.message);
+    return data ?? [];
   }
 
   // ── Articles ──────────────────────────────────────────────────────────────
@@ -1014,63 +1040,6 @@ export class OpsService {
 
     await this.cache.delByPattern('expertly:articles:*');
     return { message: 'Article archived' };
-  }
-
-  // ── Seats ─────────────────────────────────────────────────────────────────
-
-  async listSeats() {
-    const { data, error } = await this.supabase.adminClient
-      .from('seats')
-      .select(
-        'id, category_id, service_id, capacity, claimed_count, is_active, created_at',
-      )
-      .order('created_at', { ascending: false });
-
-    if (error) throw new BadRequestException(error.message);
-    return data ?? [];
-  }
-
-  async createSeat(body: {
-    categoryId?: string;
-    serviceId?: string;
-    capacity: number;
-  }) {
-    if (!body.categoryId && !body.serviceId) {
-      throw new BadRequestException(
-        'Either categoryId or serviceId is required',
-      );
-    }
-
-    const { data, error } = await this.supabase.adminClient
-      .from('seats')
-      .insert({
-        category_id: body.categoryId,
-        service_id: body.serviceId,
-        capacity: body.capacity,
-        claimed_count: 0,
-        is_active: true,
-      })
-      .select()
-      .single();
-
-    if (error) throw new BadRequestException(error.message);
-    return data;
-  }
-
-  async updateSeat(id: string, body: { capacity?: number; isActive?: boolean }) {
-    const update: Record<string, unknown> = {};
-    if (body.capacity !== undefined) update.capacity = body.capacity;
-    if (body.isActive !== undefined) update.is_active = body.isActive;
-
-    const { data, error } = await this.supabase.adminClient
-      .from('seats')
-      .update(update)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) throw new BadRequestException(error.message);
-    return data;
   }
 
   // ── Events ────────────────────────────────────────────────────────────────

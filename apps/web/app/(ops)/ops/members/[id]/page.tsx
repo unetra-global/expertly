@@ -7,7 +7,6 @@ import { apiClient } from '@/lib/apiClient';
 import { queryKeys } from '@/hooks/queryKeys';
 import type { OpsMember, Service } from '@/types/api';
 import { MEMBER_TIERS, MEMBER_TIER_LABELS, type MemberTier } from '@expertly/utils';
-const RENEWAL_MONTHS = [3, 6, 12, 24];
 
 interface CredentialForm {
   name: string;
@@ -17,6 +16,24 @@ interface CredentialForm {
 }
 
 const EMPTY_CREDENTIAL: CredentialForm = { name: '', issuingBody: '', year: '', url: '' };
+
+function formatDate(dateStr?: string | null) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? dateStr : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function formatWorkPeriod(exp: { startDate?: string; endDate?: string; startYear?: number; endYear?: number; isCurrent?: boolean }) {
+  const start = exp.startDate
+    ? new Date(exp.startDate + '-01').toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })
+    : exp.startYear?.toString() ?? '';
+  const end = exp.isCurrent
+    ? 'Present'
+    : exp.endDate
+    ? new Date(exp.endDate + '-01').toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })
+    : exp.endYear?.toString() ?? 'Present';
+  return start && end ? `${start} – ${end}` : start || end;
+}
 
 export default function MemberDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -28,7 +45,7 @@ export default function MemberDetailPage() {
   const [showCredentialModal, setShowCredentialModal] = useState(false);
   const [credentialForm, setCredentialForm] = useState<CredentialForm>(EMPTY_CREDENTIAL);
   const [selectedTier, setSelectedTier] = useState('');
-  const [renewMonths, setRenewMonths] = useState(12);
+  const [newExpiryDate, setNewExpiryDate] = useState('');
   const [serviceChangeId, setServiceChangeId] = useState('');
 
   const { data: member, isLoading } = useQuery({
@@ -37,7 +54,6 @@ export default function MemberDetailPage() {
     enabled: !!id,
   });
 
-  // Initialise tier from fetched data (React Query v5 — no onSuccess)
   useEffect(() => {
     if (member?.membershipTier && !selectedTier) {
       setSelectedTier(member.membershipTier);
@@ -109,8 +125,14 @@ export default function MemberDetailPage() {
 
   const renewMutation = useMutation({
     mutationFn: () =>
-      apiClient.post(`/ops/members/${id}/renew`, { months: renewMonths }),
-    onSuccess: invalidate,
+      apiClient.patch(`/ops/members/${id}/renew`, {
+        membershipExpiryAt: newExpiryDate,
+        paymentReceivedAt: new Date().toISOString(),
+      }),
+    onSuccess: () => {
+      invalidate();
+      setNewExpiryDate('');
+    },
   });
 
   if (isLoading) {
@@ -130,6 +152,12 @@ export default function MemberDetailPage() {
     member.membershipExpiryAt &&
     new Date(member.membershipExpiryAt) < new Date(Date.now() + 30 * 864e5);
 
+  const photoSrc = member.profilePhotoBase64
+    ? `data:image/webp;base64,${member.profilePhotoBase64}`
+    : member.profilePhotoUrl ?? null;
+
+  const fullName = [member.firstName, member.lastName].filter(Boolean).join(' ') || member.slug;
+
   return (
     <div>
       {/* Header */}
@@ -141,20 +169,19 @@ export default function MemberDetailPage() {
           ←
         </button>
         <div className="flex items-center gap-3">
-          {member.profilePhotoUrl && (
+          {photoSrc ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={member.profilePhotoUrl}
-              alt=""
-              className="w-12 h-12 rounded-full object-cover"
-            />
+            <img src={photoSrc} alt="" className="w-12 h-12 rounded-full object-cover" />
+          ) : (
+            <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 text-lg font-semibold">
+              {fullName.charAt(0).toUpperCase()}
+            </div>
           )}
           <div>
-            <h2 className="text-2xl font-bold text-slate-900">
-              {[member.firstName, member.lastName].filter(Boolean).join(' ') || member.slug}
-            </h2>
+            <h2 className="text-2xl font-bold text-slate-900">{fullName}</h2>
             <p className="text-sm text-slate-500">
-              {member.designation} · {member.slug}
+              {member.designation}
+              {member.slug && <span className="ml-2 text-slate-400">· {member.slug}</span>}
               {member.isVerified && (
                 <span className="ml-2 text-green-600 font-medium">✓ Verified</span>
               )}
@@ -169,36 +196,101 @@ export default function MemberDetailPage() {
       <div className="flex gap-6 items-start">
         {/* Left panel — member profile */}
         <div className="flex-1 min-w-0 space-y-4">
-          {/* Bio */}
+
+          {/* Profile */}
           <div className="bg-white rounded-xl border border-slate-200 p-5">
-            <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-              Profile
-            </h4>
+            <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Profile</h4>
             {member.headline && (
               <p className="font-medium text-slate-900 mb-2">{member.headline}</p>
             )}
             {member.bio && (
               <p className="text-sm text-slate-600 leading-relaxed">{member.bio}</p>
             )}
-            <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-500">
-              <span>{member.city}, {member.country}</span>
+            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+              {(member.city || member.country) && (
+                <span>{[member.city, member.state, member.region, member.country].filter(Boolean).join(', ')}</span>
+              )}
               {member.linkedinUrl && (
                 <a href={member.linkedinUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
                   LinkedIn ↗
                 </a>
               )}
+              {member.website && (
+                <a href={member.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                  Website ↗
+                </a>
+              )}
             </div>
           </div>
 
-          {/* Membership info */}
+          {/* Contact */}
           <div className="bg-white rounded-xl border border-slate-200 p-5">
-            <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
-              Membership
-            </h4>
+            <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Contact</h4>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              {member.email && (
+                <div>
+                  <p className="text-slate-500 text-xs">Account Email</p>
+                  <p className="font-medium text-slate-900">{member.email}</p>
+                </div>
+              )}
+              {member.contactEmail && (
+                <div>
+                  <p className="text-slate-500 text-xs">Contact Email</p>
+                  <p className="font-medium text-slate-900">{member.contactEmail}</p>
+                </div>
+              )}
+              {member.contactPhone && (
+                <div>
+                  <p className="text-slate-500 text-xs">Phone</p>
+                  <p className="font-medium text-slate-900">{member.contactPhone}</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Professional Overview */}
+          <div className="bg-white rounded-xl border border-slate-200 p-5">
+            <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Professional Overview</h4>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              {member.yearsOfExperience != null && (
+                <div>
+                  <p className="text-slate-500 text-xs">Years of Experience</p>
+                  <p className="font-medium text-slate-900">{member.yearsOfExperience} years</p>
+                </div>
+              )}
+              {member.firmName && (
+                <div>
+                  <p className="text-slate-500 text-xs">Firm</p>
+                  <p className="font-medium text-slate-900">
+                    {member.firmName}
+                    {member.firmSize && <span className="text-slate-500"> · {member.firmSize}</span>}
+                  </p>
+                </div>
+              )}
+              {(member.consultationFeeMinUsd != null || member.consultationFeeMaxUsd != null) && (
+                <div>
+                  <p className="text-slate-500 text-xs">Consultation Fee (USD)</p>
+                  <p className="font-medium text-slate-900">
+                    {member.consultationFeeMinUsd != null && member.consultationFeeMaxUsd != null
+                      ? `$${member.consultationFeeMinUsd} – $${member.consultationFeeMaxUsd}`
+                      : member.consultationFeeMinUsd != null
+                      ? `From $${member.consultationFeeMinUsd}`
+                      : `Up to $${member.consultationFeeMaxUsd}`}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Membership */}
+          <div className="bg-white rounded-xl border border-slate-200 p-5">
+            <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Membership</h4>
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
                 <p className="text-slate-500 text-xs">Tier</p>
-                <p className="font-medium text-slate-900">{member.membershipTier ? (MEMBER_TIER_LABELS[member.membershipTier as MemberTier] ?? member.membershipTier) : '—'}</p>
+                <p className="font-medium text-slate-900">
+                  {member.membershipTier ? (MEMBER_TIER_LABELS[member.membershipTier as MemberTier] ?? member.membershipTier) : '—'}
+                </p>
               </div>
               <div>
                 <p className="text-slate-500 text-xs">Status</p>
@@ -207,45 +299,160 @@ export default function MemberDetailPage() {
                 </p>
               </div>
               <div>
-                <p className="text-slate-500 text-xs">Expires</p>
-                <p className={`font-medium ${isExpiring ? 'text-red-600' : 'text-slate-900'}`}>
-                  {member.membershipExpiryAt
-                    ? new Date(member.membershipExpiryAt).toLocaleDateString()
-                    : '—'}
-                  {isExpiring && ' ⚠'}
+                <p className="text-slate-500 text-xs">Start Date</p>
+                <p className="font-medium text-slate-900">
+                  {formatDate(member.membershipStartDate) ?? formatDate(member.createdAt) ?? '—'}
                 </p>
               </div>
               <div>
-                <p className="text-slate-500 text-xs">Member since</p>
-                <p className="font-medium text-slate-900">
-                  {new Date(member.createdAt).toLocaleDateString()}
+                <p className="text-slate-500 text-xs">Expiry Date</p>
+                <p className={`font-medium ${isExpiring ? 'text-red-600' : 'text-slate-900'}`}>
+                  {formatDate(member.membershipExpiryAt) ?? '—'}
+                  {isExpiring && ' ⚠'}
                 </p>
               </div>
             </div>
           </div>
 
+          {/* Qualifications */}
+          {member.qualifications && (
+            <div className="bg-white rounded-xl border border-slate-200 p-5">
+              <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Qualifications</h4>
+              <div className="flex flex-wrap gap-2">
+                {member.qualifications.split(',').map((q, i) => (
+                  <span key={i} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                    {q.trim()}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Credentials */}
           {member.credentials && member.credentials.length > 0 && (
             <div className="bg-white rounded-xl border border-slate-200 p-5">
-              <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
-                Credentials
-              </h4>
-              <div className="space-y-2">
-                {member.credentials.map((c) => (
-                  <div key={c.id} className="flex items-center gap-2">
-                    <span className={`text-xs ${c.isVerified ? 'text-green-600' : 'text-slate-400'}`}>
-                      {c.isVerified ? '✓' : '○'}
-                    </span>
-                    <div>
-                      <p className="text-sm text-slate-900">{c.name}</p>
-                      {c.issuingBody && (
-                        <p className="text-xs text-slate-500">
-                          {c.issuingBody} {c.year ? `· ${c.year}` : ''}
-                        </p>
-                      )}
+              <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Credentials</h4>
+              <div className="space-y-3">
+                {member.credentials.map((c) => {
+                  const credName = c.qualificationName ?? c.name ?? '';
+                  const docUrl = c.documentUrl ?? c.url;
+                  return (
+                    <div key={c.id} className="flex items-start justify-between gap-3 py-2 border-b border-slate-100 last:border-0">
+                      <div className="flex items-start gap-2 min-w-0">
+                        <span className={`mt-0.5 text-xs shrink-0 ${c.isVerified ? 'text-green-600' : 'text-slate-400'}`}>
+                          {c.isVerified ? '✓' : '○'}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-slate-900">
+                            {credName}
+                            {c.abbreviation && <span className="ml-1 text-slate-500">({c.abbreviation})</span>}
+                          </p>
+                          {(c.issuingBody || c.year) && (
+                            <p className="text-xs text-slate-500">
+                              {[c.issuingBody, c.year].filter(Boolean).join(' · ')}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="shrink-0">
+                        {docUrl ? (
+                          <a
+                            href={docUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-blue-600 hover:underline whitespace-nowrap"
+                          >
+                            View Document ↗
+                          </a>
+                        ) : (
+                          <span className="text-xs text-amber-600 whitespace-nowrap">No document</span>
+                        )}
+                      </div>
                     </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Work Experience */}
+          {member.workExperience && member.workExperience.length > 0 && (
+            <div className="bg-white rounded-xl border border-slate-200 p-5">
+              <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Work Experience</h4>
+              <div className="space-y-4">
+                {member.workExperience.map((exp, i) => (
+                  <div key={exp.id ?? i} className="border-l-2 border-blue-200 pl-3">
+                    <p className="text-sm font-medium text-slate-900">{exp.title}</p>
+                    <p className="text-sm text-slate-700">{exp.company}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{formatWorkPeriod(exp)}</p>
+                    {exp.description && (
+                      <p className="text-xs text-slate-600 mt-1 leading-relaxed">{exp.description}</p>
+                    )}
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* Education */}
+          {member.education && member.education.length > 0 && (
+            <div className="bg-white rounded-xl border border-slate-200 p-5">
+              <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Education</h4>
+              <div className="space-y-3">
+                {member.education.map((edu, i) => (
+                  <div key={edu.id ?? i} className="border-l-2 border-purple-200 pl-3">
+                    <p className="text-sm font-medium text-slate-900">{edu.degree}</p>
+                    <p className="text-sm text-slate-700">{edu.institution}</p>
+                    {edu.field && <p className="text-xs text-slate-500">{edu.field}</p>}
+                    {(edu.startYear || edu.endYear) && (
+                      <p className="text-xs text-slate-500">
+                        {edu.startYear} {edu.endYear ? `– ${edu.endYear}` : ''}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Key Engagements */}
+          {member.keyEngagements && member.keyEngagements.length > 0 && (
+            <div className="bg-white rounded-xl border border-slate-200 p-5">
+              <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Key Engagements</h4>
+              <ul className="space-y-1.5">
+                {member.keyEngagements.map((eng, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-slate-700">
+                    <span className="text-slate-400 shrink-0 mt-0.5">•</span>
+                    <span>{String(eng)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Motivation */}
+          {(member.motivationWhy || member.motivationEngagement || member.motivationUnique) && (
+            <div className="bg-white rounded-xl border border-slate-200 p-5">
+              <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Application Motivation</h4>
+              <div className="space-y-4">
+                {member.motivationWhy && (
+                  <div>
+                    <p className="text-xs font-medium text-slate-500 mb-1">Why Expertly?</p>
+                    <p className="text-sm text-slate-700 leading-relaxed">{member.motivationWhy}</p>
+                  </div>
+                )}
+                {member.motivationEngagement && (
+                  <div>
+                    <p className="text-xs font-medium text-slate-500 mb-1">How will you engage?</p>
+                    <p className="text-sm text-slate-700 leading-relaxed">{member.motivationEngagement}</p>
+                  </div>
+                )}
+                {member.motivationUnique && (
+                  <div>
+                    <p className="text-xs font-medium text-slate-500 mb-1">What makes you unique?</p>
+                    <p className="text-sm text-slate-700 leading-relaxed">{member.motivationUnique}</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -255,9 +462,7 @@ export default function MemberDetailPage() {
         <div className="w-72 shrink-0 space-y-4">
           {/* Quick actions */}
           <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-3">
-            <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Actions
-            </h4>
+            <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</h4>
 
             {!member.isVerified && (
               <button
@@ -298,9 +503,7 @@ export default function MemberDetailPage() {
 
           {/* Change tier */}
           <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-3">
-            <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Change Tier
-            </h4>
+            <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Change Tier</h4>
             <select
               value={selectedTier || member.membershipTier || 'budding_entrepreneur'}
               onChange={(e) => setSelectedTier(e.target.value)}
@@ -324,9 +527,7 @@ export default function MemberDetailPage() {
 
           {/* Service change */}
           <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-3">
-            <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Trigger Service Change
-            </h4>
+            <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Trigger Service Change</h4>
             <select
               value={serviceChangeId}
               onChange={(e) => setServiceChangeId(e.target.value)}
@@ -348,30 +549,23 @@ export default function MemberDetailPage() {
 
           {/* Renew membership */}
           <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-3">
-            <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Renew Membership
-            </h4>
-            <div className="flex gap-2">
-              {RENEWAL_MONTHS.map((mo) => (
-                <button
-                  key={mo}
-                  onClick={() => setRenewMonths(mo)}
-                  className={`flex-1 text-xs py-1.5 rounded-md border transition-colors ${
-                    renewMonths === mo
-                      ? 'bg-blue-600 text-white border-blue-600'
-                      : 'border-slate-300 text-slate-700 hover:border-blue-400'
-                  }`}
-                >
-                  {mo}mo
-                </button>
-              ))}
+            <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Renew Membership</h4>
+            <div>
+              <label className="text-xs text-slate-500 block mb-1">New Expiry Date</label>
+              <input
+                type="date"
+                value={newExpiryDate}
+                onChange={(e) => setNewExpiryDate(e.target.value)}
+                min={new Date().toISOString().split('T')[0]}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              />
             </div>
             <button
               onClick={() => renewMutation.mutate()}
-              disabled={renewMutation.isPending}
+              disabled={!newExpiryDate || renewMutation.isPending}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-60"
             >
-              {renewMutation.isPending ? 'Renewing…' : `Renew for ${renewMonths} months`}
+              {renewMutation.isPending ? 'Renewing…' : 'Confirm Renewal'}
             </button>
           </div>
 

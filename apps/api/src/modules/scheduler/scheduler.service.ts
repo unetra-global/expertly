@@ -95,14 +95,6 @@ export class SchedulerService implements OnModuleInit, OnModuleDestroy {
           .update({ role: 'user' })
           .eq('id', member.user_id);
 
-        // Release seat via RPC (atomic, requires country)
-        if (member.primary_service_id && member.country) {
-          await sb.rpc('release_seat', {
-            p_service_id: member.primary_service_id,
-            p_country: member.country,
-          });
-        }
-
         // Invalidate member caches
         await this.cache.delByPattern(`expertly:member:*${member.slug}*`);
         await this.cache.delByPattern('expertly:members:*');

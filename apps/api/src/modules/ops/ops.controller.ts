@@ -159,9 +159,16 @@ export class OpsController {
   renewMembership(
     @Param('id') id: string,
     @CurrentUser() user: AuthUser,
-    @Body() body: { paymentReceivedAt?: string; renewalPeriodYears?: number; paymentReceivedBy?: string },
+    @Body() body: { paymentReceivedAt?: string; renewalPeriodYears?: number; paymentReceivedBy?: string; membershipExpiryAt?: string },
   ) {
     return this.ops.renewMembership(id, user, body);
+  }
+
+  // ── Ops Users ─────────────────────────────────────────────────────────────
+
+  @Get('users')
+  listUsers() {
+    return this.ops.listOpsUsers();
   }
 
   // ── Articles ──────────────────────────────────────────────────────────────
@@ -198,29 +205,6 @@ export class OpsController {
     @Body() body: { reason?: string },
   ) {
     return this.ops.archiveArticle(id, body);
-  }
-
-  // ── Seats ─────────────────────────────────────────────────────────────────
-
-  @Get('seats')
-  listSeats() {
-    return this.ops.listSeats();
-  }
-
-  @Post('seats')
-  createSeat(
-    @Body()
-    body: { categoryId?: string; serviceId?: string; capacity: number },
-  ) {
-    return this.ops.createSeat(body);
-  }
-
-  @Patch('seats/:id')
-  updateSeat(
-    @Param('id') id: string,
-    @Body() body: { capacity?: number; isActive?: boolean },
-  ) {
-    return this.ops.updateSeat(id, body);
   }
 
   // ── Events (backend_admin only for create/delete) ─────────────────────────

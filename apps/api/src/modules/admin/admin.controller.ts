@@ -35,15 +35,41 @@ export class AdminController {
   // ── GET /admin/stats ───────────────────────────────────────────────────────
 
   @Get('stats')
+  @Roles('ops')
   async getStats() {
     const { data, error } = await this.supabase.adminClient.rpc(
       'get_ops_action_counts',
     );
 
-    if (!error && data) return data;
+    if (!error && data) {
+      // RPC returns a single-row result set; Supabase wraps it in an array
+      const row = Array.isArray(data) ? data[0] : data;
+      return {
+        totalApplications: row.total_applications ?? 0,
+        totalMembers: row.total_members ?? 0,
+        totalArticles: row.total_articles ?? 0,
+        totalEvents: row.total_events ?? 0,
+        pendingApplications: row.pending_applications ?? 0,
+        pendingArticles: row.pending_articles ?? 0,
+        pendingReVerification: row.pending_re_verification ?? 0,
+        expiringIn30Days: row.expiring_in_30_days ?? 0,
+      };
+    }
 
     // Fallback to manual counts if RPC not available
-    const [apps, members, articles, events] = await Promise.all([
+    const now = new Date().toISOString();
+    const in30Days = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+    const [
+      totalApps,
+      totalMembers,
+      totalArticles,
+      totalEvents,
+      pendingApps,
+      pendingArticles,
+      pendingReVerification,
+      expiringIn30Days,
+    ] = await Promise.all([
       this.supabase.adminClient
         .from('applications')
         .select('id', { count: 'exact', head: true }),
@@ -56,13 +82,36 @@ export class AdminController {
       this.supabase.adminClient
         .from('events')
         .select('id', { count: 'exact', head: true }),
+      this.supabase.adminClient
+        .from('applications')
+        .select('id', { count: 'exact', head: true })
+        .in('status', ['submitted', 'under_review']),
+      this.supabase.adminClient
+        .from('articles')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'draft'),
+      this.supabase.adminClient
+        .from('members')
+        .select('id', { count: 'exact', head: true })
+        .not('re_verification_requested_at', 'is', null)
+        .eq('membership_status', 'active'),
+      this.supabase.adminClient
+        .from('members')
+        .select('id', { count: 'exact', head: true })
+        .gte('membership_expiry_date', now)
+        .lte('membership_expiry_date', in30Days)
+        .eq('membership_status', 'active'),
     ]);
 
     return {
-      totalApplications: apps.count ?? 0,
-      totalMembers: members.count ?? 0,
-      totalArticles: articles.count ?? 0,
-      totalEvents: events.count ?? 0,
+      totalApplications: totalApps.count ?? 0,
+      totalMembers: totalMembers.count ?? 0,
+      totalArticles: totalArticles.count ?? 0,
+      totalEvents: totalEvents.count ?? 0,
+      pendingApplications: pendingApps.count ?? 0,
+      pendingArticles: pendingArticles.count ?? 0,
+      pendingReVerification: pendingReVerification.count ?? 0,
+      expiringIn30Days: expiringIn30Days.count ?? 0,
     };
   }
 

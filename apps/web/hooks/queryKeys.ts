@@ -89,7 +89,6 @@ export const queryKeys = {
     articles: (filters?: Record<string, unknown>) =>
       [...queryKeys.ops.all, 'articles', filters ?? {}] as const,
     article: (id: string) => [...queryKeys.ops.all, 'article', id] as const,
-    seats: () => [...queryKeys.ops.all, 'seats'] as const,
     events: (filters?: Record<string, unknown>) =>
       [...queryKeys.ops.all, 'events', filters ?? {}] as const,
     broadcastLogs: () => [...queryKeys.ops.all, 'broadcast-logs'] as const,

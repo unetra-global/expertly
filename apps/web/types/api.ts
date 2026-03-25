@@ -53,9 +53,14 @@ export interface WorkExperience {
   id: string;
   title: string;
   company: string;
-  startYear: number;
+  // Onboarding form stores YYYY-MM strings; legacy stored numeric years
+  startDate?: string;
+  endDate?: string;
+  startYear?: number;
   endYear?: number;
   isCurrent?: boolean;
+  website?: string;
+  city?: string;
   description?: string;
 }
 
@@ -77,10 +82,15 @@ export interface Qualification {
 
 export interface Credential {
   id: string;
-  name: string;
+  // Onboarding form stores qualificationName; legacy stored name
+  name?: string;
+  qualificationName?: string;
+  abbreviation?: string;
   issuingBody?: string;
   isVerified?: boolean;
-  year?: number;
+  year?: number | '';
+  // Onboarding form stores documentUrl; legacy stored url
+  documentUrl?: string;
   url?: string;
 }
 
@@ -374,6 +384,7 @@ export interface OpsApplication {
   userId: string;
   status: string;
   currentStep?: number;
+  // Step 1 — personal & contact
   firstName?: string;
   lastName?: string;
   designation?: string;
@@ -381,20 +392,36 @@ export interface OpsApplication {
   bio?: string;
   linkedinUrl?: string;
   profilePhotoUrl?: string;
+  profilePhotoBase64?: string;
+  region?: string;
+  state?: string;
+  city?: string;
+  country?: string;
+  phoneExtension?: string;
+  phone?: string;
+  contactEmail?: string;
+  // Step 2 — professional background
+  yearsOfExperience?: number;
   firmName?: string;
   firmSize?: string;
-  country?: string;
-  city?: string;
+  websiteUrl?: string;
   consultationFeeMinUsd?: number;
   consultationFeeMaxUsd?: number;
   qualifications?: string[];
   credentials?: Credential[];
   workExperience?: WorkExperience[];
   education?: Education[];
+  // Step 3 — services & engagements
   primaryServiceId?: string;
   secondaryServiceIds?: string[];
+  keyEngagements?: string[];
   engagements?: Engagement[];
   availability?: Availability;
+  // Step 4 — motivation
+  motivationWhy?: string;
+  motivationEngagement?: string;
+  motivationUnique?: string;
+  // Review
   membershipTier?: string;
   submittedAt?: string;
   reviewedAt?: string;
@@ -409,6 +436,7 @@ export interface OpsMember {
   slug: string;
   firstName?: string;
   lastName?: string;
+  email?: string;
   designation?: string;
   headline?: string;
   bio?: string;
@@ -416,16 +444,39 @@ export interface OpsMember {
   isVerified?: boolean;
   isFeatured?: boolean;
   membershipTier?: string;
+  membershipStartDate?: string;
   membershipExpiryAt?: string;
   linkedinUrl?: string;
   profilePhotoUrl?: string;
+  profilePhotoBase64?: string;
   country?: string;
   city?: string;
+  region?: string;
+  state?: string;
+  contactPhone?: string;
+  contactEmail?: string;
+  firmName?: string;
+  firmSize?: string;
+  website?: string;
+  yearsOfExperience?: number;
+  consultationFeeMinUsd?: number;
+  consultationFeeMaxUsd?: number;
+  qualifications?: string;
+  credentials?: Credential[];
+  workExperience?: WorkExperience[];
+  education?: Education[];
+  testimonials?: Testimonial[];
+  engagements?: Engagement[];
+  primaryServiceId?: string;
+  keyEngagements?: string[];
+  motivationWhy?: string;
+  motivationEngagement?: string;
+  motivationUnique?: string;
   pendingServiceId?: string;
   pendingReVerification?: boolean;
   userId?: string;
-  credentials?: Credential[];
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface OpsArticle {
@@ -445,15 +496,6 @@ export interface OpsArticle {
   createdAt: string;
 }
 
-export interface Seat {
-  id: string;
-  categoryId?: string;
-  serviceId?: string;
-  capacity: number;
-  claimedCount: number;
-  isActive?: boolean;
-  createdAt: string;
-}
 
 export interface OpsEvent {
   id: string;
@@ -481,6 +523,14 @@ export interface AdminUser {
   isActive?: boolean;
   isDeleted?: boolean;
   createdAt: string;
+}
+
+export interface OpsUser {
+  id: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  role: string;
 }
 
 export interface BroadcastLog {
