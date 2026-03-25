@@ -7,6 +7,8 @@ import {
 } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { ConfigService } from '@nestjs/config';
+import { generateText } from 'ai';
+import { createAnthropic } from '@ai-sdk/anthropic';
 import { SupabaseService } from '../../common/services/supabase.service';
 import { MEMBER_TIERS } from '@expertly/utils';
 import { CacheService } from '../../common/services/cache.service';
@@ -862,12 +864,34 @@ export class OpsService {
 
     const newBody = (a.body ?? '') + LEGAL_DISCLAIMER_HTML;
 
+    // Generate AI summary before persisting (use original body, not with disclaimer)
+    let aiSummary: string | null = null;
+    const anthropicKey = this.config.get<string>('ANTHROPIC_API_KEY');
+    if (anthropicKey) {
+      try {
+        const plainText = (a.body ?? '')
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/&[a-z]+;/gi, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .slice(0, 3000);
+        const { text } = await generateText({
+          model: createAnthropic({ apiKey: anthropicKey })('claude-haiku-4-5-20251001'),
+          prompt: `Write a 2-3 sentence summary of this article. Be concise and factual. Do not start with "This article" or "The article".\n\n${plainText}`,
+        });
+        aiSummary = text.trim();
+      } catch (err) {
+        this.logger.warn(`AI summary generation failed: ${(err as Error).message}`);
+      }
+    }
+
     await sb
       .from('articles')
       .update({
         status: 'published',
         body: newBody,
         published_at: new Date().toISOString(),
+        ...(aiSummary ? { ai_summary: aiSummary } : {}),
       })
       .eq('id', id);
 

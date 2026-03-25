@@ -64,8 +64,8 @@ RETURNS TABLE (
   SELECT
     m.id, m.slug,
     u.first_name || ' ' || u.last_name AS full_name,
-    m.designation, m.headline, m.city, m.country,
-    m.member_tier, m.is_verified, m.profile_photo_url,
+    m.designation, m.headline, m.city, m.country::TEXT,
+    m.member_tier::TEXT, m.is_verified, m.profile_photo_url,
     s.name AS primary_service,
     1 - (m.embedding <=> query_embedding) AS similarity
   FROM members m
@@ -76,7 +76,7 @@ RETURNS TABLE (
     AND m.embedding IS NOT NULL
     AND m.embedding_status = 'generated'
     AND 1 - (m.embedding <=> query_embedding) > match_threshold
-    AND (filter_country IS NULL OR m.country = filter_country)
+    AND (filter_country IS NULL OR m.country::TEXT = filter_country)
     AND (filter_service_id IS NULL
          OR m.primary_service_id = filter_service_id
          OR EXISTS (
@@ -122,7 +122,7 @@ RETURNS TABLE (
   FROM articles a
   JOIN members m ON a.author_id = m.id
   JOIN users u ON m.user_id = u.id
-  LEFT JOIN service_categories sc ON a.category_id = sc.id
+  LEFT JOIN categories sc ON a.category_id = sc.id
   WHERE
     a.status = 'published'
     AND a.embedding IS NOT NULL
@@ -156,7 +156,7 @@ RETURNS TABLE (
 ) LANGUAGE sql STABLE AS $$
   SELECT
     e.id, e.slug, e.title, e.event_type, e.event_format,
-    e.start_date, e.country, e.city, e.is_free,
+    e.start_date, e.country::TEXT, e.city, e.is_free,
     1 - (e.embedding <=> query_embedding) AS similarity
   FROM events e
   WHERE
@@ -165,7 +165,7 @@ RETURNS TABLE (
     AND e.embedding IS NOT NULL
     AND e.embedding_status = 'generated'
     AND 1 - (e.embedding <=> query_embedding) > match_threshold
-    AND (filter_country IS NULL OR e.country = filter_country)
+    AND (filter_country IS NULL OR e.country::TEXT = filter_country)
     AND (filter_format IS NULL OR e.event_format = filter_format)
   ORDER BY similarity DESC
   LIMIT match_count;

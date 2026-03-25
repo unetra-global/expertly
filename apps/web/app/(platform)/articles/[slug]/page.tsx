@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase-server';
 import { ArticleDetail } from '@/components/articles/ArticleDetail';
-import { AuthWall } from '@/components/shared/AuthWall';
 import type { ArticleFull } from '@/types/api';
 
 export const dynamic = 'force-dynamic';
@@ -108,21 +107,19 @@ export default async function ArticleSlugPage({ params }: PageProps) {
 
   if (!article) notFound();
 
-  if (!user) {
-    return (
-      <AuthWall
-        backHref="/articles"
-        backLabel="Back to Articles"
-        description="Sign in to read full articles, access expert articles, and engage with professional content."
-        returnTo={`/articles/${params.slug}`}
-      />
-    );
-  }
+  const isGuest = !user;
 
   const [related, moreByAuthor] = await Promise.all([
     fetchRelatedArticles(article.id),
     article.author?.id ? fetchMoreByAuthor(article.author.id, article.id) : Promise.resolve([]),
   ]);
 
-  return <ArticleDetail article={article} related={related} moreByAuthor={moreByAuthor} />;
+  return (
+    <ArticleDetail
+      article={article}
+      related={related}
+      moreByAuthor={moreByAuthor}
+      isGuest={isGuest}
+    />
+  );
 }

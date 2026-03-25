@@ -158,6 +158,8 @@ export interface ArticleAuthor {
   headline?: string;
   city?: string;
   country?: string;
+  memberTier?: string;
+  primaryService?: { name: string };
   user: MemberUser;
 }
 
@@ -178,6 +180,7 @@ export interface ArticleListItem {
 
 export interface ArticleFull extends ArticleListItem {
   body: string;
+  aiSummary?: string;
 }
 
 // ── Events ────────────────────────────────────────────────────────────────────

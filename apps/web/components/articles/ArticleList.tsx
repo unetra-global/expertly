@@ -144,6 +144,7 @@ export default function ArticleList({
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [sort, setSort] = useState('');
+  const [tag, setTag] = useState('');
   const [page, setPage] = useState(1);
   const [sheetOpen, setSheetOpen] = useState(false);
 
@@ -166,20 +167,21 @@ export default function ArticleList({
 
   const serviceIdsString = Array.from(selectedServiceIds).sort().join(',');
 
-  const syncUrl = useCallback((svcs: string, q: string, rt: string, so: string) => {
+  const syncUrl = useCallback((svcs: string, q: string, rt: string, so: string, tg: string) => {
     const params = new URLSearchParams();
     if (svcs) params.set('serviceIds', svcs);
     if (q) params.set('q', q);
     if (rt) params.set('readTime', rt);
     if (so) params.set('sort', so);
+    if (tg) params.set('tag', tg);
     const next = params.toString();
     if (next === searchParamsKey) return;
     router.push(`/articles${next ? `?${next}` : ''}`, { scroll: false });
   }, [router, searchParamsKey]);
 
   useEffect(() => {
-    syncUrl(serviceIdsString, debouncedSearch, readTime, sort);
-  }, [serviceIdsString, debouncedSearch, readTime, sort, syncUrl]);
+    syncUrl(serviceIdsString, debouncedSearch, readTime, sort, tag);
+  }, [serviceIdsString, debouncedSearch, readTime, sort, tag, syncUrl]);
 
   useEffect(() => {
     const raw = searchParams.get('serviceIds') ?? searchParams.get('serviceId') ?? '';
@@ -187,6 +189,7 @@ export default function ArticleList({
     setSearch(searchParams.get('q') ?? '');
     setReadTime(searchParams.get('readTime') ?? '');
     setSort(searchParams.get('sort') ?? '');
+    setTag(searchParams.get('tag') ?? '');
     setPage(1);
   }, [searchParamsKey, searchParams]);
 
@@ -202,6 +205,7 @@ export default function ArticleList({
     ...(serviceIdsString && { serviceIds: serviceIdsString }),
     ...(debouncedSearch && { q: debouncedSearch }),
     ...(sort && { sort }),
+    ...(tag && { tag }),
     ...readTimeFilter,
   };
 
@@ -217,7 +221,7 @@ export default function ArticleList({
   const articles = data?.data ?? [];
   const meta = data?.meta;
   const totalResults = meta?.total ?? articles.length;
-  const hasFilters = !!(serviceIdsString || debouncedSearch || readTime);
+  const hasFilters = !!(serviceIdsString || debouncedSearch || readTime || tag);
   const activeFilterCount = [serviceIdsString, readTime].filter(Boolean).length;
 
   function toggleCategory(categoryId: string, serviceIds: string[]) {
@@ -252,6 +256,7 @@ export default function ArticleList({
     setSearch('');
     setReadTime('');
     setSort('');
+    setTag('');
     setPage(1);
   }
 
@@ -397,6 +402,28 @@ export default function ArticleList({
                 </div>
               </div>
             </div>
+
+            {/* Active tag filter banner */}
+            {tag && (
+              <div className="flex items-center gap-2 mb-5 px-4 py-2.5 rounded-xl bg-brand-blue-subtle border border-blue-100">
+                <svg className="w-3.5 h-3.5 text-brand-blue flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a2 2 0 012-2z" />
+                </svg>
+                <span className="text-xs text-brand-text-secondary flex-1">
+                  Showing articles tagged{' '}
+                  <span className="font-semibold text-brand-blue">#{tag}</span>
+                </span>
+                <button
+                  onClick={() => { setTag(''); setPage(1); }}
+                  className="text-brand-text-muted hover:text-brand-navy transition-colors"
+                  aria-label="Clear tag filter"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            )}
 
             {isError && (
               <div className="rounded-2xl bg-red-50 border border-red-100 p-8 text-center">

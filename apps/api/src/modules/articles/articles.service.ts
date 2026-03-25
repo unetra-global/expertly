@@ -32,7 +32,7 @@ const ARTICLE_TTL = 300; // 5 min
 // Flat fields (member portal, admin — no join needed)
 const ARTICLE_FLAT_FIELDS =
   'id, title, slug, excerpt, cover_image_url, featured_image_url, tags, read_time, read_time_minutes, published_at, ' +
-  'status, word_count, category_id, service_id, creation_mode, submitted_at, ' +
+  'status, word_count, category_id, service_id, creation_mode, submitted_at, ai_summary, ' +
   'author_id, created_at, updated_at';
 
 const ARTICLE_FLAT_FULL_FIELDS = ARTICLE_FLAT_FIELDS + ', body';
@@ -40,7 +40,9 @@ const ARTICLE_FLAT_FULL_FIELDS = ARTICLE_FLAT_FIELDS + ', body';
 // Public select — includes author profile + service category joins for listing/detail pages
 const ARTICLE_PUBLIC_SELECT =
   ARTICLE_FLAT_FIELDS + ', ' +
-  'author:members!author_id(id, slug, designation, city, country, profile_photo_url, user:users!user_id(first_name, last_name)), ' +
+  'author:members!author_id(id, slug, designation, headline, city, country, member_tier, profile_photo_url, ' +
+  'user:users!user_id(first_name, last_name), ' +
+  'primary_service:services!primary_service_id(name)), ' +
   'category:categories!category_id(id, name)';
 
 const ARTICLE_PUBLIC_FULL_SELECT = ARTICLE_PUBLIC_SELECT + ', body';
@@ -94,7 +96,7 @@ export class ArticlesService {
       ? this.cache.buildKey(
         'articles',
         'list',
-        `p${page}l${limit}${dto.categoryId ?? ''}${dto.serviceId ?? ''}${dto.serviceIds ?? ''}${dto.q ?? ''}${dto.sort ?? ''}${dto.minReadTime ?? ''}${dto.maxReadTime ?? ''}`,
+        `p${page}l${limit}${dto.categoryId ?? ''}${dto.serviceId ?? ''}${dto.serviceIds ?? ''}${dto.q ?? ''}${dto.sort ?? ''}${dto.minReadTime ?? ''}${dto.maxReadTime ?? ''}${dto.tag ?? ''}`,
       )
       : null;
 
@@ -141,6 +143,9 @@ export class ArticlesService {
     }
     if (dto.maxReadTime !== undefined) {
       query = query.lte('read_time_minutes', dto.maxReadTime);
+    }
+    if (dto.tag) {
+      query = query.contains('tags', [dto.tag.toLowerCase()]);
     }
 
     switch (dto.sort) {

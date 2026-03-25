@@ -56,4 +56,9 @@ export class QueryArticlesDto {
   @IsNumber()
   @Min(0)
   maxReadTime?: number;
+
+  /** Filter by an exact tag value (matches articles whose tags array contains this string) */
+  @IsOptional()
+  @IsString()
+  tag?: string;
 }

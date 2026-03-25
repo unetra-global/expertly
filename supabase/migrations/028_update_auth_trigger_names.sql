@@ -35,25 +35,53 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ── 2. Backfill existing users from auth.users metadata ───────────────────────
+-- Uses full_name as a fallback only if the column still exists (it may already
+-- have been dropped in a previous partial run or earlier migration).
 
-UPDATE public.users u
-SET
-  first_name = COALESCE(
-    NULLIF(TRIM(au.raw_user_meta_data->>'first_name'), ''),
-    NULLIF(TRIM(au.raw_user_meta_data->>'given_name'), ''),
-    NULLIF(TRIM(split_part(u.full_name, ' ', 1)), ''),
-    ''
-  ),
-  last_name = COALESCE(
-    NULLIF(TRIM(au.raw_user_meta_data->>'last_name'), ''),
-    NULLIF(TRIM(au.raw_user_meta_data->>'family_name'), ''),
-    NULLIF(TRIM(substring(u.full_name FROM position(' ' IN u.full_name) + 1)), ''),
-    ''
-  ),
-  updated_at = NOW()
-FROM auth.users au
-WHERE au.id = u.supabase_uid
-  AND (u.first_name = '' OR u.last_name = '');
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'users' AND column_name = 'full_name'
+  ) THEN
+    UPDATE public.users u
+    SET
+      first_name = COALESCE(
+        NULLIF(TRIM(au.raw_user_meta_data->>'first_name'), ''),
+        NULLIF(TRIM(au.raw_user_meta_data->>'given_name'), ''),
+        NULLIF(TRIM(split_part(u.full_name, ' ', 1)), ''),
+        ''
+      ),
+      last_name = COALESCE(
+        NULLIF(TRIM(au.raw_user_meta_data->>'last_name'), ''),
+        NULLIF(TRIM(au.raw_user_meta_data->>'family_name'), ''),
+        NULLIF(TRIM(substring(u.full_name FROM position(' ' IN u.full_name) + 1)), ''),
+        ''
+      ),
+      updated_at = NOW()
+    FROM auth.users au
+    WHERE au.id = u.supabase_uid
+      AND (u.first_name = '' OR u.last_name = '');
+  ELSE
+    UPDATE public.users u
+    SET
+      first_name = COALESCE(
+        NULLIF(TRIM(au.raw_user_meta_data->>'first_name'), ''),
+        NULLIF(TRIM(au.raw_user_meta_data->>'given_name'), ''),
+        ''
+      ),
+      last_name = COALESCE(
+        NULLIF(TRIM(au.raw_user_meta_data->>'last_name'), ''),
+        NULLIF(TRIM(au.raw_user_meta_data->>'family_name'), ''),
+        ''
+      ),
+      updated_at = NOW()
+    FROM auth.users au
+    WHERE au.id = u.supabase_uid
+      AND (u.first_name = '' OR u.last_name = '');
+  END IF;
+END;
+$$;
 
 -- ── 3. Drop redundant full_name column ────────────────────────────────────────
 
