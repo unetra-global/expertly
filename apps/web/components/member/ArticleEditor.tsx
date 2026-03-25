@@ -9,14 +9,16 @@ import Link from '@tiptap/extension-link';
 import Image from '@tiptap/extension-image';
 import {
   Bold, Italic, Link2, List, ListOrdered, Quote,
-  Heading2, Heading3, ImageIcon, X, Sparkles, Send, CheckCircle,
+  Heading2, Heading3, ImageIcon, X, Sparkles, Send,
+  CheckCircle, ArrowLeft, Clock, Save,
 } from 'lucide-react';
+import NextLink from 'next/link';
 import { apiClient } from '@/lib/apiClient';
 import { queryKeys } from '@/hooks/queryKeys';
 import type { MemberArticle, Category } from '@/types/api';
 import AIGeneratePanel from './AIGeneratePanel';
 
-// ── Word Count Helper ────────────────────────────────────────────────────────
+// ── Word Count ────────────────────────────────────────────────────────────────
 
 function countWords(html: string): number {
   const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
@@ -24,7 +26,7 @@ function countWords(html: string): number {
   return text.split(' ').filter(Boolean).length;
 }
 
-// ── Toolbar Button ───────────────────────────────────────────────────────────
+// ── Toolbar Button ────────────────────────────────────────────────────────────
 
 function ToolbarBtn({
   onClick, isActive = false, disabled = false, title, children,
@@ -41,10 +43,10 @@ function ToolbarBtn({
       title={title}
       onClick={onClick}
       disabled={disabled}
-      className={`p-1.5 rounded transition-colors ${
+      className={`p-2 rounded-lg transition-colors text-sm ${
         isActive
-          ? 'bg-brand-blue text-white'
-          : 'text-brand-text-secondary hover:bg-slate-100 hover:text-brand-text'
+          ? 'bg-brand-navy text-white'
+          : 'text-brand-text-secondary hover:bg-gray-100 hover:text-brand-navy'
       } disabled:opacity-40 disabled:cursor-not-allowed`}
     >
       {children}
@@ -52,7 +54,7 @@ function ToolbarBtn({
   );
 }
 
-// ── Confirm Submit Dialog ────────────────────────────────────────────────────
+// ── Submit Dialog ─────────────────────────────────────────────────────────────
 
 function SubmitDialog({ onConfirm, onCancel, isSubmitting }: {
   onConfirm: () => void;
@@ -60,24 +62,27 @@ function SubmitDialog({ onConfirm, onCancel, isSubmitting }: {
   isSubmitting: boolean;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-2xl shadow-xl max-w-md w-full mx-4 p-6">
-        <h3 className="font-semibold text-brand-text mb-2">Submit for review?</h3>
-        <p className="text-sm text-brand-text-secondary mb-5">
-          Your article will be reviewed by our team. We will notify you within 2 business days.
-          You will not be able to edit while it is under review.
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-7">
+        <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-4">
+          <Send className="w-5 h-5 text-green-600" />
+        </div>
+        <h3 className="text-base font-bold text-brand-navy text-center mb-2">Submit for review?</h3>
+        <p className="text-sm text-brand-text-muted text-center leading-relaxed mb-6">
+          Your article will be reviewed by our editorial team. We will notify you within 2 business days.
+          You won&apos;t be able to edit while it&apos;s under review.
         </p>
-        <div className="flex gap-3 justify-end">
+        <div className="flex gap-3">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-sm font-medium border border-slate-200 rounded-lg hover:bg-brand-surface-alt transition-colors"
+            className="flex-1 py-2.5 text-sm font-medium border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
             disabled={isSubmitting}
-            className="px-4 py-2 text-sm font-medium text-white bg-brand-blue rounded-lg hover:bg-brand-blue-dark disabled:opacity-50 transition-colors"
+            className="flex-1 py-2.5 text-sm font-semibold text-white bg-brand-navy rounded-xl hover:bg-brand-navy/90 disabled:opacity-50 transition-colors"
           >
             {isSubmitting ? 'Submitting…' : 'Submit article'}
           </button>
@@ -87,7 +92,7 @@ function SubmitDialog({ onConfirm, onCancel, isSubmitting }: {
   );
 }
 
-// ── Tag Input ────────────────────────────────────────────────────────────────
+// ── Tag Input ─────────────────────────────────────────────────────────────────
 
 function TagInput({ tags, setTags }: { tags: string[]; setTags: (t: string[]) => void }) {
   const [input, setInput] = useState('');
@@ -102,11 +107,11 @@ function TagInput({ tags, setTags }: { tags: string[]; setTags: (t: string[]) =>
 
   return (
     <div>
-      <div className="flex flex-wrap gap-1.5 mb-2">
+      <div className="flex flex-wrap gap-1.5 mb-2.5">
         {tags.map((tag) => (
-          <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 bg-brand-blue-subtle text-brand-blue text-xs rounded-full">
-            {tag}
-            <button onClick={() => setTags(tags.filter((t) => t !== tag))}>
+          <span key={tag} className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-brand-blue-subtle border border-blue-100 text-brand-blue text-xs font-medium rounded-full">
+            #{tag}
+            <button type="button" onClick={() => setTags(tags.filter((t) => t !== tag))} className="hover:text-red-500 transition-colors ml-0.5">
               <X className="w-3 h-3" />
             </button>
           </span>
@@ -115,26 +120,27 @@ function TagInput({ tags, setTags }: { tags: string[]; setTags: (t: string[]) =>
       {tags.length < 5 && (
         <div className="flex gap-2">
           <input
-            className="flex-1 border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue"
-            placeholder="Add tag…"
+            className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue bg-white"
+            placeholder="Type tag and press Enter…"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
           />
           <button
+            type="button"
             onClick={addTag}
-            className="px-2 py-1.5 text-xs border border-slate-200 rounded-lg hover:bg-brand-surface-alt transition-colors"
+            className="px-3 py-1.5 text-xs font-medium border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
           >
             Add
           </button>
         </div>
       )}
-      <p className="text-xs text-brand-text-muted mt-1">{tags.length}/5 tags</p>
+      <p className="text-[11px] text-brand-text-muted mt-1.5">{tags.length}/5 tags · press Enter to add</p>
     </div>
   );
 }
 
-// ── Main Component ───────────────────────────────────────────────────────────
+// ── Main Component ────────────────────────────────────────────────────────────
 
 interface Props { articleId?: string }
 
@@ -160,15 +166,11 @@ export default function ArticleEditor({ articleId: initialArticleId }: Props) {
   const autoSaveRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isCreatingRef = useRef(false);
 
-  // ── Load categories ──────────────────────────────────────────────────────
-
   const { data: categories = [] } = useQuery({
     queryKey: queryKeys.taxonomy.categories(),
     queryFn: () => apiClient.get<Category[]>('/taxonomy/categories'),
     staleTime: 3600_000,
   });
-
-  // ── Load existing article ────────────────────────────────────────────────
 
   const { data: existingArticle } = useQuery({
     queryKey: queryKeys.articles.byId(currentArticleId),
@@ -176,8 +178,6 @@ export default function ArticleEditor({ articleId: initialArticleId }: Props) {
     enabled: !!currentArticleId,
     staleTime: 0,
   });
-
-  // ── Tiptap Editor ────────────────────────────────────────────────────────
 
   const editor = useEditor({
     extensions: [
@@ -189,20 +189,19 @@ export default function ArticleEditor({ articleId: initialArticleId }: Props) {
     editorProps: {
       attributes: {
         class: [
-          'prose prose-sm max-w-none',
+          'prose prose-base max-w-none',
           'prose-headings:text-brand-navy prose-headings:font-bold prose-headings:leading-snug',
           'prose-p:text-brand-text-secondary prose-p:leading-relaxed',
           'prose-strong:text-brand-navy',
-          'prose-a:text-brand-blue prose-a:no-underline',
-          'prose-blockquote:border-brand-blue prose-blockquote:text-brand-text-secondary prose-blockquote:not-italic',
+          'prose-a:text-brand-blue prose-a:no-underline hover:prose-a:underline',
+          'prose-blockquote:border-l-4 prose-blockquote:border-brand-blue prose-blockquote:pl-4 prose-blockquote:text-brand-text-secondary prose-blockquote:not-italic',
           'prose-ul:text-brand-text-secondary prose-ol:text-brand-text-secondary',
-          'focus:outline-none min-h-[400px] p-4',
+          'prose-code:bg-gray-50 prose-code:text-brand-navy prose-code:rounded prose-code:px-1 prose-code:text-sm',
+          'focus:outline-none min-h-[500px] px-1 py-2',
         ].join(' '),
       },
     },
   });
-
-  // ── Populate editor from existing article ────────────────────────────────
 
   useEffect(() => {
     if (!existingArticle || !editor) return;
@@ -216,12 +215,9 @@ export default function ArticleEditor({ articleId: initialArticleId }: Props) {
     }
   }, [existingArticle, editor]);
 
-  // ── Auto-save ────────────────────────────────────────────────────────────
-
   const doSave = useCallback(async () => {
     if (!editor || editor.isEmpty) return;
     const body = editor.getHTML();
-
     setSaveStatus('saving');
     try {
       if (!currentArticleId && !isCreatingRef.current) {
@@ -234,7 +230,6 @@ export default function ArticleEditor({ articleId: initialArticleId }: Props) {
           featuredImageUrl: featuredImageUrl || undefined,
         });
         setCurrentArticleId(draft.id);
-        // Update URL without hard navigation
         window.history.replaceState(null, '', `/member/articles/${draft.id}/edit`);
         isCreatingRef.current = false;
       } else if (currentArticleId) {
@@ -259,12 +254,8 @@ export default function ArticleEditor({ articleId: initialArticleId }: Props) {
     return () => { if (autoSaveRef.current) clearInterval(autoSaveRef.current); };
   }, [doSave]);
 
-  // ── Word count ───────────────────────────────────────────────────────────
-
   const wordCount = editor ? countWords(editor.getHTML()) : 0;
   const canSubmit = wordCount >= 300 && !!featuredImageUrl && title.length >= 10 && !!currentArticleId;
-
-  // ── Featured image upload ────────────────────────────────────────────────
 
   const uploadFeaturedImage = async (file: File) => {
     setFeaturedImageUploading(true);
@@ -274,13 +265,11 @@ export default function ArticleEditor({ articleId: initialArticleId }: Props) {
       const result = await apiClient.upload<{ url: string }>('/upload/article-image', form);
       if (result?.url) setFeaturedImageUrl(result.url);
     } catch {
-      // fail silently — user can retry
+      // fail silently
     } finally {
       setFeaturedImageUploading(false);
     }
   };
-
-  // ── Inline image upload ──────────────────────────────────────────────────
 
   const uploadInlineImage = async (file: File) => {
     try {
@@ -295,8 +284,6 @@ export default function ArticleEditor({ articleId: initialArticleId }: Props) {
     }
   };
 
-  // ── Link insertion ───────────────────────────────────────────────────────
-
   const insertLink = () => {
     const url = prompt('Enter URL');
     if (url && editor) {
@@ -304,13 +291,11 @@ export default function ArticleEditor({ articleId: initialArticleId }: Props) {
     }
   };
 
-  // ── Submit article ───────────────────────────────────────────────────────
-
   const handleSubmit = async () => {
     if (!currentArticleId) return;
     setIsSubmitting(true);
     try {
-      await doSave(); // ensure latest saved
+      await doSave();
       await apiClient.post(`/articles/${currentArticleId}/submit`);
       void queryClient.invalidateQueries({ queryKey: queryKeys.articles.mine() });
       router.push('/member/articles');
@@ -318,8 +303,6 @@ export default function ArticleEditor({ articleId: initialArticleId }: Props) {
       setIsSubmitting(false);
     }
   };
-
-  // ── AI panel callback ────────────────────────────────────────────────────
 
   const handleAIGenerated = useCallback((result: { title: string; body: string; tags: string[] }) => {
     setTitle(result.title);
@@ -329,16 +312,18 @@ export default function ArticleEditor({ articleId: initialArticleId }: Props) {
     }
   }, [editor]);
 
-  // ── Save status label ────────────────────────────────────────────────────
-
   const saveLabel = saveStatus === 'saving'
     ? 'Saving…'
     : saveStatus === 'saved' && savedAt
-      ? `Saved ${savedAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`
-      : '';
+      ? `Saved at ${savedAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`
+      : null;
 
-  const inputCls = 'w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-brand-text bg-white focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue transition-colors';
-  const labelCls = 'block text-xs font-medium text-brand-text-secondary mb-1';
+  const requirements = [
+    { ok: title.length >= 10, label: 'Title (10+ chars)' },
+    { ok: wordCount >= 300, label: `300+ words (${wordCount} now)` },
+    { ok: !!featuredImageUrl, label: 'Featured image uploaded' },
+    { ok: !!categoryId, label: 'Category selected' },
+  ];
 
   return (
     <>
@@ -350,235 +335,303 @@ export default function ArticleEditor({ articleId: initialArticleId }: Props) {
         />
       )}
 
-      <div className="flex h-[calc(100vh-4rem)] overflow-hidden relative">
-        {/* AI Panel */}
-        {showAI && editor && (
-          <AIGeneratePanel
-            categoryId={categoryId}
-            onGenerated={handleAIGenerated}
-            onClose={() => setShowAI(false)}
-          />
-        )}
+      {showAI && editor && (
+        <AIGeneratePanel
+          categoryId={categoryId}
+          onGenerated={handleAIGenerated}
+          onClose={() => setShowAI(false)}
+        />
+      )}
 
-        {/* Editor Area */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Toolbar */}
-          <div className="flex items-center gap-1 px-4 py-2 border-b border-slate-200 bg-white flex-wrap">
-            {editor && (
-              <>
-                <ToolbarBtn
-                  onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-                  isActive={editor.isActive('heading', { level: 2 })}
-                  title="Heading 2"
-                >
-                  <Heading2 className="w-4 h-4" />
-                </ToolbarBtn>
-                <ToolbarBtn
-                  onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-                  isActive={editor.isActive('heading', { level: 3 })}
-                  title="Heading 3"
-                >
-                  <Heading3 className="w-4 h-4" />
-                </ToolbarBtn>
-                <div className="w-px h-5 bg-slate-200 mx-1" />
-                <ToolbarBtn
-                  onClick={() => editor.chain().focus().toggleBold().run()}
-                  isActive={editor.isActive('bold')}
-                  title="Bold"
-                >
-                  <Bold className="w-4 h-4" />
-                </ToolbarBtn>
-                <ToolbarBtn
-                  onClick={() => editor.chain().focus().toggleItalic().run()}
-                  isActive={editor.isActive('italic')}
-                  title="Italic"
-                >
-                  <Italic className="w-4 h-4" />
-                </ToolbarBtn>
-                <ToolbarBtn onClick={insertLink} isActive={editor.isActive('link')} title="Insert link">
-                  <Link2 className="w-4 h-4" />
-                </ToolbarBtn>
-                <div className="w-px h-5 bg-slate-200 mx-1" />
-                <ToolbarBtn
-                  onClick={() => editor.chain().focus().toggleBulletList().run()}
-                  isActive={editor.isActive('bulletList')}
-                  title="Bullet list"
-                >
-                  <List className="w-4 h-4" />
-                </ToolbarBtn>
-                <ToolbarBtn
-                  onClick={() => editor.chain().focus().toggleOrderedList().run()}
-                  isActive={editor.isActive('orderedList')}
-                  title="Numbered list"
-                >
-                  <ListOrdered className="w-4 h-4" />
-                </ToolbarBtn>
-                <ToolbarBtn
-                  onClick={() => editor.chain().focus().toggleBlockquote().run()}
-                  isActive={editor.isActive('blockquote')}
-                  title="Blockquote"
-                >
-                  <Quote className="w-4 h-4" />
-                </ToolbarBtn>
-                <ToolbarBtn
-                  onClick={() => articleInlineImageRef.current?.click()}
-                  title="Insert image"
-                >
-                  <ImageIcon className="w-4 h-4" />
-                </ToolbarBtn>
-                <input
-                  type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
-                  ref={articleInlineImageRef}
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadInlineImage(f); }}
-                />
-              </>
-            )}
+      {/* ── Page Header (navy) ───────────────────────────────────────────── */}
+      <div className="bg-brand-navy">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <NextLink
+            href="/member/articles"
+            className="inline-flex items-center gap-1.5 text-xs text-white/60 hover:text-white transition-colors mb-5"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            My Articles
+          </NextLink>
 
-            {/* Spacer */}
-            <div className="flex-1" />
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="section-label mb-1">Member Portal</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white">
+                {currentArticleId ? 'Edit Article' : 'Write Article'}
+              </h1>
+            </div>
 
-            {/* Save status */}
-            {saveLabel && (
-              <span className="flex items-center gap-1.5 text-xs text-brand-text-muted mr-2">
-                {saveStatus === 'saved' && <CheckCircle className="w-3.5 h-3.5 text-green-500" />}
-                {saveLabel}
-              </span>
-            )}
+            <div className="flex items-center gap-2 shrink-0 mt-1">
+              {/* Save status */}
+              {saveLabel && (
+                <span className="hidden sm:flex items-center gap-1.5 text-xs text-white/50 mr-1">
+                  <Clock className="w-3.5 h-3.5" />
+                  {saveLabel}
+                </span>
+              )}
 
-            {/* AI Generate button */}
-            <button
-              onClick={() => setShowAI(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-brand-blue text-brand-blue rounded-lg hover:bg-brand-blue-subtle transition-colors mr-2"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              Generate with AI
-            </button>
+              {/* Generate with AI */}
+              <button
+                onClick={() => setShowAI(true)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-white/10 border border-white/20 text-white rounded-xl hover:bg-white/20 transition-colors"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
+                Generate with AI
+              </button>
 
-            {/* Submit button */}
-            <button
-              onClick={() => setShowSubmitDialog(true)}
-              disabled={!canSubmit}
-              title={!canSubmit ? 'Complete all requirements before submitting' : 'Submit for review'}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              <Send className="w-3.5 h-3.5" />
-              Submit
-            </button>
-          </div>
+              {/* Save draft */}
+              <button
+                onClick={() => void doSave()}
+                disabled={saveStatus === 'saving'}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-white/10 border border-white/20 text-white rounded-xl hover:bg-white/20 disabled:opacity-50 transition-colors"
+              >
+                <Save className="w-3.5 h-3.5" />
+                Save
+              </button>
 
-          {/* Editor */}
-          <div className="flex-1 overflow-y-auto bg-white">
-            {rejectionReason && (
-              <div className="mx-4 mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-xs font-semibold text-red-700 mb-0.5">Rejection reason</p>
-                <p className="text-sm text-red-600">{rejectionReason}</p>
-              </div>
-            )}
-            <EditorContent editor={editor} />
+              {/* Submit */}
+              <button
+                onClick={() => setShowSubmitDialog(true)}
+                disabled={!canSubmit}
+                title={!canSubmit ? 'Complete all requirements before submitting' : undefined}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-brand-blue text-white rounded-xl hover:bg-brand-blue-dark disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <Send className="w-3.5 h-3.5" />
+                Submit
+              </button>
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* Right Sidebar */}
-        <aside className="w-72 border-l border-slate-200 bg-brand-surface overflow-y-auto p-5 space-y-6 shrink-0">
-          {/* Title */}
-          <div>
-            <label className={labelCls}>Title ({title.length} chars, min 10)</label>
-            <textarea
-              className={`${inputCls} resize-none`}
-              rows={3}
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Article title…"
-            />
-          </div>
+      {/* ── Content ──────────────────────────────────────────────────────── */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex gap-8 items-start">
 
-          {/* Word count */}
-          <div>
-            <label className={labelCls}>Word count</label>
-            <p className={`text-xl font-bold ${wordCount >= 300 ? 'text-green-600' : 'text-red-500'}`}>
-              {wordCount}
-              <span className="text-sm font-normal text-brand-text-muted ml-1">/ min 300</span>
-            </p>
-          </div>
-
-          {/* Featured image */}
-          <div>
-            <label className={labelCls}>Featured image {!featuredImageUrl && <span className="text-red-500">(required)</span>}</label>
-            {featuredImageUrl ? (
-              <div className="relative">
-                <img src={featuredImageUrl} alt="Featured" className="w-full h-32 object-cover rounded-lg" />
-                <button
-                  onClick={() => setFeaturedImageUrl('')}
-                  className="absolute top-1 right-1 bg-white/80 hover:bg-white rounded-full p-0.5"
-                >
-                  <X className="w-4 h-4 text-brand-text" />
-                </button>
+          {/* ── Main Editor Column ──────────────────────────────────────── */}
+          <div className="flex-1 min-w-0">
+            {/* Rejection banner */}
+            {rejectionReason && (
+              <div className="flex gap-3 bg-red-50 border border-red-200 rounded-2xl p-4 mb-5">
+                <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center shrink-0 mt-0.5">
+                  <X className="w-3 h-3 text-red-600" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-red-700 mb-0.5 uppercase tracking-wide">Rejection reason</p>
+                  <p className="text-sm text-red-600">{rejectionReason}</p>
+                </div>
               </div>
-            ) : (
-              <>
-                <input
-                  type="file" accept="image/jpeg,image/png" className="hidden"
-                  ref={featImageRef}
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadFeaturedImage(f); }}
-                />
-                <button
-                  onClick={() => featImageRef.current?.click()}
-                  disabled={featuredImageUploading}
-                  className="w-full flex items-center justify-center gap-2 h-24 border-2 border-dashed border-slate-200 rounded-lg text-sm text-brand-text-muted hover:border-brand-blue hover:text-brand-blue disabled:opacity-50 transition-colors"
-                >
-                  <ImageIcon className="w-5 h-5" />
-                  {featuredImageUploading ? 'Uploading…' : 'Upload image'}
-                </button>
-              </>
             )}
-          </div>
 
-          {/* Category */}
-          <div>
-            <label className={labelCls}>Category {!categoryId && <span className="text-red-500">(required)</span>}</label>
-            <select
-              className={inputCls}
-              value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
-            >
-              <option value="">Select category</option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>{cat.name}</option>
-              ))}
-            </select>
-          </div>
+            {/* Editor card */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-card overflow-hidden">
 
-          {/* Tags */}
-          <div>
-            <label className={labelCls}>Tags</label>
-            <TagInput tags={tags} setTags={setTags} />
-          </div>
-
-          {/* Submit requirements */}
-          <div className="border border-slate-200 rounded-lg p-3 space-y-2">
-            <p className="text-xs font-semibold text-brand-text-muted uppercase tracking-wide">Requirements</p>
-            {[
-              { ok: title.length >= 10, label: 'Title (10+ chars)' },
-              { ok: wordCount >= 300, label: `300+ words (${wordCount})` },
-              { ok: !!featuredImageUrl, label: 'Featured image' },
-              { ok: !!categoryId, label: 'Category selected' },
-            ].map((req) => (
-              <div key={req.label} className={`flex items-center gap-2 text-xs ${req.ok ? 'text-green-600' : 'text-brand-text-muted'}`}>
-                <CheckCircle className={`w-3.5 h-3.5 ${req.ok ? 'text-green-500' : 'text-slate-300'}`} />
-                {req.label}
+              {/* Title input */}
+              <div className="px-8 pt-8 pb-4 border-b border-gray-50">
+                <textarea
+                  className="w-full text-2xl sm:text-3xl font-bold text-brand-navy placeholder:text-gray-300 bg-transparent border-none outline-none resize-none leading-snug"
+                  rows={2}
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Article title…"
+                />
+                <p className="text-xs text-brand-text-muted mt-1">
+                  {title.length} chars
+                  {title.length > 0 && title.length < 10 && (
+                    <span className="text-amber-500 ml-1">· needs 10+ characters</span>
+                  )}
+                </p>
               </div>
-            ))}
+
+              {/* Formatting toolbar */}
+              <div className="flex items-center gap-0.5 px-4 py-2 border-b border-gray-100 bg-gray-50/50 sticky top-0 z-10 flex-wrap">
+                {editor && (
+                  <>
+                    <ToolbarBtn
+                      onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                      isActive={editor.isActive('heading', { level: 2 })}
+                      title="Heading 2"
+                    >
+                      <Heading2 className="w-4 h-4" />
+                    </ToolbarBtn>
+                    <ToolbarBtn
+                      onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+                      isActive={editor.isActive('heading', { level: 3 })}
+                      title="Heading 3"
+                    >
+                      <Heading3 className="w-4 h-4" />
+                    </ToolbarBtn>
+                    <div className="w-px h-5 bg-gray-200 mx-1.5" />
+                    <ToolbarBtn
+                      onClick={() => editor.chain().focus().toggleBold().run()}
+                      isActive={editor.isActive('bold')}
+                      title="Bold"
+                    >
+                      <Bold className="w-4 h-4" />
+                    </ToolbarBtn>
+                    <ToolbarBtn
+                      onClick={() => editor.chain().focus().toggleItalic().run()}
+                      isActive={editor.isActive('italic')}
+                      title="Italic"
+                    >
+                      <Italic className="w-4 h-4" />
+                    </ToolbarBtn>
+                    <ToolbarBtn onClick={insertLink} isActive={editor.isActive('link')} title="Insert link">
+                      <Link2 className="w-4 h-4" />
+                    </ToolbarBtn>
+                    <div className="w-px h-5 bg-gray-200 mx-1.5" />
+                    <ToolbarBtn
+                      onClick={() => editor.chain().focus().toggleBulletList().run()}
+                      isActive={editor.isActive('bulletList')}
+                      title="Bullet list"
+                    >
+                      <List className="w-4 h-4" />
+                    </ToolbarBtn>
+                    <ToolbarBtn
+                      onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                      isActive={editor.isActive('orderedList')}
+                      title="Numbered list"
+                    >
+                      <ListOrdered className="w-4 h-4" />
+                    </ToolbarBtn>
+                    <ToolbarBtn
+                      onClick={() => editor.chain().focus().toggleBlockquote().run()}
+                      isActive={editor.isActive('blockquote')}
+                      title="Blockquote"
+                    >
+                      <Quote className="w-4 h-4" />
+                    </ToolbarBtn>
+                    <ToolbarBtn
+                      onClick={() => articleInlineImageRef.current?.click()}
+                      title="Insert image"
+                    >
+                      <ImageIcon className="w-4 h-4" />
+                    </ToolbarBtn>
+                    <input
+                      type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
+                      ref={articleInlineImageRef}
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadInlineImage(f); }}
+                    />
+
+                    {/* Word count in toolbar */}
+                    <div className="flex-1" />
+                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
+                      wordCount >= 300
+                        ? 'bg-green-50 text-green-700'
+                        : 'bg-amber-50 text-amber-700'
+                    }`}>
+                      {wordCount} words{wordCount < 300 ? ` · ${300 - wordCount} to go` : ' ✓'}
+                    </span>
+                  </>
+                )}
+              </div>
+
+              {/* Editor body */}
+              <div className="px-8 py-6">
+                <EditorContent editor={editor} />
+              </div>
+            </div>
           </div>
 
-          {/* Manual save */}
-          <button
-            onClick={() => void doSave()}
-            disabled={saveStatus === 'saving'}
-            className="w-full py-2 text-sm font-medium border border-slate-200 rounded-lg hover:bg-slate-100 disabled:opacity-50 transition-colors"
-          >
-            Save draft now
-          </button>
-        </aside>
+          {/* ── Sidebar ─────────────────────────────────────────────────── */}
+          <aside className="hidden lg:flex flex-col gap-4 w-72 xl:w-80 shrink-0 sticky top-6 self-start">
+
+            {/* Featured image */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+              <p className="text-[10px] font-semibold text-brand-text-muted uppercase tracking-wider mb-3">
+                Featured Image
+                {!featuredImageUrl && <span className="text-red-400 ml-1">(required)</span>}
+              </p>
+              {featuredImageUrl ? (
+                <div className="relative rounded-xl overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={featuredImageUrl} alt="Featured" className="w-full h-36 object-cover" />
+                  <button
+                    onClick={() => setFeaturedImageUrl('')}
+                    className="absolute top-2 right-2 w-6 h-6 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-sm transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5 text-brand-navy" />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <input
+                    type="file" accept="image/jpeg,image/png" className="hidden"
+                    ref={featImageRef}
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadFeaturedImage(f); }}
+                  />
+                  <button
+                    onClick={() => featImageRef.current?.click()}
+                    disabled={featuredImageUploading}
+                    className="w-full flex flex-col items-center justify-center gap-2 h-28 border-2 border-dashed border-gray-200 rounded-xl text-sm text-brand-text-muted hover:border-brand-blue hover:text-brand-blue hover:bg-brand-blue-subtle/30 disabled:opacity-50 transition-all"
+                  >
+                    <ImageIcon className="w-6 h-6" />
+                    <span className="text-xs">{featuredImageUploading ? 'Uploading…' : 'Click to upload'}</span>
+                  </button>
+                </>
+              )}
+            </div>
+
+            {/* Category */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+              <p className="text-[10px] font-semibold text-brand-text-muted uppercase tracking-wider mb-3">
+                Category
+                {!categoryId && <span className="text-red-400 ml-1">(required)</span>}
+              </p>
+              <select
+                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-brand-text bg-white focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue transition-colors"
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value)}
+              >
+                <option value="">Select a category…</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Tags */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+              <p className="text-[10px] font-semibold text-brand-text-muted uppercase tracking-wider mb-3">Tags</p>
+              <TagInput tags={tags} setTags={setTags} />
+            </div>
+
+            {/* Submission requirements */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+              <p className="text-[10px] font-semibold text-brand-text-muted uppercase tracking-wider mb-3">
+                Submission Requirements
+              </p>
+              <div className="space-y-2.5">
+                {requirements.map((req) => (
+                  <div key={req.label} className="flex items-center gap-2.5">
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${
+                      req.ok ? 'bg-green-100' : 'bg-gray-100'
+                    }`}>
+                      <CheckCircle className={`w-3 h-3 ${req.ok ? 'text-green-600' : 'text-gray-300'}`} />
+                    </div>
+                    <span className={`text-xs ${req.ok ? 'text-green-700 font-medium' : 'text-brand-text-muted'}`}>
+                      {req.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {canSubmit && (
+                <div className="mt-4 pt-4 border-t border-gray-50">
+                  <button
+                    onClick={() => setShowSubmitDialog(true)}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-semibold text-white bg-brand-navy rounded-xl hover:bg-brand-navy/90 transition-colors"
+                  >
+                    <Send className="w-4 h-4" />
+                    Submit for Review
+                  </button>
+                </div>
+              )}
+            </div>
+
+          </aside>
+        </div>
       </div>
     </>
   );

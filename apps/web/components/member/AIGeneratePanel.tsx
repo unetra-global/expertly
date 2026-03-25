@@ -199,47 +199,56 @@ export default function AIGeneratePanel({ categoryId, onGenerated, onClose }: Pr
   };
 
   return (
-    <div className="fixed inset-0 z-40 flex justify-end">
-      {/* Backdrop */}
-      <div className="flex-1 bg-black/20" onClick={onClose} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      {/* Modal */}
+      <div className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
 
-      {/* Panel */}
-      <div className="w-full max-w-lg bg-white shadow-2xl flex flex-col h-full overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 shrink-0">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-brand-blue" />
-            <h2 className="font-semibold text-brand-text">Generate with AI</h2>
+        <div className="flex items-center justify-between px-7 py-5 border-b border-gray-100 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-brand-navy flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-yellow-400" />
+            </div>
+            <div>
+              <h2 className="font-bold text-brand-navy text-sm">Generate with AI</h2>
+              <p className="text-xs text-brand-text-muted">Answer a few questions to draft your article</p>
+            </div>
           </div>
-          <button onClick={onClose} className="text-brand-text-muted hover:text-brand-text transition-colors">
-            <X className="w-5 h-5" />
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-brand-text-muted hover:text-brand-navy hover:bg-gray-100 transition-colors"
+          >
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-5">
+        <div className="flex-1 overflow-y-auto px-7 py-6">
           {isGenerating ? (
-            <div className="space-y-4">
-              <p className="text-sm font-medium text-brand-text">Writing your article…</p>
-              <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div className="py-6 space-y-5">
+              <div className="text-center">
+                <div className="w-14 h-14 rounded-full bg-brand-blue-subtle flex items-center justify-center mx-auto mb-4">
+                  <Sparkles className="w-6 h-6 text-brand-blue animate-pulse" />
+                </div>
+                <p className="text-sm font-semibold text-brand-navy mb-1">Writing your article…</p>
+                <p className="text-xs text-brand-text-muted">This usually takes 15–30 seconds</p>
+              </div>
+              <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-brand-blue rounded-full transition-all duration-300"
+                  className="h-full bg-brand-blue rounded-full transition-all duration-500"
                   style={{ width: `${progress}%` }}
                 />
               </div>
-              <p className="text-xs text-brand-text-muted">{progress}% complete</p>
-              <p className="text-xs text-brand-text-muted">
-                This usually takes 15–30 seconds. You can edit everything before submitting.
-              </p>
+              <p className="text-xs text-brand-text-muted text-center">{progress}% complete</p>
             </div>
           ) : error ? (
-            <div className="space-y-4">
-              <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+            <div className="py-4 space-y-4">
+              <div className="p-4 bg-red-50 rounded-xl border border-red-100">
                 <p className="text-sm text-red-700">{error}</p>
               </div>
               <button
                 onClick={() => { setError(null); }}
-                className="flex items-center gap-2 text-sm text-brand-blue hover:underline"
+                className="flex items-center gap-2 text-sm font-medium text-brand-blue hover:underline"
               >
                 <RotateCcw className="w-4 h-4" />
                 Try again
@@ -247,19 +256,21 @@ export default function AIGeneratePanel({ categoryId, onGenerated, onClose }: Pr
             </div>
           ) : (
             <div className="space-y-5">
-              <p className="text-sm text-brand-text-secondary">
-                Answer these questions to generate a professional article draft. The more detail you provide, the better the result.
+              <p className="text-sm text-brand-text-muted leading-relaxed">
+                The more detail you provide, the better your article draft will be. All fields are optional — fill in whatever is relevant.
               </p>
 
               {DEFAULT_QUESTIONS.map((question, idx) => (
-                <div key={idx}>
-                  <label className="flex items-start gap-2 text-sm font-medium text-brand-text mb-1.5">
-                    <ChevronRight className="w-4 h-4 text-brand-blue shrink-0 mt-0.5" />
+                <div key={idx} className="group">
+                  <label className="flex items-start gap-2.5 text-xs font-semibold text-brand-navy mb-2 uppercase tracking-wide">
+                    <span className="w-5 h-5 rounded-full bg-brand-blue-subtle text-brand-blue flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
+                      {idx + 1}
+                    </span>
                     {question}
                   </label>
                   <textarea
-                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-brand-text bg-white focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue resize-none transition-colors"
-                    rows={3}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-brand-text bg-white focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue resize-none transition-colors placeholder:text-gray-300"
+                    rows={2}
                     value={answers[idx] ?? ''}
                     onChange={(e) => setAnswer(idx, e.target.value)}
                     placeholder="Your answer…"
@@ -271,32 +282,41 @@ export default function AIGeneratePanel({ categoryId, onGenerated, onClose }: Pr
         </div>
 
         {/* Footer */}
-        {!isGenerating && !error && (
-          <div className="px-6 py-4 border-t border-slate-200 shrink-0">
-            <button
-              onClick={() => void handleGenerate()}
-              disabled={answers.every((a) => !a.trim())}
-              className="w-full flex items-center justify-center gap-2 py-3 text-sm font-medium text-white bg-brand-blue rounded-xl hover:bg-brand-blue-dark disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              <Sparkles className="w-4 h-4" />
-              Generate article
-            </button>
-            <p className="text-xs text-brand-text-muted text-center mt-2">
-              You can edit everything after generation before submitting.
-            </p>
-          </div>
-        )}
-
-        {isGenerating && (
-          <div className="px-6 py-4 border-t border-slate-200 shrink-0">
+        <div className="px-7 py-5 border-t border-gray-100 shrink-0">
+          {isGenerating ? (
             <button
               onClick={handleCancel}
-              className="w-full py-3 text-sm font-medium border border-slate-200 rounded-xl hover:bg-brand-surface-alt transition-colors"
+              className="w-full py-2.5 text-sm font-medium border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
             >
-              Cancel
+              Cancel generation
             </button>
-          </div>
-        )}
+          ) : error ? (
+            <button
+              onClick={onClose}
+              className="w-full py-2.5 text-sm font-medium border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+            >
+              Close
+            </button>
+          ) : (
+            <div className="flex gap-3">
+              <button
+                onClick={onClose}
+                className="px-5 py-2.5 text-sm font-medium border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => void handleGenerate()}
+                disabled={answers.every((a) => !a.trim())}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-semibold text-white bg-brand-navy rounded-xl hover:bg-brand-navy/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <Sparkles className="w-4 h-4 text-yellow-400" />
+                Generate article draft
+              </button>
+            </div>
+          )}
+        </div>
+
       </div>
     </div>
   );
