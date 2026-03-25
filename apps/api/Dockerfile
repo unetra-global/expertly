@@ -15,27 +15,14 @@ ENV NODE_ENV=development
 # Enable corepack for pnpm
 RUN corepack enable
 
-# Copy workspace configuration and lockfiles
-COPY pnpm-workspace.yaml pnpm-lock.yaml package.json turbo.json tsconfig.base.json ./
-
-# Copy package.json files for dependency linking
-COPY apps/api/package.json ./apps/api/
-COPY packages/schemas/package.json ./packages/schemas/
-COPY packages/types/package.json ./packages/types/
-COPY packages/utils/package.json ./packages/utils/
-
-# Since packages aren't listed in apps/api/package.json explicitly but are used via tsconfig paths,
-# we need the actual package source code to compile
-COPY packages ./packages
+# Copy the entire workspace to ensure absolutely no local configuration or source files are missing
+# (This naturally respects .dockerignore so node_modules are excluded)
+COPY . .
 
 # Install dependencies using pnpm
 RUN pnpm install --frozen-lockfile
 
-# Copy remaining API source files
-COPY apps/api/tsconfig.json apps/api/nest-cli.json ./apps/api/
-COPY apps/api/src ./apps/api/src
-
-# Build NestJS app
+# Print verbose output for the build command to help debug if it fails again
 RUN pnpm --filter api build
 
 # ── Stage 2: Production ───────────────────────────────────────────────────────
@@ -50,7 +37,7 @@ WORKDIR /app
 RUN corepack enable
 
 # Copy workspace manifests
-COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json turbo.json ./
 COPY apps/api/package.json ./apps/api/
 COPY packages/schemas/package.json ./packages/schemas/
 COPY packages/types/package.json ./packages/types/
