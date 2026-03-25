@@ -371,12 +371,12 @@ export default function ArticleEditor({ articleId: initialArticleId }: Props) {
                 </span>
               )}
 
-              {/* Generate with AI */}
+              {/* Generate with AI — highlighted CTA */}
               <button
                 onClick={() => setShowAI(true)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-white/10 border border-white/20 text-white rounded-xl hover:bg-white/20 transition-colors"
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold bg-[#c9a84c] text-brand-navy rounded-xl hover:bg-[#d4b460] shadow-[0_0_16px_rgba(201,168,76,0.35)] hover:shadow-[0_0_20px_rgba(201,168,76,0.5)] transition-all"
               >
-                <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
+                <Sparkles className="w-3.5 h-3.5" />
                 Generate with AI
               </button>
 
