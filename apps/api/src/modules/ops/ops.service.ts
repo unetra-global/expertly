@@ -21,6 +21,7 @@ import {
   getQueueConnection,
   isQueueDisabled,
 } from '../../config/queue.config';
+import { RssProcessor } from '../rss/rss.processor';
 
 const LEGAL_DISCLAIMER_HTML = `
   <hr style="margin: 32px 0; border-color: #e5e7eb">
@@ -41,6 +42,7 @@ export class OpsService {
     private readonly cache: CacheService,
     private readonly email: EmailService,
     private readonly config: ConfigService,
+    private readonly rss: RssProcessor,
   ) {
     this.aiQueue = isQueueDisabled(config)
       ? null
@@ -1352,5 +1354,32 @@ export class OpsService {
       .limit(50);
 
     return data ?? [];
+  }
+
+  // ── Regulatory Updates ────────────────────────────────────────────────────
+
+  async getRegulatoryUpdates() {
+    const { data } = await this.supabase.adminClient
+      .from('regulatory_updates')
+      .select(
+        'id, title, summary, source_url, relevant_regions, published_date, created_at, nudges_sent',
+      )
+      .order('created_at', { ascending: false })
+      .limit(100);
+
+    return (data ?? []).map((u: Record<string, unknown>) => ({
+      id: u['id'],
+      title: u['title'],
+      summary: u['summary'] ?? null,
+      source_url: u['source_url'] ?? null,
+      region: ((u['relevant_regions'] as string[] | null) ?? [])[0] ?? null,
+      published_at: u['published_date'] ?? null,
+      created_at: u['created_at'],
+      nudges_sent: u['nudges_sent'] ?? 0,
+    }));
+  }
+
+  async triggerRssIngestion() {
+    return this.rss.triggerDirectIngest();
   }
 }

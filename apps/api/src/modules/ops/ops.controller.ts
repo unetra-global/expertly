@@ -276,4 +276,16 @@ export class OpsController {
   getBroadcastLogs() {
     return this.ops.getBroadcastLogs();
   }
+
+  // ── Regulatory Updates ────────────────────────────────────────────────────
+
+  @Get('regulatory')
+  getRegulatoryUpdates() {
+    return this.ops.getRegulatoryUpdates();
+  }
+
+  @Post('regulatory/trigger')
+  triggerRssIngestion() {
+    return this.ops.triggerRssIngestion();
+  }
 }

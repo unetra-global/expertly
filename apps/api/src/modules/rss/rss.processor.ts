@@ -26,55 +26,61 @@ interface RssFeed {
   relevant_categories: string[];
 }
 
+// Google News RSS: always fresh, no 404s, real-time data.
+// Official government RSS feeds were replaced because:
+//   CBIC → 404, MCA → 403, RBI → malformed XML,
+//   SEBI → 404, MAS → Atom format unsupported, ACRA → 404, IRS → 404,
+//   SEC  → returns 2015 archive items.
+// Google News search RSS gives the last 30 days of news per regulator.
 const RSS_FEEDS: RssFeed[] = [
   // India
   {
     source: 'CBIC',
-    url: 'https://www.cbic.gov.in/rss/latest-updates.xml',
+    url: 'https://news.google.com/rss/search?q=CBIC+GST+customs+India+notification+circular+when:30d&hl=en-IN&gl=IN&ceid=IN:en',
     region: 'IN',
     relevant_categories: ['tax', 'customs', 'gst', 'indirect-tax'],
   },
   {
     source: 'MCA',
-    url: 'https://www.mca.gov.in/Ministry/rss/pressrelease.xml',
+    url: 'https://news.google.com/rss/search?q=MCA+ministry+corporate+affairs+India+regulation+when:30d&hl=en-IN&gl=IN&ceid=IN:en',
     region: 'IN',
     relevant_categories: ['corporate-law', 'company-law', 'compliance'],
   },
   {
     source: 'RBI',
-    url: 'https://rbi.org.in/Scripts/BS_PressReleaseDisplay.aspx?prid=rss',
+    url: 'https://news.google.com/rss/search?q=RBI+Reserve+Bank+India+circular+notification+policy+when:30d&hl=en-IN&gl=IN&ceid=IN:en',
     region: 'IN',
     relevant_categories: ['banking', 'finance', 'monetary-policy', 'fintech'],
   },
   {
     source: 'SEBI',
-    url: 'https://www.sebi.gov.in/sebi_data/rss/sebi_news.xml',
+    url: 'https://news.google.com/rss/search?q=SEBI+Securities+Exchange+Board+India+circular+when:30d&hl=en-IN&gl=IN&ceid=IN:en',
     region: 'IN',
     relevant_categories: ['securities', 'capital-markets', 'investment', 'mutual-funds'],
   },
   // Singapore
   {
     source: 'MAS',
-    url: 'https://www.mas.gov.sg/rss/news',
+    url: 'https://news.google.com/rss/search?q=MAS+Monetary+Authority+Singapore+regulation+when:30d&hl=en-SG&gl=SG&ceid=SG:en',
     region: 'SG',
     relevant_categories: ['banking', 'finance', 'monetary-policy', 'fintech'],
   },
   {
     source: 'ACRA',
-    url: 'https://www.acra.gov.sg/news-events/news/rss',
+    url: 'https://news.google.com/rss/search?q=ACRA+Singapore+corporate+compliance+when:30d&hl=en-SG&gl=SG&ceid=SG:en',
     region: 'SG',
     relevant_categories: ['corporate-law', 'company-law', 'compliance', 'accountancy'],
   },
   // USA
   {
     source: 'IRS',
-    url: 'https://www.irs.gov/rss-feeds/tax-updates',
+    url: 'https://news.google.com/rss/search?q=IRS+tax+rule+update+regulation+when:30d&hl=en-US&gl=US&ceid=US:en',
     region: 'US',
     relevant_categories: ['tax', 'us-tax', 'international-tax'],
   },
   {
     source: 'SEC',
-    url: 'https://www.sec.gov/rss/news/pressreleases.rss',
+    url: 'https://news.google.com/rss/search?q=SEC+Securities+Exchange+Commission+enforcement+regulation+when:30d&hl=en-US&gl=US&ceid=US:en',
     region: 'US',
     relevant_categories: ['securities', 'capital-markets', 'investment', 'compliance'],
   },
@@ -95,7 +101,14 @@ export class RssProcessor implements OnModuleInit, OnModuleDestroy {
     private readonly email: EmailService,
     private readonly config: ConfigService,
   ) {
-    this.parser = new Parser({ timeout: 10000 });
+    this.parser = new Parser({
+      timeout: 15000,
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (compatible; Expertly-RegulatoryBot/1.0; +https://expertly.net)',
+        'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+      },
+    });
     this.openai = new OpenAI({
       apiKey: this.config.get<string>('OPENAI_API_KEY'),
     });
@@ -149,6 +162,107 @@ export class RssProcessor implements OnModuleInit, OnModuleDestroy {
       default:
         this.logger.warn(`Unknown RSS job: ${job.name}`);
     }
+  }
+
+  // ── Public: direct trigger (bypasses queue — works when REDIS_DISABLED) ───
+
+  async triggerDirectIngest(): Promise<{ inserted: number; sources: string[] }> {
+    this.logger.log('Manual RSS ingest triggered from ops dashboard');
+    let inserted = 0;
+    const sources: string[] = [];
+
+    for (const feed of RSS_FEEDS) {
+      try {
+        const count = await this.ingestFeedDirectly(feed);
+        if (count > 0) {
+          inserted += count;
+          sources.push(`${feed.source} (+${count})`);
+        }
+      } catch (err) {
+        this.logger.error(
+          `Direct ingest failed for ${feed.source}: ${(err as Error).message}`,
+        );
+      }
+    }
+
+    this.logger.log(`Manual ingest complete: ${inserted} new items`);
+    return { inserted, sources };
+  }
+
+  private async ingestFeedDirectly(feed: RssFeed): Promise<number> {
+    const sb = this.supabase.adminClient;
+
+    let feedData: Parser.Output<Record<string, unknown>>;
+    try {
+      feedData = await this.parser.parseURL(feed.url);
+    } catch (err) {
+      this.logger.warn(
+        `Failed to parse ${feed.source}: ${(err as Error).message}`,
+      );
+      return 0;
+    }
+
+    const items = feedData.items ?? [];
+    this.logger.log(`${feed.source}: ${items.length} items found`);
+    let count = 0;
+
+    for (const item of items) {
+      const itemUrl = (item.link ?? item.guid ?? '') as string;
+      if (!itemUrl) continue;
+
+      const { data: existing } = await sb
+        .from('regulatory_updates')
+        .select('id')
+        .eq('source_url', itemUrl)
+        .maybeSingle();
+
+      if (existing) continue;
+
+      const content = String(
+        item.contentSnippet ?? item.content ?? item.title ?? '',
+      );
+      let summary = content.slice(0, 280);
+
+      try {
+        const completion = await this.openai.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'user',
+              content: `Summarise this regulatory update in exactly 2 sentences for a professional audience:\n\n${content.slice(0, 1500)}`,
+            },
+          ],
+          max_tokens: 120,
+        });
+        summary = completion.choices[0]?.message?.content?.trim() ?? summary;
+      } catch (aiErr) {
+        this.logger.warn(
+          `OpenAI summary failed for ${itemUrl}: ${(aiErr as Error).message}`,
+        );
+      }
+
+      const { error } = await sb.from('regulatory_updates').insert({
+        source: feed.source,
+        source_url: itemUrl,
+        title: String(item.title ?? ''),
+        summary,
+        relevant_categories: feed.relevant_categories,
+        relevant_regions: [feed.region],
+        published_date: item.pubDate
+          ? new Date(item.pubDate as string).toISOString()
+          : new Date().toISOString(),
+        is_processed: false,
+        nudges_sent: 0,
+      });
+
+      if (error) {
+        this.logger.warn(`Insert failed for ${itemUrl}: ${error.message}`);
+      } else {
+        count++;
+      }
+    }
+
+    return count;
   }
 
   // ── ingest_all_feeds ───────────────────────────────────────────────────────
