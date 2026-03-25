@@ -1131,7 +1131,7 @@ export class OpsService {
 
       const format = r['format'] ?? r['eventformat'] ?? 'online';
       const tags = (r['tags'] ?? '')
-        .split(',')
+        .split(/[,;]/)
         .map((t) => t.trim().toLowerCase())
         .filter(Boolean);
 

@@ -46,6 +46,7 @@ const EMPTY_FORM: EventForm = {
   tags: '',
 };
 
+// Template columns — tags use semicolons so commas don't break CSV parsing
 const TEMPLATE_HEADERS = [
   'title',
   'shortDescription',
@@ -75,10 +76,15 @@ function downloadTemplate() {
     '2026-06-16T18:00',
     'https://example.com/register',
     '',
-    'fintech,payments,regulation',
+    'fintech;payments;regulation', // semicolons — no CSV column ambiguity
     'false',
   ];
-  const csv = [TEMPLATE_HEADERS.join(','), exampleRow.join(',')].join('\n');
+  // Wrap any field that contains a comma in double-quotes
+  const escapeCsv = (v: string) => (v.includes(',') ? `"${v}"` : v);
+  const csv = [
+    TEMPLATE_HEADERS.join(','),
+    exampleRow.map(escapeCsv).join(','),
+  ].join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -87,6 +93,42 @@ function downloadTemplate() {
   a.click();
   URL.revokeObjectURL(url);
 }
+
+// e.g. "in_person" → "In Person"
+function fmtFormat(fmt?: string) {
+  if (!fmt) return '—';
+  return fmt
+    .split('_')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
+
+// "Jun 15 – Jun 16, 2026" or "Jun 15, 2026"
+function fmtDateRange(start: string, end?: string) {
+  const s = new Date(start);
+  const e = end ? new Date(end) : null;
+
+  const month = (d: Date) => d.toLocaleDateString('en-US', { month: 'short' });
+  const day = (d: Date) => d.getDate();
+  const year = (d: Date) => d.getFullYear();
+
+  if (!e) return `${month(s)} ${day(s)}, ${year(s)}`;
+
+  if (year(s) === year(e) && month(s) === month(e)) {
+    return `${month(s)} ${day(s)}–${day(e)}, ${year(s)}`;
+  }
+  if (year(s) === year(e)) {
+    return `${month(s)} ${day(s)} – ${month(e)} ${day(e)}, ${year(s)}`;
+  }
+  return `${month(s)} ${day(s)}, ${year(s)} – ${month(e)} ${day(e)}, ${year(e)}`;
+}
+
+const FORMAT_COLORS: Record<string, string> = {
+  online: 'bg-blue-50 text-blue-700',
+  hybrid: 'bg-violet-50 text-violet-700',
+  in_person: 'bg-amber-50 text-amber-700',
+  virtual: 'bg-blue-50 text-blue-700',
+};
 
 export default function EventsPage() {
   const qc = useQueryClient();
@@ -144,9 +186,9 @@ export default function EventsPage() {
 
   const importMutation = useMutation({
     mutationFn: (file: File) => {
-      const form = new FormData();
-      form.append('file', file);
-      return apiClient.upload<ImportResult>('/ops/events/import', form);
+      const fd = new FormData();
+      fd.append('file', file);
+      return apiClient.upload<ImportResult>('/ops/events/import', fd);
     },
     onSuccess: (result) => {
       setImportResult(result);
@@ -163,6 +205,7 @@ export default function EventsPage() {
 
   return (
     <div>
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-bold text-slate-900">Events</h2>
@@ -186,10 +229,11 @@ export default function EventsPage() {
         </div>
       </div>
 
+      {/* Events table */}
       {isLoading ? (
         <div className="space-y-2">
           {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="h-12 bg-slate-100 rounded-lg animate-pulse" />
+            <div key={i} className="h-16 bg-slate-100 rounded-lg animate-pulse" />
           ))}
         </div>
       ) : (
@@ -197,24 +241,22 @@ export default function EventsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-left">
-                <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider w-[42%]">
                   Title
                 </th>
-                <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider w-[12%]">
                   Format
                 </th>
-                <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider w-[16%]">
                   Location
                 </th>
-                <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Start Date
+                <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider w-[18%]">
+                  Dates
                 </th>
-                <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Published
+                <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider w-[8%]">
+                  Status
                 </th>
-                <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Actions
-                </th>
+                <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider w-[4%]" />
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -226,46 +268,60 @@ export default function EventsPage() {
                 </tr>
               ) : (
                 events.map((event) => (
-                  <tr key={event.id}>
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-slate-900">{event.title}</p>
+                  <tr key={event.id} className="hover:bg-slate-50/50 transition-colors">
+                    {/* Title + description */}
+                    <td className="px-4 py-3.5">
+                      <p className="font-medium text-slate-900 leading-snug">{event.title}</p>
                       {(event.shortDescription ?? event.description) && (
-                        <p className="text-xs text-slate-400 line-clamp-1 mt-0.5">
+                        <p className="text-xs text-slate-400 mt-0.5 line-clamp-1 max-w-xs">
                           {event.shortDescription ?? event.description}
                         </p>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-slate-600 capitalize">
-                      {event.eventFormat?.replace('_', ' ') ?? '—'}
+
+                    {/* Format badge */}
+                    <td className="px-4 py-3.5">
+                      <span
+                        className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full ${FORMAT_COLORS[event.eventFormat ?? ''] ?? 'bg-slate-100 text-slate-600'}`}
+                      >
+                        {fmtFormat(event.eventFormat)}
+                      </span>
                     </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {[event.city, event.country].filter(Boolean).join(', ') || '—'}
+
+                    {/* Location */}
+                    <td className="px-4 py-3.5 text-slate-600 text-xs leading-snug">
+                      {event.city && <span className="block font-medium text-slate-700">{event.city}</span>}
+                      {event.country && <span>{event.country}</span>}
+                      {!event.city && !event.country && <span className="text-slate-400">—</span>}
                     </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {new Date(event.startDate).toLocaleDateString()}
+
+                    {/* Date range */}
+                    <td className="px-4 py-3.5 text-slate-600 text-xs whitespace-nowrap">
+                      {fmtDateRange(event.startDate, event.endDate)}
                     </td>
-                    <td className="px-4 py-3">
+
+                    {/* Published toggle */}
+                    <td className="px-4 py-3.5">
                       <button
                         onClick={() =>
-                          publishMutation.mutate({
-                            id: event.id,
-                            isPublished: !event.isPublished,
-                          })
+                          publishMutation.mutate({ id: event.id, isPublished: !event.isPublished })
                         }
                         disabled={publishMutation.isPending}
-                        className={`text-xs px-2 py-1 rounded-full font-medium transition-colors ${
+                        className={`text-xs px-2.5 py-1 rounded-full font-medium transition-colors ${
                           event.isPublished
                             ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
                         }`}
                       >
-                        {event.isPublished ? '✓ Published' : 'Draft'}
+                        {event.isPublished ? 'Live' : 'Draft'}
                       </button>
                     </td>
-                    <td className="px-4 py-3">
+
+                    {/* Actions */}
+                    <td className="px-4 py-3.5 text-right">
                       <button
                         onClick={() => setDeleteConfirm(event.id)}
-                        className="text-xs text-red-600 hover:underline"
+                        className="text-xs text-red-500 hover:text-red-700 transition-colors"
                       >
                         Delete
                       </button>
@@ -278,27 +334,27 @@ export default function EventsPage() {
         </div>
       )}
 
-      {/* Import modal */}
+      {/* ── Import modal ───────────────────────────────────────────────────── */}
       {showImportModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
             <h3 className="text-lg font-semibold text-slate-900 mb-1">Import Events</h3>
-            <p className="text-sm text-slate-500 mb-4">
-              Upload a .xlsx, .xls, or .csv file. Required columns:{' '}
-              <span className="font-medium text-slate-700">title</span>,{' '}
-              <span className="font-medium text-slate-700">startDate</span>.
+            <p className="text-sm text-slate-500 mb-1">
+              Upload a <span className="font-medium text-slate-700">.xlsx</span>,{' '}
+              <span className="font-medium text-slate-700">.xls</span>, or{' '}
+              <span className="font-medium text-slate-700">.csv</span> file.
+            </p>
+            <p className="text-xs text-slate-400 mb-4">
+              Required columns: <code className="bg-slate-100 px-1 rounded">title</code>,{' '}
+              <code className="bg-slate-100 px-1 rounded">startDate</code>. Separate multiple tags
+              with semicolons (e.g. <code className="bg-slate-100 px-1 rounded">fintech;payments</code>).
             </p>
 
-            <div className="mb-4">
-              <button
-                onClick={downloadTemplate}
-                className="text-sm text-blue-600 hover:underline"
-              >
-                Download template CSV ↓
-              </button>
-            </div>
+            <button onClick={downloadTemplate} className="text-sm text-blue-600 hover:underline mb-4 block">
+              Download template CSV ↓
+            </button>
 
-            <label className="block border-2 border-dashed border-slate-300 rounded-lg p-6 text-center cursor-pointer hover:border-blue-400 transition-colors">
+            <label className="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 transition-colors">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -312,11 +368,14 @@ export default function EventsPage() {
                   }
                 }}
               />
-              <p className="text-sm text-slate-500">
-                {importMutation.isPending
-                  ? 'Importing…'
-                  : 'Click to select file (.xlsx, .xls, .csv)'}
+              <svg className="w-8 h-8 text-slate-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+              <p className="text-sm font-medium text-slate-600">
+                {importMutation.isPending ? 'Importing…' : 'Click to select file'}
               </p>
+              <p className="text-xs text-slate-400 mt-1">.xlsx, .xls, or .csv</p>
             </label>
 
             {importMutation.error && (
@@ -326,7 +385,7 @@ export default function EventsPage() {
             )}
 
             {importResult && (
-              <div className="mt-3 space-y-2">
+              <div className="mt-4 space-y-2">
                 <div className="flex gap-3">
                   <div className="flex-1 bg-green-50 border border-green-200 rounded-lg p-3 text-center">
                     <p className="text-2xl font-bold text-green-700">{importResult.imported}</p>
@@ -340,7 +399,7 @@ export default function EventsPage() {
                   )}
                 </div>
                 {importResult.errors.length > 0 && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 max-h-40 overflow-y-auto">
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 max-h-36 overflow-y-auto space-y-0.5">
                     <p className="text-xs font-semibold text-red-700 mb-1">Row errors:</p>
                     {importResult.errors.map((e, i) => (
                       <p key={i} className="text-xs text-red-600">
@@ -352,7 +411,7 @@ export default function EventsPage() {
               </div>
             )}
 
-            <div className="mt-4">
+            <div className="mt-5">
               <button
                 onClick={() => {
                   setShowImportModal(false);
@@ -368,108 +427,56 @@ export default function EventsPage() {
         </div>
       )}
 
-      {/* Create event modal */}
+      {/* ── Create event modal ─────────────────────────────────────────────── */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-lg my-4 p-6">
             <h3 className="text-lg font-semibold text-slate-900 mb-4">Create Event</h3>
 
             <div className="space-y-3">
-              <input
-                type="text"
-                placeholder="Title *"
-                {...field('title')}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              />
-              <input
-                type="text"
-                placeholder="Short description"
-                {...field('shortDescription')}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              />
-              <textarea
-                placeholder="Full description"
-                {...field('description')}
-                rows={3}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
-              />
+              <input type="text" placeholder="Title *" {...field('title')}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+              <input type="text" placeholder="Short description" {...field('shortDescription')}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+              <textarea placeholder="Full description" {...field('description')} rows={3}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none" />
 
-              <select
-                {...field('format')}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none capitalize"
-              >
+              <select {...field('format')}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
                 {FORMAT_OPTIONS.map((f) => (
-                  <option key={f} value={f} className="capitalize">
-                    {f.replace('_', ' ')}
-                  </option>
+                  <option key={f} value={f}>{fmtFormat(f)}</option>
                 ))}
               </select>
 
               <div className="grid grid-cols-2 gap-2">
-                <input
-                  type="text"
-                  placeholder="Country"
-                  {...field('country')}
-                  className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                />
-                <input
-                  type="text"
-                  placeholder="City"
-                  {...field('city')}
-                  className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                />
+                <input type="text" placeholder="Country" {...field('country')}
+                  className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                <input type="text" placeholder="City" {...field('city')}
+                  className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
               </div>
 
-              <input
-                type="text"
-                placeholder="Venue"
-                {...field('venue')}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              />
+              <input type="text" placeholder="Venue" {...field('venue')}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-xs text-slate-500 mb-1 block">Start Date *</label>
-                  <input
-                    type="datetime-local"
-                    {...field('startDate')}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  />
+                  <input type="datetime-local" {...field('startDate')}
+                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
                 </div>
                 <div>
                   <label className="text-xs text-slate-500 mb-1 block">End Date</label>
-                  <input
-                    type="datetime-local"
-                    {...field('endDate')}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  />
+                  <input type="datetime-local" {...field('endDate')}
+                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
                 </div>
               </div>
 
-              <input
-                type="url"
-                placeholder="Registration URL"
-                {...field('registrationUrl')}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              />
-              <input
-                type="url"
-                placeholder="Cover image URL"
-                {...field('coverImageUrl')}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              />
-              <input
-                type="text"
-                placeholder="Regions (comma-separated, e.g. IN, SG)"
-                {...field('regions')}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              />
-              <input
-                type="text"
-                placeholder="Tags (comma-separated)"
-                {...field('tags')}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              />
+              <input type="url" placeholder="Registration URL" {...field('registrationUrl')}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+              <input type="url" placeholder="Cover image URL" {...field('coverImageUrl')}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+              <input type="text" placeholder="Tags (comma-separated)" {...field('tags')}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
             </div>
 
             {createMutation.error && (
@@ -479,20 +486,13 @@ export default function EventsPage() {
             )}
 
             <div className="flex gap-3 mt-4">
-              <button
-                onClick={() => {
-                  setShowCreateModal(false);
-                  setForm(EMPTY_FORM);
-                }}
-                className="flex-1 border border-slate-300 text-slate-700 text-sm font-medium px-4 py-2.5 rounded-lg hover:bg-slate-50 transition-colors"
-              >
+              <button onClick={() => { setShowCreateModal(false); setForm(EMPTY_FORM); }}
+                className="flex-1 border border-slate-300 text-slate-700 text-sm font-medium px-4 py-2.5 rounded-lg hover:bg-slate-50 transition-colors">
                 Cancel
               </button>
-              <button
-                onClick={() => createMutation.mutate()}
+              <button onClick={() => createMutation.mutate()}
                 disabled={!form.title.trim() || !form.startDate || createMutation.isPending}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors disabled:opacity-60"
-              >
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors disabled:opacity-60">
                 {createMutation.isPending ? 'Creating…' : 'Create Event'}
               </button>
             </div>
@@ -500,24 +500,20 @@ export default function EventsPage() {
         </div>
       )}
 
-      {/* Delete confirmation */}
+      {/* ── Delete confirmation ────────────────────────────────────────────── */}
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
             <h3 className="text-lg font-semibold text-slate-900 mb-2">Delete Event?</h3>
             <p className="text-sm text-slate-500 mb-4">This action cannot be undone.</p>
             <div className="flex gap-3">
-              <button
-                onClick={() => setDeleteConfirm(null)}
-                className="flex-1 border border-slate-300 text-slate-700 text-sm font-medium px-4 py-2.5 rounded-lg hover:bg-slate-50"
-              >
+              <button onClick={() => setDeleteConfirm(null)}
+                className="flex-1 border border-slate-300 text-slate-700 text-sm font-medium px-4 py-2.5 rounded-lg hover:bg-slate-50">
                 Cancel
               </button>
-              <button
-                onClick={() => deleteMutation.mutate(deleteConfirm)}
+              <button onClick={() => deleteMutation.mutate(deleteConfirm)}
                 disabled={deleteMutation.isPending}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg disabled:opacity-60"
-              >
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg disabled:opacity-60">
                 {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
               </button>
             </div>
