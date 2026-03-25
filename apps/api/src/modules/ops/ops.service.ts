@@ -4,6 +4,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import * as XLSX from 'xlsx';
 import { Queue } from 'bullmq';
 import { ConfigService } from '@nestjs/config';
 import { generateText } from 'ai';
@@ -1074,6 +1075,113 @@ export class OpsService {
   }
 
   // ── Events ────────────────────────────────────────────────────────────────
+
+  async importEvents(buffer: Buffer, filename: string) {
+    const ext = filename.split('.').pop()?.toLowerCase();
+    if (!['xlsx', 'xls', 'csv'].includes(ext ?? '')) {
+      throw new BadRequestException('File must be .xlsx, .xls or .csv');
+    }
+
+    const workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
+      defval: '',
+    });
+
+    if (rows.length === 0) throw new BadRequestException('Spreadsheet is empty');
+
+    const created: string[] = [];
+    const errors: { row: number; error: string }[] = [];
+
+    // Normalise a header like "Start Date" / "start_date" / "startDate" → canonical key
+    const normalise = (v: unknown) =>
+      String(v ?? '')
+        .toLowerCase()
+        .replace(/[\s_-]+/g, '');
+
+    for (let i = 0; i < rows.length; i++) {
+      const raw = rows[i];
+      // Build a lookup keyed by normalised column name
+      const r: Record<string, string> = {};
+      for (const [k, v] of Object.entries(raw)) {
+        r[normalise(k)] = String(v ?? '').trim();
+      }
+
+      const title = r['title'] ?? r['eventname'] ?? r['name'] ?? '';
+      const startDate = r['startdate'] ?? r['start'] ?? '';
+
+      if (!title) {
+        errors.push({ row: i + 2, error: 'Missing required field: title' });
+        continue;
+      }
+      if (!startDate) {
+        errors.push({ row: i + 2, error: 'Missing required field: start date' });
+        continue;
+      }
+
+      // Parse date — accept ISO strings or Excel date serials
+      const parsedStart = new Date(startDate);
+      if (isNaN(parsedStart.getTime())) {
+        errors.push({ row: i + 2, error: `Invalid start date: "${startDate}"` });
+        continue;
+      }
+
+      const endDateStr = r['enddate'] ?? r['end'] ?? '';
+      const parsedEnd = endDateStr ? new Date(endDateStr) : null;
+
+      const format = r['format'] ?? r['eventformat'] ?? 'online';
+      const tags = (r['tags'] ?? '')
+        .split(',')
+        .map((t) => t.trim().toLowerCase())
+        .filter(Boolean);
+
+      const slug = slugify(title) + '-' + randomSuffix();
+
+      const ne = (v: string) => v || null; // empty string → null
+      const row: Record<string, unknown> = {
+        slug,
+        title,
+        short_description: ne(r['shortdescription'] ?? r['shortdesc'] ?? ''),
+        description: r['description'] ?? r['desc'] ?? '',
+        event_format: ['online', 'in_person', 'hybrid'].includes(format)
+          ? format
+          : 'online',
+        country: ne(r['country'] ?? ''),
+        city: ne(r['city'] ?? ''),
+        venue_name: ne(r['venue'] ?? r['venuename'] ?? ''),
+        start_date: parsedStart.toISOString(),
+        end_date: parsedEnd?.toISOString() ?? null,
+        registration_url: ne(r['registrationurl'] ?? r['url'] ?? ''),
+        cover_image_url: ne(r['coverimageurl'] ?? r['image'] ?? ''),
+        tags,
+        is_published: ['true', 'yes', '1'].includes(
+          (r['ispublished'] ?? r['published'] ?? '').toLowerCase(),
+        ),
+        source: 'ops_import',
+      };
+
+      try {
+        const { data, error } = await this.supabase.adminClient
+          .from('events')
+          .insert(row)
+          .select('id, title')
+          .single();
+
+        if (error) throw new Error(error.message);
+        created.push((data as any).id);
+      } catch (err) {
+        errors.push({ row: i + 2, error: (err as Error).message });
+      }
+    }
+
+    await this.cache.delByPattern('expertly:events:*');
+
+    return {
+      imported: created.length,
+      failed: errors.length,
+      errors,
+    };
+  }
 
   async listEvents() {
     const { data, error } = await this.supabase.adminClient

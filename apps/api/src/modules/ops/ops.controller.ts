@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -7,8 +8,10 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
+import { FastifyRequest } from 'fastify';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -217,6 +220,20 @@ export class OpsController {
   @Get('events')
   listEvents() {
     return this.ops.listEvents();
+  }
+
+  @Post('events/import')
+  async importEvents(@Req() req: FastifyRequest) {
+    if (!req.isMultipart()) {
+      throw new BadRequestException('Request must be multipart/form-data');
+    }
+    const data = await req.file();
+    if (!data) {
+      throw new BadRequestException('No file uploaded');
+    }
+    const file = data as unknown as { filename: string; toBuffer: () => Promise<Buffer> };
+    const buffer = await file.toBuffer();
+    return this.ops.importEvents(buffer, file.filename);
   }
 
   @Post('events')

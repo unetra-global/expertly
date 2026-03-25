@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/apiClient';
 import { queryKeys } from '@/hooks/queryKeys';
@@ -24,6 +24,12 @@ interface EventForm {
   tags: string;
 }
 
+interface ImportResult {
+  imported: number;
+  failed: number;
+  errors: { row: number; error: string }[];
+}
+
 const EMPTY_FORM: EventForm = {
   title: '',
   shortDescription: '',
@@ -40,11 +46,56 @@ const EMPTY_FORM: EventForm = {
   tags: '',
 };
 
+const TEMPLATE_HEADERS = [
+  'title',
+  'shortDescription',
+  'description',
+  'format',
+  'country',
+  'city',
+  'venue',
+  'startDate',
+  'endDate',
+  'registrationUrl',
+  'coverImageUrl',
+  'tags',
+  'isPublished',
+];
+
+function downloadTemplate() {
+  const exampleRow = [
+    'FinTech Summit 2026',
+    'Annual fintech conference',
+    'Join 500+ fintech leaders for two days of insights and networking.',
+    'in_person',
+    'Singapore',
+    'Singapore',
+    'Marina Bay Sands',
+    '2026-06-15T09:00',
+    '2026-06-16T18:00',
+    'https://example.com/register',
+    '',
+    'fintech,payments,regulation',
+    'false',
+  ];
+  const csv = [TEMPLATE_HEADERS.join(','), exampleRow.join(',')].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'events_import_template.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function EventsPage() {
   const qc = useQueryClient();
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [form, setForm] = useState<EventForm>(EMPTY_FORM);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: events = [], isLoading } = useQuery({
     queryKey: queryKeys.ops.events(),
@@ -91,6 +142,19 @@ export default function EventsPage() {
     },
   });
 
+  const importMutation = useMutation({
+    mutationFn: (file: File) => {
+      const form = new FormData();
+      form.append('file', file);
+      return apiClient.upload<ImportResult>('/ops/events/import', form);
+    },
+    onSuccess: (result) => {
+      setImportResult(result);
+      invalidate();
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    },
+  });
+
   const field = (key: keyof EventForm) => ({
     value: form[key],
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
@@ -106,12 +170,20 @@ export default function EventsPage() {
             {isLoading ? 'Loading…' : `${events.length} event${events.length !== 1 ? 's' : ''}`}
           </p>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors"
-        >
-          + Create Event
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="border border-slate-300 text-slate-700 hover:bg-slate-50 text-sm font-medium px-4 py-2.5 rounded-lg transition-colors"
+          >
+            Import from Excel
+          </button>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors"
+          >
+            + Create Event
+          </button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -203,6 +275,96 @@ export default function EventsPage() {
               )}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Import modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+            <h3 className="text-lg font-semibold text-slate-900 mb-1">Import Events</h3>
+            <p className="text-sm text-slate-500 mb-4">
+              Upload a .xlsx, .xls, or .csv file. Required columns:{' '}
+              <span className="font-medium text-slate-700">title</span>,{' '}
+              <span className="font-medium text-slate-700">startDate</span>.
+            </p>
+
+            <div className="mb-4">
+              <button
+                onClick={downloadTemplate}
+                className="text-sm text-blue-600 hover:underline"
+              >
+                Download template CSV ↓
+              </button>
+            </div>
+
+            <label className="block border-2 border-dashed border-slate-300 rounded-lg p-6 text-center cursor-pointer hover:border-blue-400 transition-colors">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setImportResult(null);
+                    importMutation.mutate(file);
+                  }
+                }}
+              />
+              <p className="text-sm text-slate-500">
+                {importMutation.isPending
+                  ? 'Importing…'
+                  : 'Click to select file (.xlsx, .xls, .csv)'}
+              </p>
+            </label>
+
+            {importMutation.error && (
+              <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                {String(importMutation.error)}
+              </div>
+            )}
+
+            {importResult && (
+              <div className="mt-3 space-y-2">
+                <div className="flex gap-3">
+                  <div className="flex-1 bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                    <p className="text-2xl font-bold text-green-700">{importResult.imported}</p>
+                    <p className="text-xs text-green-600 mt-0.5">Imported</p>
+                  </div>
+                  {importResult.failed > 0 && (
+                    <div className="flex-1 bg-red-50 border border-red-200 rounded-lg p-3 text-center">
+                      <p className="text-2xl font-bold text-red-700">{importResult.failed}</p>
+                      <p className="text-xs text-red-600 mt-0.5">Failed</p>
+                    </div>
+                  )}
+                </div>
+                {importResult.errors.length > 0 && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 max-h-40 overflow-y-auto">
+                    <p className="text-xs font-semibold text-red-700 mb-1">Row errors:</p>
+                    {importResult.errors.map((e, i) => (
+                      <p key={i} className="text-xs text-red-600">
+                        Row {e.row}: {e.error}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="mt-4">
+              <button
+                onClick={() => {
+                  setShowImportModal(false);
+                  setImportResult(null);
+                  importMutation.reset();
+                }}
+                className="w-full border border-slate-300 text-slate-700 text-sm font-medium px-4 py-2.5 rounded-lg hover:bg-slate-50 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
