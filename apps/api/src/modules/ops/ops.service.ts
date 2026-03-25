@@ -850,7 +850,8 @@ export class OpsService {
     let q = sb
       .from('articles')
       .select(
-        'id, title, slug, status, author_id, submitted_at, published_at, created_at',
+        'id, title, slug, excerpt, status, author_id, category_id, tags, ' +
+          'creation_mode, submitted_at, published_at, rejection_reason, created_at',
         { count: 'exact' },
       )
       .order('created_at', { ascending: false })
@@ -869,6 +870,34 @@ export class OpsService {
         limit,
         totalPages: Math.ceil((count ?? 0) / limit),
       },
+    };
+  }
+
+  async getArticle(id: string) {
+    const { data, error } = await this.supabase.adminClient
+      .from('articles')
+      .select(
+        'id, title, slug, body, excerpt, status, author_id, category_id, tags, ' +
+          'creation_mode, submitted_at, published_at, rejection_reason, created_at, updated_at, ' +
+          'author:members!author_id(designation, user:users!user_id(first_name, last_name, email))',
+      )
+      .eq('id', id)
+      .single();
+
+    if (error || !data) throw new NotFoundException('Article not found');
+
+    const { author, ...a } = data as unknown as {
+      author: { designation?: string; user: { first_name?: string; last_name?: string; email?: string } | null } | null;
+      [key: string]: unknown;
+    };
+
+    return {
+      ...a,
+      author_name: author?.user
+        ? `${author.user.first_name ?? ''} ${author.user.last_name ?? ''}`.trim()
+        : null,
+      author_email: author?.user?.email ?? null,
+      author_designation: author?.designation ?? null,
     };
   }
 
@@ -961,7 +990,7 @@ export class OpsService {
     return { message: 'Article approved and published' };
   }
 
-  async rejectArticle(id: string, body: { rejectionReason: string }) {
+  async rejectArticle(id: string, body: { reason?: string; rejectionReason?: string }) {
     const sb = this.supabase.adminClient;
 
     const { data: article } = await sb
@@ -973,9 +1002,11 @@ export class OpsService {
     if (!article) throw new NotFoundException('Article not found');
     const a = article as any;
 
+    const reason = body.reason ?? body.rejectionReason ?? '';
+
     await sb
       .from('articles')
-      .update({ status: 'draft', rejection_reason: body.rejectionReason })
+      .update({ status: 'draft', rejection_reason: reason })
       .eq('id', id);
 
     const { data: member } = await sb
@@ -995,7 +1026,7 @@ export class OpsService {
       to: (user as any)?.email ?? '',
       authorName: `${m?.first_name ?? ''} ${m?.last_name ?? ''}`.trim(),
       articleTitle: a.title,
-      rejectionReason: body.rejectionReason,
+      rejectionReason: reason,
     });
 
     return { message: 'Article rejected and returned to draft' };

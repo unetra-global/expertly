@@ -186,20 +186,25 @@ export class OpsController {
     });
   }
 
-  @Patch('articles/:id/approve')
+  @Get('articles/:id')
+  getArticle(@Param('id') id: string) {
+    return this.ops.getArticle(id);
+  }
+
+  @Post('articles/:id/approve')
   approveArticle(@Param('id') id: string) {
     return this.ops.approveArticle(id);
   }
 
-  @Patch('articles/:id/reject')
+  @Post('articles/:id/reject')
   rejectArticle(
     @Param('id') id: string,
-    @Body() body: { rejectionReason: string },
+    @Body() body: { reason?: string; rejectionReason?: string },
   ) {
     return this.ops.rejectArticle(id, body);
   }
 
-  @Patch('articles/:id/archive')
+  @Post('articles/:id/archive')
   archiveArticle(
     @Param('id') id: string,
     @Body() body: { reason?: string },
