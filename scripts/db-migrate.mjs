@@ -46,7 +46,7 @@ function fixDbUrl(raw) {
 
 console.log('Applying pending migrations to Supabase...');
 try {
-  execSync(`npx supabase db push --db-url "${dbUrl}"`, { stdio: 'inherit' });
+  execSync(`npx supabase db push --include-all --db-url "${dbUrl}"`, { stdio: 'inherit' });
   console.log('✓ All migrations applied successfully.');
 } catch {
   console.error('✗ Migration failed. Check the output above for details.');
