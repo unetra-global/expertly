@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
@@ -134,17 +134,16 @@ export default function ArticleList({
   const searchParams = useSearchParams();
   const searchParamsKey = searchParams.toString();
 
-  // Multi-select: set of selected service IDs
-  const initServiceIds = (() => {
-    const raw = initialServiceId ?? '';
+  // Initialize state directly from URL on first render — prevents flash + wrong initial query
+  const [selectedServiceIds, setSelectedServiceIds] = useState<Set<string>>(() => {
+    const raw = searchParams.get('serviceIds') ?? searchParams.get('serviceId') ?? initialServiceId ?? '';
     return new Set(raw ? raw.split(',').filter(Boolean) : []);
-  })();
-  const [selectedServiceIds, setSelectedServiceIds] = useState<Set<string>>(initServiceIds);
-  const [readTime, setReadTime] = useState('');
-  const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [sort, setSort] = useState('');
-  const [tag, setTag] = useState('');
+  });
+  const [readTime, setReadTime] = useState(() => searchParams.get('readTime') ?? '');
+  const [search, setSearch] = useState(() => searchParams.get('q') ?? '');
+  const [debouncedSearch, setDebouncedSearch] = useState(() => searchParams.get('q') ?? '');
+  const [sort, setSort] = useState(() => searchParams.get('sort') ?? '');
+  const [tag, setTag] = useState(() => searchParams.get('tag') ?? '');
   const [page, setPage] = useState(1);
   const [sheetOpen, setSheetOpen] = useState(false);
 
@@ -167,6 +166,9 @@ export default function ArticleList({
 
   const serviceIdsString = Array.from(selectedServiceIds).sort().join(',');
 
+  // Keep a stable ref so Effect 1 never re-runs just because the URL changed.
+  // Without this, syncUrl is recreated on every URL update (searchParamsKey dep),
+  // which triggers Effect 1 with stale filter state → overwrites the new URL → loop.
   const syncUrl = useCallback((svcs: string, q: string, rt: string, so: string, tg: string) => {
     const params = new URLSearchParams();
     if (svcs) params.set('serviceIds', svcs);
@@ -175,23 +177,37 @@ export default function ArticleList({
     if (so) params.set('sort', so);
     if (tg) params.set('tag', tg);
     const next = params.toString();
-    if (next === searchParamsKey) return;
+    if (next === searchParams.toString()) return;
     router.push(`/articles${next ? `?${next}` : ''}`, { scroll: false });
-  }, [router, searchParamsKey]);
+  }, [router, searchParams]);
 
+  const syncUrlRef = useRef(syncUrl);
+  useEffect(() => { syncUrlRef.current = syncUrl; });
+
+  // Effect 1: filter state → URL. syncUrl intentionally excluded from deps via ref
+  // to prevent firing when the URL changes externally (e.g. browser back / tag click).
   useEffect(() => {
-    syncUrl(serviceIdsString, debouncedSearch, readTime, sort, tag);
-  }, [serviceIdsString, debouncedSearch, readTime, sort, tag, syncUrl]);
+    syncUrlRef.current(serviceIdsString, debouncedSearch, readTime, sort, tag);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serviceIdsString, debouncedSearch, readTime, sort, tag]);
 
+  // Effect 2: URL → filter state (browser back/forward or external navigation).
+  // Only updates state when values actually changed to avoid spurious re-renders.
   useEffect(() => {
     const raw = searchParams.get('serviceIds') ?? searchParams.get('serviceId') ?? '';
-    setSelectedServiceIds(new Set(raw ? raw.split(',').filter(Boolean) : []));
-    setSearch(searchParams.get('q') ?? '');
-    setReadTime(searchParams.get('readTime') ?? '');
-    setSort(searchParams.get('sort') ?? '');
-    setTag(searchParams.get('tag') ?? '');
+    const nextSvcs = raw ? raw.split(',').filter(Boolean) : [];
+    setSelectedServiceIds(prev => {
+      const prevStr = Array.from(prev).sort().join(',');
+      const nextStr = [...nextSvcs].sort().join(',');
+      return prevStr === nextStr ? prev : new Set(nextSvcs);
+    });
+    setSearch(prev => { const v = searchParams.get('q') ?? ''; return prev === v ? prev : v; });
+    setReadTime(prev => { const v = searchParams.get('readTime') ?? ''; return prev === v ? prev : v; });
+    setSort(prev => { const v = searchParams.get('sort') ?? ''; return prev === v ? prev : v; });
+    setTag(prev => { const v = searchParams.get('tag') ?? ''; return prev === v ? prev : v; });
     setPage(1);
-  }, [searchParamsKey, searchParams]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParamsKey]);
 
   const readTimeFilter: Record<string, string> = {};
   if (readTime === 'short') readTimeFilter.maxReadTime = '5';
