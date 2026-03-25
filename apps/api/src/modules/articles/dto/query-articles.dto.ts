@@ -1,4 +1,4 @@
-import { IsEnum, IsIn, IsNumber, IsOptional, IsString, IsUUID, Matches, Min, Max } from 'class-validator';
+import { IsEnum, IsIn, IsNumber, IsOptional, IsString, Matches, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class QueryArticlesDto {
@@ -20,11 +20,11 @@ export class QueryArticlesDto {
   status?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   categoryId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   serviceId?: string;
 
   /** Comma-separated service UUIDs for multi-select filtering */

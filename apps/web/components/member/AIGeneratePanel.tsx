@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { X, Sparkles, RotateCcw, ChevronRight } from 'lucide-react';
+import { X, Sparkles, RotateCcw } from 'lucide-react';
 import { getBrowserClient } from '@/lib/supabase';
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001') + '/api/v1';
@@ -21,6 +21,8 @@ interface GeneratedResult {
   title: string;
   body: string;
   tags: string[];
+  featuredImageUrl?: string;
+  categoryId?: string;
 }
 
 function normalizeGeneratedResult(input: unknown): GeneratedResult {
@@ -28,6 +30,8 @@ function normalizeGeneratedResult(input: unknown): GeneratedResult {
     title?: unknown;
     body?: unknown;
     tags?: unknown;
+    featuredImageUrl?: unknown;
+    categoryId?: unknown;
   };
 
   const title = typeof obj.title === 'string' ? obj.title.trim() : '';
@@ -35,12 +39,14 @@ function normalizeGeneratedResult(input: unknown): GeneratedResult {
   const tags = Array.isArray(obj.tags)
     ? obj.tags.filter((tag): tag is string => typeof tag === 'string').map((tag) => tag.trim()).filter(Boolean).slice(0, 5)
     : [];
+  const featuredImageUrl = typeof obj.featuredImageUrl === 'string' ? obj.featuredImageUrl : undefined;
+  const categoryId = typeof obj.categoryId === 'string' ? obj.categoryId : undefined;
 
   if (!title || !body) {
     throw new Error('AI response is missing title/body content.');
   }
 
-  return { title, body, tags };
+  return { title, body, tags, featuredImageUrl, categoryId };
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────────
@@ -206,8 +212,8 @@ export default function AIGeneratePanel({ categoryId, onGenerated, onClose }: Pr
         {/* Header */}
         <div className="flex items-center justify-between px-7 py-5 border-b border-gray-100 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-brand-navy flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-yellow-400" />
+            <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-amber-500" />
             </div>
             <div>
               <h2 className="font-bold text-brand-navy text-sm">Generate with AI</h2>

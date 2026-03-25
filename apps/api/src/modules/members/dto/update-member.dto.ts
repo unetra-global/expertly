@@ -4,7 +4,6 @@ import {
   IsNumber,
   IsArray,
   IsObject,
-  IsUUID,
   IsIn,
   Min,
   Max,
@@ -40,8 +39,6 @@ export class UpdateMemberDto {
   @IsOptional()
   @IsString()
   city?: string;
-
-
   @IsOptional()
   @IsIn(COUNTRY_NAMES)
   country?: string;
@@ -102,6 +99,6 @@ export class UpdateMemberDto {
   consultation_fee_max_usd?: number;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   primary_service_id?: string;
 }

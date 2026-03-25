@@ -3,7 +3,6 @@ import {
   IsArray,
   IsOptional,
   IsString,
-  IsUUID,
   MaxLength,
   MinLength,
 } from 'class-validator';
@@ -19,11 +18,11 @@ export class CreateArticleDto {
   body!: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   categoryId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   serviceId?: string;
 
   @IsOptional()

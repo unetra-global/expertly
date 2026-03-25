@@ -1,13 +1,13 @@
-import { IsOptional, IsUUID, IsArray, IsString } from 'class-validator';
+import { IsOptional, IsArray, IsString } from 'class-validator';
 
 export class Step3Dto {
   @IsOptional()
-  @IsUUID()
+  @IsString()
   primaryServiceId?: string;
 
   @IsOptional()
   @IsArray()
-  @IsUUID(undefined, { each: true })
+  @IsString({ each: true })
   secondaryServiceIds?: string[];
 
   @IsOptional()

@@ -1,4 +1,4 @@
-import { IsArray, IsOptional, IsString, IsUUID, ValidateNested } from 'class-validator';
+import { IsArray, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class QaItemDto {
@@ -16,10 +16,10 @@ export class GenerateArticleDto {
   qa!: QaItemDto[];
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   categoryId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   serviceId?: string;
 }

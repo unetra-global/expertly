@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsInt, IsBoolean, IsUUID, Min, Max, IsIn } from 'class-validator';
+import { IsOptional, IsString, IsInt, IsBoolean, Min, Max, IsIn } from 'class-validator';
 import { MEMBER_TIERS } from '@expertly/utils';
 import { Type, Transform } from 'class-transformer';
 
@@ -25,7 +25,7 @@ export class QueryMembersDto {
   country?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   serviceId?: string;
 
   /** Comma-separated service UUIDs for multi-select filtering */

@@ -56,10 +56,11 @@ function ToolbarBtn({
 
 // ── Submit Dialog ─────────────────────────────────────────────────────────────
 
-function SubmitDialog({ onConfirm, onCancel, isSubmitting }: {
+function SubmitDialog({ onConfirm, onCancel, isSubmitting, error }: {
   onConfirm: () => void;
   onCancel: () => void;
   isSubmitting: boolean;
+  error: string | null;
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -68,14 +69,20 @@ function SubmitDialog({ onConfirm, onCancel, isSubmitting }: {
           <Send className="w-5 h-5 text-green-600" />
         </div>
         <h3 className="text-base font-bold text-brand-navy text-center mb-2">Submit for review?</h3>
-        <p className="text-sm text-brand-text-muted text-center leading-relaxed mb-6">
+        <p className="text-sm text-brand-text-muted text-center leading-relaxed mb-4">
           Your article will be reviewed by our editorial team. We will notify you within 2 business days.
           You won&apos;t be able to edit while it&apos;s under review.
         </p>
+        {error && (
+          <div className="mb-4 px-4 py-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-700 text-center">
+            {error}
+          </div>
+        )}
         <div className="flex gap-3">
           <button
             onClick={onCancel}
-            className="flex-1 py-2.5 text-sm font-medium border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+            disabled={isSubmitting}
+            className="flex-1 py-2.5 text-sm font-medium border border-gray-200 rounded-xl hover:bg-gray-50 disabled:opacity-50 transition-colors"
           >
             Cancel
           </button>
@@ -156,6 +163,7 @@ export default function ArticleEditor({ articleId: initialArticleId }: Props) {
   const [featuredImageUploading, setFeaturedImageUploading] = useState(false);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [showAI, setShowAI] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [savedAt, setSavedAt] = useState<Date | null>(null);
@@ -165,6 +173,7 @@ export default function ArticleEditor({ articleId: initialArticleId }: Props) {
   const articleInlineImageRef = useRef<HTMLInputElement>(null);
   const autoSaveRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isCreatingRef = useRef(false);
+  const triggerSaveAfterAI = useRef(false);
 
   const { data: categories = [] } = useQuery({
     queryKey: queryKeys.taxonomy.categories(),
@@ -215,25 +224,31 @@ export default function ArticleEditor({ articleId: initialArticleId }: Props) {
     }
   }, [existingArticle, editor]);
 
-  const doSave = useCallback(async () => {
-    if (!editor || editor.isEmpty) return;
+  const doSave = useCallback(async (): Promise<string | null> => {
+    if (!editor || editor.isEmpty) return null;
     const body = editor.getHTML();
     setSaveStatus('saving');
     try {
-      if (!currentArticleId && !isCreatingRef.current) {
+      let articleId = currentArticleId;
+      if (!articleId) {
+        if (isCreatingRef.current) return null;
         isCreatingRef.current = true;
-        const draft = await apiClient.post<MemberArticle>('/articles', {
-          title: title || 'Untitled',
-          body,
-          tags,
-          categoryId: categoryId || undefined,
-          featuredImageUrl: featuredImageUrl || undefined,
-        });
-        setCurrentArticleId(draft.id);
-        window.history.replaceState(null, '', `/member/articles/${draft.id}/edit`);
-        isCreatingRef.current = false;
-      } else if (currentArticleId) {
-        await apiClient.patch(`/articles/${currentArticleId}`, {
+        try {
+          const draft = await apiClient.post<MemberArticle>('/articles', {
+            title: title || 'Untitled',
+            body,
+            tags,
+            categoryId: categoryId || undefined,
+            featuredImageUrl: featuredImageUrl || undefined,
+          });
+          articleId = draft.id;
+          setCurrentArticleId(draft.id);
+          window.history.replaceState(null, '', `/member/articles/${draft.id}/edit`);
+        } finally {
+          isCreatingRef.current = false;
+        }
+      } else {
+        await apiClient.patch(`/articles/${articleId}`, {
           title: title || 'Untitled',
           body,
           tags,
@@ -244,8 +259,10 @@ export default function ArticleEditor({ articleId: initialArticleId }: Props) {
       setSavedAt(new Date());
       setSaveStatus('saved');
       void queryClient.invalidateQueries({ queryKey: queryKeys.articles.mine() });
+      return articleId;
     } catch {
       setSaveStatus('idle');
+      return null;
     }
   }, [editor, currentArticleId, title, tags, categoryId, featuredImageUrl, queryClient]);
 
@@ -254,8 +271,16 @@ export default function ArticleEditor({ articleId: initialArticleId }: Props) {
     return () => { if (autoSaveRef.current) clearInterval(autoSaveRef.current); };
   }, [doSave]);
 
+  // Auto-save once after AI generation populates all fields
+  useEffect(() => {
+    if (triggerSaveAfterAI.current) {
+      triggerSaveAfterAI.current = false;
+      void doSave();
+    }
+  }, [doSave]);
+
   const wordCount = editor ? countWords(editor.getHTML()) : 0;
-  const canSubmit = wordCount >= 300 && !!featuredImageUrl && title.length >= 10 && !!currentArticleId;
+  const canSubmit = wordCount >= 300 && !!featuredImageUrl && title.length >= 10 && !!categoryId;
 
   const uploadFeaturedImage = async (file: File) => {
     setFeaturedImageUploading(true);
@@ -292,21 +317,32 @@ export default function ArticleEditor({ articleId: initialArticleId }: Props) {
   };
 
   const handleSubmit = async () => {
-    if (!currentArticleId) return;
     setIsSubmitting(true);
+    setSubmitError(null);
     try {
-      await doSave();
-      await apiClient.post(`/articles/${currentArticleId}/submit`);
+      const articleId = await doSave();
+      if (!articleId) {
+        setSubmitError('Could not save your article. Please try again.');
+        setIsSubmitting(false);
+        return;
+      }
+      await apiClient.post(`/articles/${articleId}/submit`, {});
       void queryClient.invalidateQueries({ queryKey: queryKeys.articles.mine() });
+      setShowSubmitDialog(false);
       router.push('/member/articles');
-    } catch {
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Submission failed. Please try again.';
+      setSubmitError(msg);
       setIsSubmitting(false);
     }
   };
 
-  const handleAIGenerated = useCallback((result: { title: string; body: string; tags: string[] }) => {
+  const handleAIGenerated = useCallback((result: { title: string; body: string; tags: string[]; featuredImageUrl?: string; categoryId?: string }) => {
     setTitle(result.title);
     setTags(result.tags.slice(0, 5));
+    if (result.featuredImageUrl) setFeaturedImageUrl(result.featuredImageUrl);
+    if (result.categoryId) setCategoryId(result.categoryId);
+    triggerSaveAfterAI.current = true;
     if (editor) {
       editor.commands.setContent(result.body);
     }
@@ -330,8 +366,9 @@ export default function ArticleEditor({ articleId: initialArticleId }: Props) {
       {showSubmitDialog && (
         <SubmitDialog
           onConfirm={() => { void handleSubmit(); }}
-          onCancel={() => { setShowSubmitDialog(false); setIsSubmitting(false); }}
+          onCancel={() => { setShowSubmitDialog(false); setIsSubmitting(false); setSubmitError(null); }}
           isSubmitting={isSubmitting}
+          error={submitError}
         />
       )}
 
@@ -371,34 +408,13 @@ export default function ArticleEditor({ articleId: initialArticleId }: Props) {
                 </span>
               )}
 
-              {/* Generate with AI — highlighted CTA */}
+              {/* Generate with AI */}
               <button
                 onClick={() => setShowAI(true)}
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold bg-[#c9a84c] text-brand-navy rounded-xl hover:bg-[#d4b460] shadow-[0_0_16px_rgba(201,168,76,0.35)] hover:shadow-[0_0_20px_rgba(201,168,76,0.5)] transition-all"
+                className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-brand-blue text-white rounded-xl hover:bg-brand-blue-dark transition-colors"
               >
-                <Sparkles className="w-3.5 h-3.5" />
+                <Sparkles className="w-4 h-4" />
                 Generate with AI
-              </button>
-
-              {/* Save draft */}
-              <button
-                onClick={() => void doSave()}
-                disabled={saveStatus === 'saving'}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-white/10 border border-white/20 text-white rounded-xl hover:bg-white/20 disabled:opacity-50 transition-colors"
-              >
-                <Save className="w-3.5 h-3.5" />
-                Save
-              </button>
-
-              {/* Submit */}
-              <button
-                onClick={() => setShowSubmitDialog(true)}
-                disabled={!canSubmit}
-                title={!canSubmit ? 'Complete all requirements before submitting' : undefined}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-brand-blue text-white rounded-xl hover:bg-brand-blue-dark disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
-                <Send className="w-3.5 h-3.5" />
-                Submit
               </button>
             </div>
           </div>
@@ -617,17 +633,29 @@ export default function ArticleEditor({ articleId: initialArticleId }: Props) {
                 ))}
               </div>
 
-              {canSubmit && (
-                <div className="mt-4 pt-4 border-t border-gray-50">
-                  <button
-                    onClick={() => setShowSubmitDialog(true)}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-semibold text-white bg-brand-navy rounded-xl hover:bg-brand-navy/90 transition-colors"
-                  >
-                    <Send className="w-4 h-4" />
-                    Submit for Review
-                  </button>
-                </div>
-              )}
+            </div>
+
+            {/* Actions */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+              <div className="flex flex-col gap-2.5">
+                <button
+                  onClick={() => void doSave()}
+                  disabled={saveStatus === 'saving'}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-semibold border border-gray-200 text-brand-navy rounded-xl hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                >
+                  <Save className="w-4 h-4" />
+                  {saveStatus === 'saving' ? 'Saving…' : 'Save Draft'}
+                </button>
+                <button
+                  onClick={() => setShowSubmitDialog(true)}
+                  disabled={!canSubmit}
+                  title={!canSubmit ? 'Complete all requirements before submitting' : undefined}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-semibold text-white bg-brand-blue rounded-xl hover:bg-brand-blue-dark disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  <Send className="w-4 h-4" />
+                  Submit for Review
+                </button>
+              </div>
             </div>
 
           </aside>

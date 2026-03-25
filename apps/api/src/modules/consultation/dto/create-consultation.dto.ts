@@ -1,11 +1,11 @@
-import { IsOptional, IsString, IsUUID, MinLength } from 'class-validator';
+import { IsOptional, IsString, MinLength } from 'class-validator';
 
 export class CreateConsultationDto {
-  @IsUUID()
+  @IsString()
   memberId!: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   serviceId?: string;
 
   @IsString()

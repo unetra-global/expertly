@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsBoolean, IsUUID, ValidateNested, MinLength } from 'class-validator';
+import { IsString, IsOptional, IsBoolean, ValidateNested, MinLength } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class AiSearchFiltersDto {
@@ -7,7 +7,7 @@ export class AiSearchFiltersDto {
   country?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   serviceId?: string;
 
   @IsOptional()

@@ -56,6 +56,26 @@ interface GeneratedArticlePayload {
   title: string;
   body: string;
   tags: string[];
+  featuredImageUrl?: string;
+  categoryId?: string;
+}
+
+async function fetchUnsplashImage(query: string, accessKey: string): Promise<string | null> {
+  try {
+    const url = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=5&orientation=landscape&content_filter=high`;
+    const resp = await fetch(url, {
+      headers: { Authorization: `Client-ID ${accessKey}` },
+    });
+    if (!resp.ok) return null;
+    const data = await resp.json() as { results?: Array<{ urls?: { regular?: string } }> };
+    const results = data.results ?? [];
+    if (results.length === 0) return null;
+    // Pick randomly from top 5 for variety
+    const idx = Math.floor(Math.random() * Math.min(results.length, 5));
+    return results[idx]?.urls?.regular ?? null;
+  } catch {
+    return null;
+  }
 }
 
 function getErrorMessage(error: unknown, fallback: string): string {
@@ -167,6 +187,7 @@ function coerceGeneratedArticlePayload(rawContent: string): GeneratedArticlePayl
           title: parsed.title.trim().slice(0, 160) || 'AI generated article',
           body: parsed.body.trim(),
           tags: normalizeTags(parsed.tags),
+          categoryId: typeof parsed.categoryId === 'string' ? parsed.categoryId : undefined,
         };
       }
     } catch {
@@ -231,7 +252,11 @@ async function resolveContextLabel(
   return { categoryName, serviceName };
 }
 
-function buildSystemPrompt(categoryName: string | null, serviceName: string | null): string {
+function buildSystemPrompt(
+  categoryName: string | null,
+  serviceName: string | null,
+  categories: Array<{ id: string; name: string }> = [],
+): string {
   const specialisation = serviceName
     ? `${serviceName}${categoryName ? ` (${categoryName})` : ''}`
     : categoryName ?? 'financial and legal professional services';
@@ -263,12 +288,19 @@ function buildSystemPrompt(categoryName: string | null, serviceName: string | nu
     ``,
     `TONE: authoritative, direct, and practical. Write as a practitioner sharing hard-won insight, not as an academic or a copywriter.`,
     ``,
+    ...(categories.length > 0 ? [
+      ``,
+      `CATEGORY — pick the single most relevant category for this article and include its id as "categoryId":`,
+      ...categories.map((c) => `- ${c.name} → "${c.id}"`),
+    ] : []),
+    ``,
     `OUTPUT FORMAT — critical:`,
     `Return ONLY a valid JSON object. No markdown, no code fences, no explanation outside the JSON.`,
-    `The JSON must have exactly these three keys:`,
+    `The JSON must have these keys:`,
     `- "title": string — a compelling article title, max 80 characters`,
     `- "body": string — the full article HTML, following all rules above`,
     `- "tags": string[] — up to 5 lowercase keyword strings relevant to the article`,
+    ...(categories.length > 0 ? [`- "categoryId": string — the id from the CATEGORY list above`] : []),
   ].join('\n');
 }
 
@@ -340,15 +372,26 @@ export class ArticlesController {
       return;
     }
 
-    // Resolve category/service label for the system prompt before hijacking
+    // Resolve category/service label + full category list before hijacking
     // so any DB errors can still return a proper HTTP error response.
-    const { categoryName, serviceName } = await resolveContextLabel(
-      this.supabase,
-      dto.categoryId,
-      dto.serviceId,
-    ).catch(() => ({ categoryName: null, serviceName: null }));
+    const [{ categoryName, serviceName }, allCategories] = await Promise.all([
+      resolveContextLabel(this.supabase, dto.categoryId, dto.serviceId)
+        .catch(() => ({ categoryName: null, serviceName: null })),
+      // Only fetch categories for auto-selection when none was pre-selected
+      !dto.categoryId
+        ? Promise.resolve(
+            this.supabase.adminClient
+              .from('categories')
+              .select('id, name')
+              .eq('is_active', true)
+              .order('sort_order', { ascending: true }),
+          )
+            .then(({ data }) => (data ?? []) as Array<{ id: string; name: string }>)
+            .catch(() => [] as Array<{ id: string; name: string }>)
+        : Promise.resolve([] as Array<{ id: string; name: string }>),
+    ]);
 
-    const systemPrompt = buildSystemPrompt(categoryName, serviceName);
+    const systemPrompt = buildSystemPrompt(categoryName, serviceName, allCategories);
 
     // Hijack the response so Fastify/NestJS interceptors don't try to call
     // reply.send() after we've already ended the stream with reply.raw.end().
@@ -404,6 +447,19 @@ export class ArticlesController {
       // Parse and send final done event
       try {
         const parsed = coerceGeneratedArticlePayload(fullContent);
+
+        // Preserve pre-selected category if AI didn't return one
+        if (!parsed.categoryId && dto.categoryId) {
+          parsed.categoryId = dto.categoryId;
+        }
+
+        // Fetch a relevant stock image from Unsplash
+        const unsplashKey = this.config.get<string>('UNSPLASH_ACCESS_KEY');
+        if (unsplashKey && unsplashKey !== 'your_unsplash_access_key_here') {
+          const imageQuery = [...parsed.tags, parsed.title].slice(0, 3).join(' ');
+          parsed.featuredImageUrl = (await fetchUnsplashImage(imageQuery, unsplashKey)) ?? undefined;
+        }
+
         sendEvent(JSON.stringify({ type: 'done', data: parsed }));
       } catch (parseErr) {
         const message = getErrorMessage(parseErr, 'Failed to parse AI response');
