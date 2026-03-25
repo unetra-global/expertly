@@ -157,9 +157,9 @@ export default function EventsPage() {
                   <tr key={event.id}>
                     <td className="px-4 py-3">
                       <p className="font-medium text-slate-900">{event.title}</p>
-                      {event.shortDescription && (
-                        <p className="text-xs text-slate-400 line-clamp-1">
-                          {event.shortDescription}
+                      {(event.shortDescription ?? event.description) && (
+                        <p className="text-xs text-slate-400 line-clamp-1 mt-0.5">
+                          {event.shortDescription ?? event.description}
                         </p>
                       )}
                     </td>
