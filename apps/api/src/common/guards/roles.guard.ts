@@ -35,7 +35,7 @@ export class RolesGuard implements CanActivate {
       throw new ForbiddenException('Authentication required');
     }
 
-    const userLevel = ROLE_LEVELS[user.role] ?? 0;
+    const userLevel = ROLE_LEVELS[user.role as UserRole] ?? 0;
     const requiredLevel = Math.min(...requiredRoles.map((r) => ROLE_LEVELS[r] ?? 999));
 
     if (userLevel < requiredLevel) {
