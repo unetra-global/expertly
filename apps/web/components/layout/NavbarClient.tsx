@@ -81,7 +81,7 @@ export function NavbarClient({
           {/* ── Desktop nav links ─────────────────────────── */}
           <div className="hidden md:flex items-center gap-6">
             {navLinks.map(({ href, label }) => {
-              const isActive = pathname.startsWith(href);
+              const isActive = pathname?.startsWith(href) ?? false;
               return (
                 <Link
                   key={href}
@@ -290,7 +290,7 @@ export function NavbarClient({
         <div className="flex-1 overflow-y-auto px-4 py-6">
           <div className="space-y-1 mb-6">
             {navLinks.map(({ href, label }) => {
-              const isActive = pathname.startsWith(href);
+              const isActive = pathname?.startsWith(href) ?? false;
               return (
                 <Link
                   key={href}

@@ -36,7 +36,7 @@ export default function OpsLayout({ children, isAdmin = true }: OpsLayoutProps) 
 
   const isActive = (href: string) => {
     if (href === '/ops') return pathname === '/ops';
-    return pathname.startsWith(href);
+    return pathname?.startsWith(href) ?? false;
   };
 
   return (
