@@ -26,6 +26,7 @@ export function NavbarClient({
   const isLoggedIn = userRole !== null;
   const isMember = userRole === 'member';
   const isOps = userRole === 'ops' || userRole === 'backend_admin';
+  const isPlainUser = userRole === 'user';
 
   const initials = userEmail ? userEmail[0].toUpperCase() : 'U';
 
@@ -172,7 +173,7 @@ export function NavbarClient({
                           <Link href="/member/articles/new" className="block px-4 py-2 text-sm font-medium text-brand-blue hover:bg-brand-blue-subtle" onClick={() => setUserMenuOpen(false)}>✏ Write Article</Link>
                         </>
                       )}
-                      {(isMember || isOps) && (
+                      {(isMember || isOps || isPlainUser) && (
                         <Link href="/member/settings" className="block px-4 py-2 text-sm text-brand-text hover:bg-brand-surface" onClick={() => setUserMenuOpen(false)}>Settings</Link>
                       )}
                       <div className="border-t border-gray-100 mt-1 pt-1">

@@ -181,44 +181,88 @@ export class SchedulerService implements OnModuleInit, OnModuleDestroy {
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // 3. Weekly Digest — 08:00 UTC every Monday
+  // 3a. Daily Digest — 07:00 UTC every day (for 'daily' frequency subscribers)
+  // ─────────────────────────────────────────────────────────────────────────────
+  @Cron('0 7 * * *')
+  async handleDailyDigest(): Promise<void> {
+    this.logger.log('Running daily digest job');
+
+    if (!this.digestQueue) {
+      this.logger.warn('Digest queue not initialised — skipping daily digest');
+      return;
+    }
+
+    // Period: yesterday (articles published in the last 24 hours)
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const periodDate = yesterday.toISOString().split('T')[0]!;
+
+    await this.digestQueue.add(
+      QUEUE_JOB_TYPES.SEND_DAILY_DIGEST,
+      { periodDate },
+      { attempts: 2, backoff: { type: 'exponential', delay: 5000 } },
+    );
+
+    this.logger.log(`Daily digest: queued SEND_DAILY_DIGEST for ${periodDate}`);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // 3b. Weekly Digest — 08:00 UTC every Monday (for 'weekly' subscribers)
   // ─────────────────────────────────────────────────────────────────────────────
   @Cron('0 8 * * 1')
   async handleWeeklyDigest(): Promise<void> {
     this.logger.log('Running weekly digest job');
-    const sb = this.supabase.adminClient;
 
-    // Calculate last Monday as week_start
-    const today = new Date();
-    const day = today.getDay(); // 0=Sun, 1=Mon, …
-    const lastMonday = new Date(today);
-    lastMonday.setDate(today.getDate() - (day === 0 ? 6 : day - 1) - 7);
-    lastMonday.setHours(0, 0, 0, 0);
-    const weekStart = lastMonday.toISOString().split('T')[0];
-
-    // Get digest data
-    const { data: digestRows } = await sb.rpc('get_digest_data', {
-      p_week_start: weekStart,
-    }) as unknown as { data: Array<{ user_id: string; articles: unknown[] }> | null };
-
-    if (!digestRows || digestRows.length === 0) {
-      this.logger.log(`No digest data for week starting ${weekStart}`);
+    if (!this.digestQueue) {
+      this.logger.warn('Digest queue not initialised — skipping weekly digest');
       return;
     }
 
-    // Queue individual digest jobs for subscribers with articles
-    let queued = 0;
-    for (const row of digestRows) {
-      if (!row.articles || (row.articles as unknown[]).length === 0) continue;
-      await this.digestQueue.add(
-        QUEUE_JOB_TYPES.SEND_WEEKLY_DIGEST,
-        { weekStart, userId: row.user_id },
-        { attempts: 2, backoff: { type: 'exponential', delay: 5000 } },
-      );
-      queued++;
+    // Only run on actual Monday (guard against cron misfires in tests)
+    const today = new Date();
+    if (today.getDay() !== 1) {
+      this.logger.log('handleWeeklyDigest called on non-Monday — skipping');
+      return;
     }
 
-    this.logger.log(`Weekly digest: queued ${queued} digest jobs for ${weekStart}`);
+    // weekStart = last Monday's date (the week that just ended)
+    const lastMonday = new Date(today);
+    lastMonday.setDate(today.getDate() - 7);
+    lastMonday.setHours(0, 0, 0, 0);
+    const weekStart = lastMonday.toISOString().split('T')[0]!;
+
+    await this.digestQueue.add(
+      QUEUE_JOB_TYPES.SEND_WEEKLY_DIGEST,
+      { weekStart },
+      { attempts: 2, backoff: { type: 'exponential', delay: 5000 } },
+    );
+
+    this.logger.log(`Weekly digest: queued SEND_WEEKLY_DIGEST for week starting ${weekStart}`);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // 3c. Guest Newsletter — 07:30 UTC every day (previous day's articles)
+  // ─────────────────────────────────────────────────────────────────────────────
+  @Cron('30 7 * * *')
+  async handleGuestNewsletter(): Promise<void> {
+    this.logger.log('Running guest newsletter job');
+
+    if (!this.digestQueue) {
+      this.logger.warn('Digest queue not initialised — skipping guest newsletter');
+      return;
+    }
+
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const periodDate = yesterday.toISOString().split('T')[0]!;
+
+    await this.digestQueue.add(
+      QUEUE_JOB_TYPES.SEND_GUEST_NEWSLETTER,
+      { periodDate },
+      { attempts: 2, backoff: { type: 'exponential', delay: 5000 } },
+    );
+
+    this.logger.log(`Guest newsletter: queued SEND_GUEST_NEWSLETTER for ${periodDate}`);
   }
 
   // ─────────────────────────────────────────────────────────────────────────────

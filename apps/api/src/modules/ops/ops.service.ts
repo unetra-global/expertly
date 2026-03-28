@@ -967,12 +967,22 @@ export class OpsService {
       .eq('id', m?.user_id)
       .single();
 
-    await this.email.sendK9ArticleApproved({
-      to: (user as any)?.email ?? '',
-      authorName: `${m?.first_name ?? ''} ${m?.last_name ?? ''}`.trim(),
-      articleTitle: a.title,
-      articleSlug: a.slug,
-    });
+    // Check notification preference before sending
+    const { data: notifPref } = await sb
+      .from('member_notification_preferences')
+      .select('article_status')
+      .eq('member_id', a.author_id)
+      .maybeSingle() as { data: { article_status: boolean } | null };
+
+    const articleStatusEnabled = notifPref?.article_status ?? true; // default on if no row
+    if (articleStatusEnabled && (user as any)?.email) {
+      await this.email.sendK9ArticleApproved({
+        to: (user as any).email,
+        authorName: `${m?.first_name ?? ''} ${m?.last_name ?? ''}`.trim(),
+        articleTitle: a.title,
+        articleSlug: a.slug,
+      });
+    }
 
     // Queue embedding with high priority (1) per spec
     await this.aiQueue?.add(
@@ -1025,12 +1035,22 @@ export class OpsService {
       .eq('id', m?.user_id)
       .single();
 
-    await this.email.sendK10ArticleRejected({
-      to: (user as any)?.email ?? '',
-      authorName: `${m?.first_name ?? ''} ${m?.last_name ?? ''}`.trim(),
-      articleTitle: a.title,
-      rejectionReason: reason,
-    });
+    // Check notification preference before sending
+    const { data: notifPref } = await sb
+      .from('member_notification_preferences')
+      .select('article_status')
+      .eq('member_id', a.author_id)
+      .maybeSingle() as { data: { article_status: boolean } | null };
+
+    const articleStatusEnabled = notifPref?.article_status ?? true;
+    if (articleStatusEnabled && (user as any)?.email) {
+      await this.email.sendK10ArticleRejected({
+        to: (user as any).email,
+        authorName: `${m?.first_name ?? ''} ${m?.last_name ?? ''}`.trim(),
+        articleTitle: a.title,
+        rejectionReason: reason,
+      });
+    }
 
     return { message: 'Article rejected and returned to draft' };
   }

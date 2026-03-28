@@ -25,6 +25,7 @@ import { OpsModule } from './modules/ops/ops.module';
 import { AdminModule } from './modules/admin/admin.module';
 // Week 10 modules
 import { SchedulerModule } from './modules/scheduler/scheduler.module';
+import { NewsletterModule } from './modules/newsletter/newsletter.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { SchedulerModule } from './modules/scheduler/scheduler.module';
     AdminModule,
     // Week 10 modules
     SchedulerModule,
+    NewsletterModule,
   ],
 })
 export class AppModule {}

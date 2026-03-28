@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Resend } from 'resend';
+import * as nodemailer from 'nodemailer';
+import type { Transporter } from 'nodemailer';
 import { SupabaseService } from './supabase.service';
 
 // ── Base HTML template ─────────────────────────────────────────────────────
@@ -78,17 +79,28 @@ function highlight(text: string): string {
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
-  private resend: Resend | null = null;
+  private transporter: Transporter | null = null;
 
   constructor(
     private readonly config: ConfigService,
     private readonly supabase: SupabaseService,
   ) {
-    const apiKey = this.config.get<string>('RESEND_API_KEY');
-    if (apiKey) {
-      this.resend = new Resend(apiKey);
+    const host = this.config.get<string>('SMTP_HOST');
+    const port = this.config.get<number>('SMTP_PORT', 587);
+    const user = this.config.get<string>('SMTP_USER');
+    const pass = this.config.get<string>('SMTP_PASS');
+
+    if (host && user && pass) {
+      this.transporter = nodemailer.createTransport({
+        host,
+        port,
+        secure: port === 465,
+        auth: { user, pass },
+        tls: { rejectUnauthorized: false },
+      });
+      this.logger.log(`SMTP configured → ${host}:${port} as ${user}`);
     } else {
-      this.logger.warn('RESEND_API_KEY not set — email sending disabled');
+      this.logger.warn('SMTP_HOST/SMTP_USER/SMTP_PASS not set — email sending disabled');
     }
   }
 
@@ -104,6 +116,20 @@ export class EmailService {
     return this.config.get<string>('APP_URL', 'https://expertly.global');
   }
 
+  // ── Raw send (no template, no log) — for testing only ────────────────────
+
+  async sendRaw(opts: { to: string; subject: string; html: string }): Promise<void> {
+    if (!this.transporter) {
+      throw new Error('SMTP not configured — check SMTP_HOST, SMTP_USER, SMTP_PASS in .env');
+    }
+    await this.transporter.sendMail({
+      from: this.fromEmail,
+      to: opts.to,
+      subject: opts.subject,
+      html: opts.html,
+    });
+  }
+
   // ── Core send + log ───────────────────────────────────────────────────────
 
   private async send(opts: {
@@ -117,9 +143,9 @@ export class EmailService {
     let status: 'sent' | 'failed' = 'sent';
     let sendError: string | null = null;
 
-    if (this.resend) {
+    if (this.transporter) {
       try {
-        await this.resend.emails.send({
+        await this.transporter.sendMail({
           from: this.fromEmail,
           to,
           subject,
@@ -951,6 +977,35 @@ export class EmailService {
       html,
       template: 'K22',
       variables: opts,
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // K23 — Guest newsletter subscription confirmation
+  // ─────────────────────────────────────────────────────────────────────────
+
+  async sendK23NewsletterWelcome(opts: {
+    to: string;
+    name: string;
+    categoryNames: string[];
+  }): Promise<void> {
+    const categoryList = opts.categoryNames
+      .map((c) => `<li style="margin-bottom:6px;font-size:14px;color:#1e293b;">${c}</li>`)
+      .join('');
+    const html = baseHtml(
+      'Welcome to Expertly Newsletter',
+      h2(`Welcome, ${opts.name}!`) +
+        p('Thank you for subscribing to the Expertly newsletter. You\'ll receive a daily digest of expert articles in the areas you selected:') +
+        `<ul style="padding-left:20px;margin:0 0 20px;">${categoryList}</ul>` +
+        p('We send one digest per day, every morning. You\'ll start receiving articles published from today onwards.') +
+        btn('Explore Expert Articles', `${this.appUrl}/articles`),
+    );
+    await this.send({
+      to: opts.to,
+      subject: `[Expertly] You're subscribed to our newsletter`,
+      html,
+      template: 'K23',
+      variables: opts as unknown as Record<string, unknown>,
     });
   }
 }

@@ -276,9 +276,7 @@ export interface Availability {
 }
 
 export interface NotificationPreferences {
-  consultationRequests: boolean;
   articleStatus: boolean;
-  membershipReminders: boolean;
   regulatoryNudges: boolean;
   platformUpdates: boolean;
 }
@@ -363,7 +361,7 @@ export interface DigestSubscription {
   categoryId: string;
   categoryName: string;
   isSubscribed: boolean;
-  frequency: 'weekly' | 'fortnightly';
+  frequency: 'daily' | 'weekly' | 'fortnightly';
 }
 
 // ── Ops Dashboard ──────────────────────────────────────────────────────────────

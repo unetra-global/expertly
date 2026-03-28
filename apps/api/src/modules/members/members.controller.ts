@@ -7,6 +7,7 @@ import {
   Query,
   Body,
   UseGuards,
+  HttpCode,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { OptionalJwtGuard } from '../../common/guards/optional-jwt.guard';
@@ -19,6 +20,7 @@ import { MembersService } from './members.service';
 import { QueryMembersDto } from './dto/query-members.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
 import { UpdateNotificationsDto } from './dto/update-notifications.dto';
+import { UpdateDigestsDto } from './dto/update-digests.dto';
 import { ServiceChangeDto } from './dto/service-change.dto';
 import { AiSearchDto } from './dto/ai-search.dto';
 
@@ -88,6 +90,25 @@ export class MembersController {
     @Body() dto: UpdateNotificationsDto,
   ) {
     return this.members.updateNotifications(user, dto);
+  }
+
+  // ─── GET /members/me/digests (JWT — any logged-in user) ───────────────────
+  // Intentionally no RolesGuard — works for user, member, ops roles.
+  @UseGuards(JwtAuthGuard)
+  @Get('me/digests')
+  getDigests(@CurrentUser() user: AuthUser) {
+    return this.members.getDigests(user);
+  }
+
+  // ─── PATCH /members/me/digests (JWT — any logged-in user) ─────────────────
+  @UseGuards(JwtAuthGuard)
+  @Patch('me/digests')
+  @HttpCode(200)
+  updateDigests(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: UpdateDigestsDto,
+  ) {
+    return this.members.updateDigests(user, dto);
   }
 
   // ─── POST /members/me/service-change (JWT + Member) ───────────────────────

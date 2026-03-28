@@ -11,6 +11,7 @@ import { resolveCountryName } from '@expertly/utils';
 import { QueryMembersDto } from './dto/query-members.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
 import { UpdateNotificationsDto } from './dto/update-notifications.dto';
+import { UpdateDigestsDto } from './dto/update-digests.dto';
 import { AiSearchDto } from './dto/ai-search.dto';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -316,10 +317,10 @@ export class MembersService {
       throw new NotFoundException('Member record not found');
     }
 
-    // Include notification preferences (spec columns)
+    // Include the three user-configurable notification preferences
     const { data: prefs } = await this.supabase.adminClient
       .from('member_notification_preferences')
-      .select('consultation_requests, article_status, membership_reminders, regulatory_nudges, platform_updates')
+      .select('article_status, regulatory_nudges, platform_updates')
       .eq('member_id', user.memberId)
       .single();
 
@@ -423,6 +424,84 @@ export class MembersService {
 
     if (error) throw error;
     return data;
+  }
+
+  // ─── Get Digest Subscriptions ────────────────────────────────────────────────
+
+  async getDigests(user: AuthUser): Promise<unknown[]> {
+    // Fetch all categories and the user's active subscriptions in parallel
+    const [categoriesResult, subsResult] = await Promise.all([
+      this.supabase.adminClient
+        .from('categories')
+        .select('id, name')
+        .neq('name', 'Others')
+        .order('name'),
+      this.supabase.adminClient
+        .from('user_digest_subscriptions')
+        .select('category_id, frequency, is_active')
+        .eq('user_id', user.dbId),
+    ]);
+
+    const categories = (categoriesResult.data ?? []) as Array<{ id: string; name: string }>;
+    const subs = (subsResult.data ?? []) as Array<{
+      category_id: string;
+      frequency: string;
+      is_active: boolean;
+    }>;
+
+    const subMap = new Map(subs.map((s) => [s.category_id, s]));
+
+    return categories.map((cat) => {
+      const sub = subMap.get(cat.id);
+      return {
+        categoryId: cat.id,
+        categoryName: cat.name,
+        isSubscribed: sub?.is_active ?? false,
+        frequency: sub?.frequency ?? 'weekly',
+      };
+    });
+  }
+
+  // ─── Update Digest Subscriptions ─────────────────────────────────────────────
+
+  async updateDigests(user: AuthUser, dto: UpdateDigestsDto): Promise<void> {
+    for (const item of dto.subscriptions) {
+      // Check if a subscription row already exists for this user+category
+      const { data: existing } = await this.supabase.adminClient
+        .from('user_digest_subscriptions')
+        .select('id')
+        .eq('user_id', user.dbId)
+        .eq('category_id', item.categoryId)
+        .maybeSingle() as { data: { id: string } | null };
+
+      if (existing) {
+        // Update existing row
+        const { error: updateErr } = await this.supabase.adminClient
+          .from('user_digest_subscriptions')
+          .update({
+            is_active: item.isSubscribed,
+            frequency: item.frequency ?? 'weekly',
+          })
+          .eq('id', existing.id);
+        if (updateErr) {
+          this.logger.error(`Digest update failed for user ${user.dbId}, category ${item.categoryId}: ${updateErr.message}`);
+        }
+      } else if (item.isSubscribed) {
+        // Only insert a new row if the user is subscribing (not unsubscribing a non-existent row)
+        const { error: insertErr } = await this.supabase.adminClient
+          .from('user_digest_subscriptions')
+          .insert({
+            user_id: user.dbId,
+            email: user.email,
+            category_id: item.categoryId,
+            frequency: item.frequency ?? 'weekly',
+            is_active: true,
+          });
+        if (insertErr) {
+          this.logger.error(`Digest insert failed for user ${user.dbId}, category ${item.categoryId}: ${insertErr.message} | code: ${insertErr.code}`);
+        }
+      }
+    }
   }
 
   // ─── Service Change ───────────────────────────────────────────────────────────

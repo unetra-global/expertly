@@ -7,6 +7,7 @@ import LatestArticlesSection from '@/components/home/LatestArticlesSection';
 import UpcomingEventsSection, {
   type HomepageEvent,
 } from '@/components/home/UpcomingEventsSection';
+import GuestNewsletterSection from '@/components/home/GuestNewsletterSection';
 import type { MemberCardData } from '@/components/shared/MemberCard';
 import type { ArticleCardData } from '@/components/shared/ArticleCard';
 
@@ -70,6 +71,9 @@ export default async function HomePage() {
       <FeaturedMembersSection members={featuredMembers} />
       <LatestArticlesSection articles={latestArticles} />
       <UpcomingEventsSection events={upcomingEvents} />
+
+      {/* Guest newsletter sign-up — only rendered for unauthenticated visitors */}
+      <GuestNewsletterSection />
 
       {/* CTA strip */}
       <section className="bg-brand-navy py-16">

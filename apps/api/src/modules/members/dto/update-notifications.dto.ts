@@ -1,15 +1,26 @@
 import { IsOptional, IsBoolean } from 'class-validator';
 
+/**
+ * DTO for PATCH /members/me/notifications
+ *
+ * Only three notification preferences are user-configurable:
+ *   - article_status:    email when article is approved or rejected
+ *   - regulatory_nudges: prompt to write about regulatory changes
+ *   - platform_updates: platform news and feature announcements
+ *
+ * consultation_requests and membership_reminders have been removed
+ * from user-facing settings per product decision.
+ */
 export class UpdateNotificationsDto {
   @IsOptional()
   @IsBoolean()
-  email_on_consultation?: boolean;
+  article_status?: boolean;
 
   @IsOptional()
   @IsBoolean()
-  email_on_article_comment?: boolean;
+  regulatory_nudges?: boolean;
 
   @IsOptional()
   @IsBoolean()
-  email_on_event_rsvp?: boolean;
+  platform_updates?: boolean;
 }

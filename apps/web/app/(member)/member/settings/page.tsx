@@ -2,13 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle, Mail } from 'lucide-react';
+import { CheckCircle, Mail, Loader2 } from 'lucide-react';
 import { apiClient } from '@/lib/apiClient';
 import { queryKeys } from '@/hooks/queryKeys';
 import type {
   MemberMe,
   NotificationPreferences,
-  Category,
   DigestSubscription,
 } from '@/types/api';
 
@@ -60,6 +59,16 @@ function formatDate(iso?: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
+// ── Auth user info (from GET /auth/me) ────────────────────────────────────────
+
+interface AuthMe {
+  id: string;
+  role: string;
+  email: string;
+  first_name?: string;
+  last_name?: string;
+}
+
 // ── Main Component ─────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
@@ -71,20 +80,31 @@ export default function SettingsPage() {
     setTimeout(() => setToast(''), 3000);
   };
 
-  // ── Member profile (for membership info + notification prefs) ──────────────
+  // ── Auth: determine current user's role ────────────────────────────────────
+
+  const { data: authMe, isLoading: authLoading } = useQuery({
+    queryKey: ['auth', 'me'],
+    queryFn: () => apiClient.get<AuthMe>('/auth/me'),
+    staleTime: 60_000,
+  });
+
+  const role = authMe?.role ?? null;
+  const isMemberOrOps = role === 'member' || role === 'ops' || role === 'backend_admin';
+
+  // ── Member profile (only for member/ops) ──────────────────────────────────
 
   const { data: profile } = useQuery({
     queryKey: queryKeys.members.me(),
     queryFn: () => apiClient.get<MemberMe>('/members/me'),
     staleTime: 30_000,
+    enabled: isMemberOrOps,
   });
 
-  // ── Notification preferences ───────────────────────────────────────────────
+  // ── Notification Preferences (member/ops only) ─────────────────────────────
+  // Three configurable preferences, all default to true.
 
   const defaultPrefs: NotificationPreferences = {
-    consultationRequests: true,
     articleStatus: true,
-    membershipReminders: true,
     regulatoryNudges: true,
     platformUpdates: true,
   };
@@ -93,13 +113,22 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (profile?.notificationPreferences) {
-      setPrefs(profile.notificationPreferences);
+      // Merge saved prefs over defaults so any missing column still shows true
+      setPrefs({
+        ...defaultPrefs,
+        ...profile.notificationPreferences,
+      });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile]);
 
   const notifMutation = useMutation({
     mutationFn: (updated: NotificationPreferences) =>
-      apiClient.patch('/members/me/notifications', updated),
+      apiClient.patch('/members/me/notifications', {
+        article_status: updated.articleStatus,
+        regulatory_nudges: updated.regulatoryNudges,
+        platform_updates: updated.platformUpdates,
+      }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.members.me() });
       showToast('Notification preferences saved.');
@@ -118,19 +147,9 @@ export default function SettingsPage() {
     description: string;
   }> = [
     {
-      key: 'consultationRequests',
-      label: 'Consultation requests',
-      description: 'Email when someone sends you a consultation request.',
-    },
-    {
       key: 'articleStatus',
       label: 'Article status updates',
       description: 'Email when your article is approved or rejected.',
-    },
-    {
-      key: 'membershipReminders',
-      label: 'Membership reminders',
-      description: 'Reminders 30 days before your membership expires.',
     },
     {
       key: 'regulatoryNudges',
@@ -144,37 +163,22 @@ export default function SettingsPage() {
     },
   ];
 
-  // ── Digest subscriptions ───────────────────────────────────────────────────
-
-  const { data: categories = [] } = useQuery({
-    queryKey: queryKeys.taxonomy.categories(),
-    queryFn: () => apiClient.get<Category[]>('/taxonomy/categories'),
-    staleTime: 3600_000,
-  });
+  // ── Digest Subscriptions (all logged-in users) ─────────────────────────────
 
   const { data: rawDigests = [] } = useQuery({
     queryKey: queryKeys.notifications.digests(),
     queryFn: () => apiClient.get<DigestSubscription[]>('/members/me/digests'),
     staleTime: 30_000,
+    enabled: !!role, // only when role is known
   });
 
-  // Merge categories with subscription state (fallback if endpoint missing)
   const [digests, setDigests] = useState<DigestSubscription[]>([]);
 
   useEffect(() => {
     if (rawDigests.length > 0) {
       setDigests(rawDigests);
-    } else if (categories.length > 0) {
-      setDigests(
-        categories.map((cat) => ({
-          categoryId: cat.id,
-          categoryName: cat.name,
-          isSubscribed: cat.id === profile?.services?.categories?.id,
-          frequency: 'weekly' as const,
-        })),
-      );
     }
-  }, [categories, rawDigests, profile]);
+  }, [rawDigests]);
 
   const digestMutation = useMutation({
     mutationFn: (subs: DigestSubscription[]) =>
@@ -207,38 +211,54 @@ export default function SettingsPage() {
     senior_fellow: 'Senior Fellow',
   };
 
+  // ── Loading state ──────────────────────────────────────────────────────────
+
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-6 h-6 animate-spin text-brand-text-muted" />
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       {toast && <Toast message={toast} />}
 
       <div>
         <h1 className="text-2xl font-bold text-brand-text">Settings</h1>
-        <p className="text-sm text-brand-text-secondary mt-1">Manage your notifications, digest subscriptions, and membership.</p>
+        <p className="text-sm text-brand-text-secondary mt-1">
+          {isMemberOrOps
+            ? 'Manage your notifications, digest subscriptions, and membership.'
+            : 'Manage your digest subscriptions.'}
+        </p>
       </div>
 
-      {/* Notification Preferences */}
-      <div className="bg-white rounded-xl shadow-card p-6">
-        <h2 className="text-base font-semibold text-brand-text mb-1">Notification Preferences</h2>
-        <p className="text-sm text-brand-text-muted mb-4">Changes are saved automatically on toggle.</p>
+      {/* Notification Preferences — member/ops only */}
+      {isMemberOrOps && (
+        <div className="bg-white rounded-xl shadow-card p-6">
+          <h2 className="text-base font-semibold text-brand-text mb-1">Notification Preferences</h2>
+          <p className="text-sm text-brand-text-muted mb-4">Changes are saved automatically on toggle.</p>
 
-        <div className="divide-y divide-slate-100">
-          {NOTIF_OPTIONS.map((opt) => (
-            <Toggle
-              key={opt.key}
-              checked={prefs[opt.key]}
-              onChange={(val) => handleTogglePref(opt.key, val)}
-              label={opt.label}
-              description={opt.description}
-            />
-          ))}
+          <div className="divide-y divide-slate-100">
+            {NOTIF_OPTIONS.map((opt) => (
+              <Toggle
+                key={opt.key}
+                checked={prefs[opt.key]}
+                onChange={(val) => handleTogglePref(opt.key, val)}
+                label={opt.label}
+                description={opt.description}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Digest Subscriptions */}
+      {/* Digest Subscriptions — all logged-in users */}
       <div className="bg-white rounded-xl shadow-card p-6">
         <h2 className="text-base font-semibold text-brand-text mb-1">Digest Subscriptions</h2>
         <p className="text-sm text-brand-text-muted mb-4">
-          Subscribe to weekly or fortnightly digests of new articles by category. Sent on Monday mornings.
+          Subscribe to digest emails of new articles by category. Choose your preferred frequency.
         </p>
 
         {digests.length === 0 ? (
@@ -246,7 +266,10 @@ export default function SettingsPage() {
         ) : (
           <div className="space-y-4">
             {digests.map((digest) => (
-              <div key={digest.categoryId} className="flex items-center justify-between gap-4 py-3 border-b border-slate-100 last:border-0">
+              <div
+                key={digest.categoryId}
+                className="flex items-center justify-between gap-4 py-3 border-b border-slate-100 last:border-0"
+              >
                 <div className="flex items-center gap-4 flex-1">
                   {/* Subscribe toggle */}
                   <button
@@ -266,9 +289,14 @@ export default function SettingsPage() {
                 {digest.isSubscribed && (
                   <select
                     value={digest.frequency}
-                    onChange={(e) => updateDigest(digest.categoryId, { frequency: e.target.value as 'weekly' | 'fortnightly' })}
+                    onChange={(e) =>
+                      updateDigest(digest.categoryId, {
+                        frequency: e.target.value as 'daily' | 'weekly' | 'fortnightly',
+                      })
+                    }
                     className="border border-slate-200 rounded-lg px-3 py-1.5 text-sm text-brand-text bg-white focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue transition-colors"
                   >
+                    <option value="daily">Daily</option>
                     <option value="weekly">Weekly</option>
                     <option value="fortnightly">Fortnightly</option>
                   </select>
@@ -279,49 +307,51 @@ export default function SettingsPage() {
         )}
       </div>
 
-      {/* Membership */}
-      <div className="bg-white rounded-xl shadow-card p-6">
-        <h2 className="text-base font-semibold text-brand-text mb-4">Membership</h2>
-        <dl className="space-y-3">
-          <div className="flex items-center justify-between">
-            <dt className="text-sm text-brand-text-muted">Tier</dt>
-            <dd className="text-sm font-medium text-brand-text">
-              {tierLabel[profile?.membershipTier ?? ''] ?? profile?.membershipTier ?? '—'}
-            </dd>
-          </div>
-          <div className="flex items-center justify-between">
-            <dt className="text-sm text-brand-text-muted">Status</dt>
-            <dd>
-              {profile?.isVerified ? (
-                <span className="inline-flex items-center gap-1.5 text-sm font-medium text-green-700">
-                  <CheckCircle className="w-4 h-4" /> Active &amp; Verified
-                </span>
-              ) : (
-                <span className="text-sm font-medium text-amber-700">Active — not yet verified</span>
-              )}
-            </dd>
-          </div>
-          <div className="flex items-center justify-between">
-            <dt className="text-sm text-brand-text-muted">Expiry date</dt>
-            <dd className="text-sm font-medium text-brand-text">
-              {formatDate(profile?.membershipExpiryAt)}
-            </dd>
-          </div>
-        </dl>
+      {/* Membership — member/ops only */}
+      {isMemberOrOps && (
+        <div className="bg-white rounded-xl shadow-card p-6">
+          <h2 className="text-base font-semibold text-brand-text mb-4">Membership</h2>
+          <dl className="space-y-3">
+            <div className="flex items-center justify-between">
+              <dt className="text-sm text-brand-text-muted">Tier</dt>
+              <dd className="text-sm font-medium text-brand-text">
+                {tierLabel[profile?.membershipTier ?? ''] ?? profile?.membershipTier ?? '—'}
+              </dd>
+            </div>
+            <div className="flex items-center justify-between">
+              <dt className="text-sm text-brand-text-muted">Status</dt>
+              <dd>
+                {profile?.isVerified ? (
+                  <span className="inline-flex items-center gap-1.5 text-sm font-medium text-green-700">
+                    <CheckCircle className="w-4 h-4" /> Active &amp; Verified
+                  </span>
+                ) : (
+                  <span className="text-sm font-medium text-amber-700">Active — not yet verified</span>
+                )}
+              </dd>
+            </div>
+            <div className="flex items-center justify-between">
+              <dt className="text-sm text-brand-text-muted">Expiry date</dt>
+              <dd className="text-sm font-medium text-brand-text">
+                {formatDate(profile?.membershipExpiryAt)}
+              </dd>
+            </div>
+          </dl>
 
-        <div className="mt-5 pt-5 border-t border-slate-100">
-          <p className="text-sm text-brand-text-secondary mb-3">
-            To renew your membership or discuss tier upgrades, contact our team.
-          </p>
-          <a
-            href="mailto:ops@expertly.net?subject=Membership%20Renewal"
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border border-slate-200 rounded-lg hover:bg-brand-surface-alt transition-colors"
-          >
-            <Mail className="w-4 h-4" />
-            Contact ops@expertly.net
-          </a>
+          <div className="mt-5 pt-5 border-t border-slate-100">
+            <p className="text-sm text-brand-text-secondary mb-3">
+              To renew your membership or discuss tier upgrades, contact our team.
+            </p>
+            <a
+              href="mailto:ops@expertly.net?subject=Membership%20Renewal"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border border-slate-200 rounded-lg hover:bg-brand-surface-alt transition-colors"
+            >
+              <Mail className="w-4 h-4" />
+              Contact ops@expertly.net
+            </a>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -20,6 +20,8 @@ export const QUEUE_JOB_TYPES = {
   INGEST_SINGLE_FEED: 'ingest_single_feed',
   PROCESS_REGULATORY_UPDATE: 'process_regulatory_update',
   SEND_WEEKLY_DIGEST: 'send_weekly_digest',
+  SEND_DAILY_DIGEST: 'send_daily_digest',
+  SEND_GUEST_NEWSLETTER: 'send_guest_newsletter',
   SEND_DIGEST_BATCH: 'send_digest_batch',
 } as const;
 
