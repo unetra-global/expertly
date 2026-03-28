@@ -263,14 +263,6 @@ export const useOnboardingStore = create<OnboardingState & OnboardingActions>()(
         if (!formData.lastName && result.lastName) {
           updates.lastName = result.lastName;
         }
-        // Fallback: parse full name if individual parts absent
-        if (!formData.firstName && !result.firstName && result.name) {
-          const parts = result.name.trim().split(/\s+/);
-          updates.firstName = parts[0] ?? '';
-          if (!formData.lastName && parts.length > 1) {
-            updates.lastName = parts.slice(1).join(' ');
-          }
-        }
 
         if (!formData.headline && result.headline) {
           updates.headline = result.headline.slice(0, 120);
