@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   description:
     'Connect with verified finance and legal professionals. Read expert articles. Discover events.',
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL ?? 'https://expertly.global',
+    process.env.NEXT_PUBLIC_APP_URL || 'https://expertly.global',
   ),
 };
 

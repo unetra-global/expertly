@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 import { X, Sparkles, RotateCcw } from 'lucide-react';
 import { getBrowserClient } from '@/lib/supabase';
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001') + '/api/v1';
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001') + '/api/v1';
 
 // ── Questions ─────────────────────────────────────────────────────────────────
 

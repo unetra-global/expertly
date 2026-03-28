@@ -6,7 +6,7 @@ import type { ArticleFull } from '@/types/api';
 
 export const dynamic = 'force-dynamic';
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4001') + '/api/v1';
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4001') + '/api/v1';
 
 async function fetchArticle(slug: string): Promise<ArticleFull | null> {
   try {

@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     'Read expert articles and analysis from verified finance and legal professionals on the Expertly network.',
 };
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002') + '/api/v1';
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002') + '/api/v1';
 
 async function fetchArticlesServer(
   filters: Record<string, string>,

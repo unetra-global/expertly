@@ -25,7 +25,7 @@ type ApplicationStatus =
  */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? origin;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || origin;
 
   const code = searchParams.get('code');
   const oauthError = searchParams.get('error');

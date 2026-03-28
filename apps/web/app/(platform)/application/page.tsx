@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase-server';
 import { DraftResumer } from '@/components/onboarding/DraftResumer';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4001';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4001';
 
 export const metadata = {
   title: 'Your Application | Expertly',

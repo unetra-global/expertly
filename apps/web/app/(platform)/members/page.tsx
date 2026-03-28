@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     'Browse verified finance and legal professionals from around the world. Filter by service and country.',
 };
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002') + '/api/v1';
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002') + '/api/v1';
 
 async function fetchMembersServer(
   filters: Record<string, string>,

@@ -81,7 +81,7 @@ export default function AuthPage() {
     }
 
     const appUrl =
-      process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+      process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const supabase = getBrowserClient();
 
     await supabase.auth.signInWithOAuth({
@@ -124,7 +124,7 @@ export default function AuthPage() {
         return;
       }
     } else {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin;
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: email.trim(),
         password,

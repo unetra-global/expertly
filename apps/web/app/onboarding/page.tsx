@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase-server';
 import { OnboardingLayout } from '@/components/onboarding/OnboardingLayout';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4001';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4001';
 
 export const metadata = {
   title: 'Apply for Membership | Expertly',

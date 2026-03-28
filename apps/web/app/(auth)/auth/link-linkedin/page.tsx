@@ -54,7 +54,7 @@ export default function LinkLinkedInPage() {
     setLoading(true);
 
     const appUrl =
-      process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+      process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const supabase = getBrowserClient();
 
     // linkIdentity attaches a new OAuth provider to the currently-signed-in

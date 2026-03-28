@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     'Discover upcoming finance and legal events. Conferences, webinars, and networking opportunities for professionals.',
 };
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002') + '/api/v1';
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002') + '/api/v1';
 
 async function fetchEventsServer(
   filters: Record<string, string>,

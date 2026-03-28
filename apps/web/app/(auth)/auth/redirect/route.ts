@@ -17,7 +17,7 @@ type ApplicationStatus =
  */
 export async function GET(request: NextRequest) {
   const { origin } = new URL(request.url);
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? origin;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || origin;
 
   const cookieStore = cookies();
 
