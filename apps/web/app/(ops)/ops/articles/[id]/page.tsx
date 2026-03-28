@@ -17,7 +17,8 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function ArticleDetailPage() {
-  const { id } = useParams<{ id: string }>();
+  const params = useParams<{ id: string }>();
+  const id = params?.id ?? "";
   const router = useRouter();
   const qc = useQueryClient();
 

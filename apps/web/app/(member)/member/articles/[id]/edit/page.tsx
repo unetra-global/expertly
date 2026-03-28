@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import ArticleEditor from '@/components/member/ArticleEditor';
 
 export default function EditArticlePage() {
-  const { id } = useParams<{ id: string }>();
+  const params = useParams<{ id: string }>();
+  const id = params?.id ?? '';
   return <ArticleEditor articleId={id} />;
 }

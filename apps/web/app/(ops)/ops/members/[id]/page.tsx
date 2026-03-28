@@ -36,7 +36,8 @@ function formatWorkPeriod(exp: { startDate?: string; endDate?: string; startYear
 }
 
 export default function MemberDetailPage() {
-  const { id } = useParams<{ id: string }>();
+  const params = useParams<{ id: string }>();
+  const id = params?.id ?? "";
   const router = useRouter();
   const qc = useQueryClient();
 
