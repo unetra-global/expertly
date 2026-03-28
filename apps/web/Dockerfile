@@ -26,6 +26,16 @@ COPY packages/utils/package.json ./packages/utils/
 COPY packages ./packages
 COPY apps/web ./apps/web/
 
+# Build-time public env vars (baked into the Next.js bundle)
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_APP_URL
+ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
+
 # Install dependencies and build
 RUN pnpm install --frozen-lockfile
 RUN pnpm --filter web build
@@ -34,9 +44,9 @@ RUN pnpm --filter web build
 FROM base AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
-ENV PORT 4000
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=4000
 
 # Don't run production as root
 RUN addgroup --system --gid 1001 nodejs

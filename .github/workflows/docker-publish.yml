@@ -45,5 +45,10 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/expertly-web:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/expertly-web:${{ github.sha }}
+          build-args: |
+            NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+            NEXT_PUBLIC_APP_URL=${{ secrets.NEXT_PUBLIC_APP_URL }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
