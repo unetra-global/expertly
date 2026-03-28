@@ -6,39 +6,44 @@ import { NavbarClient } from './NavbarClient';
  * then delegates rendering to NavbarClient (client component).
  */
 export default async function Navbar() {
-  const supabase = createServerClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
   let userRole: string | null = null;
   let userAvatarUrl: string | undefined;
+  let userEmail: string | undefined;
 
-  if (user) {
-    const { data: dbUser } = await supabase
-      .from('users')
-      .select('id, role')
-      .eq('supabase_uid', user.id)
-      .maybeSingle();
+  try {
+    const supabase = createServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    userRole = dbUser?.role ?? 'user';
+    if (user) {
+      userEmail = user.email;
 
-    // Optionally fetch member avatar using internal user id
-    if (dbUser?.role === 'member' && dbUser?.id) {
-      const { data: member } = await supabase
-        .from('members')
-        .select('profile_photo_url')
-        .eq('user_id', dbUser.id)
+      const { data: dbUser } = await supabase
+        .from('users')
+        .select('id, role')
+        .eq('supabase_uid', user.id)
         .maybeSingle();
-      userAvatarUrl = member?.profile_photo_url ?? undefined;
+
+      userRole = dbUser?.role ?? 'user';
+
+      if (dbUser?.role === 'member' && dbUser?.id) {
+        const { data: member } = await supabase
+          .from('members')
+          .select('profile_photo_url')
+          .eq('user_id', dbUser.id)
+          .maybeSingle();
+        userAvatarUrl = member?.profile_photo_url ?? undefined;
+      }
     }
+  } catch {
+    // Supabase unavailable (e.g. missing env vars at build time) — render logged-out state
   }
 
   return (
     <NavbarClient
       userRole={userRole}
-      userEmail={user?.email}
+      userEmail={userEmail}
       userAvatarUrl={userAvatarUrl}
     />
   );
