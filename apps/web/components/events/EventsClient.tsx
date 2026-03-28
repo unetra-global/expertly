@@ -140,7 +140,7 @@ interface EventsClientProps {
 export default function EventsClient({ initialFilters }: EventsClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const searchParamsKey = searchParams.toString();
+  const searchParamsKey = searchParams?.toString() ?? "";
 
   const [search, setSearch] = useState(initialFilters.q ?? '');
   const [debouncedSearch, setDebouncedSearch] = useState(initialFilters.q ?? '');

@@ -132,7 +132,7 @@ export default function ArticleList({
 }: ArticleListProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const searchParamsKey = searchParams.toString();
+  const searchParamsKey = searchParams?.toString() ?? '';
 
   // Initialize state directly from URL on first render — prevents flash + wrong initial query
   const [selectedServiceIds, setSelectedServiceIds] = useState<Set<string>>(() => {
@@ -177,7 +177,7 @@ export default function ArticleList({
     if (so) params.set('sort', so);
     if (tg) params.set('tag', tg);
     const next = params.toString();
-    if (next === searchParams.toString()) return;
+    if (next === (searchParams?.toString() ?? "")) return;
     router.push(`/articles${next ? `?${next}` : ''}`, { scroll: false });
   }, [router, searchParams]);
 

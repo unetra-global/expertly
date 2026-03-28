@@ -45,7 +45,7 @@ export default function MemberDirectory({
 }: MemberDirectoryProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const searchParamsKey = searchParams.toString();
+  const searchParamsKey = searchParams?.toString() ?? "";
 
   // Multi-select: set of selected service IDs
   const initServiceIds = (() => {
