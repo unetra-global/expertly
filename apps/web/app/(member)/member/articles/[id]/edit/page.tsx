@@ -1,10 +1,10 @@
-'use client';
-
-import { useParams } from 'next/navigation';
-import ArticleEditor from '@/components/member/ArticleEditor';
+import { Suspense } from 'react';
+import EditArticlePageClient from './EditArticlePageClient';
 
 export default function EditArticlePage() {
-  const params = useParams<{ id: string }>();
-  const id = params?.id ?? '';
-  return <ArticleEditor articleId={id} />;
+  return (
+    <Suspense>
+      <EditArticlePageClient />
+    </Suspense>
+  );
 }

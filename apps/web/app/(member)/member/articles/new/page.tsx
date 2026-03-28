@@ -1,7 +1,10 @@
-'use client';
-
-import ArticleEditor from '@/components/member/ArticleEditor';
+import { Suspense } from 'react';
+import NewArticlePageClient from './NewArticlePageClient';
 
 export default function NewArticlePage() {
-  return <ArticleEditor />;
+  return (
+    <Suspense>
+      <NewArticlePageClient />
+    </Suspense>
+  );
 }
