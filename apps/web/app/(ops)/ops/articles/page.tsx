@@ -31,10 +31,10 @@ const STATUS_COLORS: Record<string, string> = {
 export default function ArticlesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [status, setStatus] = useState(searchParams.get('status') ?? '');
+  const [status, setStatus] = useState(searchParams?.get('status') ?? '');
 
   useEffect(() => {
-    setStatus(searchParams.get('status') ?? '');
+    setStatus(searchParams?.get('status') ?? '');
   }, [searchParams]);
 
   const filters = status ? { status } : {};

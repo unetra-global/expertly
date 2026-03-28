@@ -27,11 +27,11 @@ const TIER_COLORS: Record<string, string> = {
 export default function MembersPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [filter, setFilter] = useState(searchParams.get('filter') ?? '');
+  const [filter, setFilter] = useState(searchParams?.get('filter') ?? '');
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    setFilter(searchParams.get('filter') ?? '');
+    setFilter(searchParams?.get('filter') ?? '');
   }, [searchParams]);
 
   const filters = filter ? { filter } : {};

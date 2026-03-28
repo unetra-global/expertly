@@ -136,14 +136,14 @@ export default function ArticleList({
 
   // Initialize state directly from URL on first render — prevents flash + wrong initial query
   const [selectedServiceIds, setSelectedServiceIds] = useState<Set<string>>(() => {
-    const raw = searchParams.get('serviceIds') ?? searchParams.get('serviceId') ?? initialServiceId ?? '';
+    const raw = searchParams?.get('serviceIds') ?? searchParams?.get('serviceId') ?? initialServiceId ?? '';
     return new Set(raw ? raw.split(',').filter(Boolean) : []);
   });
-  const [readTime, setReadTime] = useState(() => searchParams.get('readTime') ?? '');
-  const [search, setSearch] = useState(() => searchParams.get('q') ?? '');
-  const [debouncedSearch, setDebouncedSearch] = useState(() => searchParams.get('q') ?? '');
-  const [sort, setSort] = useState(() => searchParams.get('sort') ?? '');
-  const [tag, setTag] = useState(() => searchParams.get('tag') ?? '');
+  const [readTime, setReadTime] = useState(() => searchParams?.get('readTime') ?? '');
+  const [search, setSearch] = useState(() => searchParams?.get('q') ?? '');
+  const [debouncedSearch, setDebouncedSearch] = useState(() => searchParams?.get('q') ?? '');
+  const [sort, setSort] = useState(() => searchParams?.get('sort') ?? '');
+  const [tag, setTag] = useState(() => searchParams?.get('tag') ?? '');
   const [page, setPage] = useState(1);
   const [sheetOpen, setSheetOpen] = useState(false);
 
@@ -194,17 +194,17 @@ export default function ArticleList({
   // Effect 2: URL → filter state (browser back/forward or external navigation).
   // Only updates state when values actually changed to avoid spurious re-renders.
   useEffect(() => {
-    const raw = searchParams.get('serviceIds') ?? searchParams.get('serviceId') ?? '';
+    const raw = searchParams?.get('serviceIds') ?? searchParams?.get('serviceId') ?? '';
     const nextSvcs = raw ? raw.split(',').filter(Boolean) : [];
     setSelectedServiceIds(prev => {
       const prevStr = Array.from(prev).sort().join(',');
       const nextStr = [...nextSvcs].sort().join(',');
       return prevStr === nextStr ? prev : new Set(nextSvcs);
     });
-    setSearch(prev => { const v = searchParams.get('q') ?? ''; return prev === v ? prev : v; });
-    setReadTime(prev => { const v = searchParams.get('readTime') ?? ''; return prev === v ? prev : v; });
-    setSort(prev => { const v = searchParams.get('sort') ?? ''; return prev === v ? prev : v; });
-    setTag(prev => { const v = searchParams.get('tag') ?? ''; return prev === v ? prev : v; });
+    setSearch(prev => { const v = searchParams?.get('q') ?? ''; return prev === v ? prev : v; });
+    setReadTime(prev => { const v = searchParams?.get('readTime') ?? ''; return prev === v ? prev : v; });
+    setSort(prev => { const v = searchParams?.get('sort') ?? ''; return prev === v ? prev : v; });
+    setTag(prev => { const v = searchParams?.get('tag') ?? ''; return prev === v ? prev : v; });
     setPage(1);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParamsKey]);

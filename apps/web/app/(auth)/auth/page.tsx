@@ -15,7 +15,7 @@ export default function AuthPage() {
 
   // Honour ?tab=signup from e.g. "Become a Member" nav link or ?tab=signin
   const initialTab: AuthTab =
-    searchParams.get('tab') === 'signup' ? 'signup' : 'signin';
+    searchParams?.get('tab') === 'signup' ? 'signup' : 'signin';
 
   const [tab, setTab] = useState<AuthTab>(initialTab);
   const [method, setMethod] = useState<AuthMethod>('linkedin');
@@ -30,8 +30,8 @@ export default function AuthPage() {
   const [signUpConfirmPending, setSignUpConfirmPending] = useState(false);
   const redirectedRef = useRef(false);
 
-  const error = searchParams.get('error');
-  const authError = searchParams.get('authError');
+  const error = searchParams?.get('error');
+  const authError = searchParams?.get('authError');
 
   // Redirect already-authenticated users away from the auth page
   useEffect(() => {
@@ -46,7 +46,7 @@ export default function AuthPage() {
 
   // Persist returnTo from query params
   useEffect(() => {
-    const returnTo = searchParams.get('returnTo');
+    const returnTo = searchParams?.get('returnTo');
     if (returnTo) {
       sessionStorage.setItem('returnTo', returnTo);
     }

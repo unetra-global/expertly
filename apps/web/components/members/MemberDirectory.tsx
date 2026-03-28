@@ -102,13 +102,13 @@ export default function MemberDirectory({
   }, [serviceIdsString, country, debouncedSearch, minYears, maxHourly, sort, syncUrl]);
 
   useEffect(() => {
-    const raw = searchParams.get('serviceIds') ?? searchParams.get('serviceId') ?? '';
+    const raw = searchParams?.get('serviceIds') ?? searchParams?.get('serviceId') ?? '';
     setSelectedServiceIds(new Set(raw ? raw.split(',').filter(Boolean) : []));
-    setCountry(searchParams.get('country') ?? '');
-    setSearch(searchParams.get('q') ?? '');
-    setMinYears(searchParams.get('minYears') ?? '');
-    setMaxHourly(Number(searchParams.get('maxHourly') ?? MAX_HOURLY_MAX));
-    setSort(searchParams.get('sort') ?? '');
+    setCountry(searchParams?.get('country') ?? '');
+    setSearch(searchParams?.get('q') ?? '');
+    setMinYears(searchParams?.get('minYears') ?? '');
+    setMaxHourly(Number(searchParams?.get('maxHourly') ?? MAX_HOURLY_MAX));
+    setSort(searchParams?.get('sort') ?? '');
     setPage(1);
   }, [searchParamsKey, searchParams]);
 

@@ -175,12 +175,12 @@ export default function EventsClient({ initialFilters }: EventsClientProps) {
   }, [debouncedSearch, country, format, startDateFrom, startDateTo, sort, syncUrl]);
 
   useEffect(() => {
-    setSearch(searchParams.get('q') ?? '');
-    setCountry(searchParams.get('country') ?? '');
-    setFormat(searchParams.get('format') ?? '');
-    setStartDateFrom(searchParams.get('startDateFrom') ?? '');
-    setStartDateTo(searchParams.get('startDateTo') ?? '');
-    setSort(searchParams.get('sort') ?? 'date_asc');
+    setSearch(searchParams?.get('q') ?? '');
+    setCountry(searchParams?.get('country') ?? '');
+    setFormat(searchParams?.get('format') ?? '');
+    setStartDateFrom(searchParams?.get('startDateFrom') ?? '');
+    setStartDateTo(searchParams?.get('startDateTo') ?? '');
+    setSort(searchParams?.get('sort') ?? 'date_asc');
     setPage(1);
   }, [searchParamsKey, searchParams]);
 

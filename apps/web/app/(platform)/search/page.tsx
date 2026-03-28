@@ -218,8 +218,8 @@ const SCOPE_SUGGESTIONS: Record<string, string[]> = {
 export default function SearchPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const initialQuery = searchParams.get('q') ?? '';
-  const scope = (searchParams.get('scope') as 'members' | 'articles' | 'events' | undefined) ?? undefined;
+  const initialQuery = searchParams?.get('q') ?? '';
+  const scope = (searchParams?.get('scope') as 'members' | 'articles' | 'events' | undefined) ?? undefined;
 
   const [inputValue, setInputValue] = useState(initialQuery);
   const [activeQuery, setActiveQuery] = useState(initialQuery);

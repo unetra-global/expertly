@@ -31,11 +31,11 @@ const STATUS_COLORS: Record<string, string> = {
 export default function ApplicationsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [status, setStatus] = useState(searchParams.get('status') ?? '');
+  const [status, setStatus] = useState(searchParams?.get('status') ?? '');
 
   // Sync state when URL changes externally (e.g. clicking overview cards)
   useEffect(() => {
-    setStatus(searchParams.get('status') ?? '');
+    setStatus(searchParams?.get('status') ?? '');
   }, [searchParams]);
 
   const filters = status ? { status } : {};
