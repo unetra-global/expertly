@@ -282,10 +282,10 @@ export default function MemberDirectory({
     <>
       {/* Page header */}
       <div className="bg-brand-navy">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
-          <p className="section-label mb-2">Our Network</p>
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white">Find Finance &amp; Legal Experts</h1>
-          <p className="mt-2 text-white/60 text-sm sm:text-base max-w-xl">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-16">
+          <p className="section-label mb-3">Our Network</p>
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight">Find Finance &amp; Legal Experts</h1>
+          <p className="mt-3 text-white/60 text-base sm:text-lg max-w-xl leading-relaxed">
             Browse verified finance and legal professionals from around the world.
           </p>
 

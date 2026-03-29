@@ -64,7 +64,7 @@
 
   /* ── Section labels ───────────────────────────────────────────── */
   .section-label {
-    @apply text-xs font-semibold uppercase tracking-widest text-brand-blue;
+    @apply text-xs font-bold uppercase tracking-widest text-brand-gold;
   }
 
   /* ── Input ───────────────────────────────────────────────────── */

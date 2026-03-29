@@ -1,23 +1,24 @@
 const STATS = [
-  { value: '500+', label: 'Verified Experts' },
-  { value: '40+', label: 'Countries Represented' },
-  { value: '1,200+', label: 'Articles Published' },
-  { value: '3,800+', label: 'Consultations Booked' },
+  { value: '500+', label: 'Verified Experts', note: 'across finance & law' },
+  { value: '40+', label: 'Countries', note: 'globally represented' },
+  { value: '1,200+', label: 'Expert Articles', note: 'peer-reviewed insights' },
+  { value: '3,800+', label: 'Consultations', note: 'successfully matched' },
 ];
 
 export default function StatsSection() {
   return (
-    <section className="bg-brand-surface-alt border-y border-gray-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-8">
-          {STATS.map(({ value, label }) => (
-            <div key={label} className="text-center">
-              <p className="text-3xl sm:text-4xl font-bold text-brand-navy tabular-nums">
+    <section className="bg-brand-navy">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-white/[0.08]">
+          {STATS.map(({ value, label, note }) => (
+            <div key={label} className="px-6 sm:px-8 py-8 sm:py-10 text-center">
+              <p className="text-3xl sm:text-4xl font-bold text-white tabular-nums tracking-tight">
                 {value}
               </p>
-              <p className="mt-1.5 text-xs sm:text-sm font-medium text-brand-text-secondary uppercase tracking-wide">
+              <p className="mt-2 text-xs font-semibold text-brand-gold">
                 {label}
               </p>
+              <p className="mt-0.5 text-xs text-white/35">{note}</p>
             </div>
           ))}
         </div>

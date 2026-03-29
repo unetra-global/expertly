@@ -468,63 +468,49 @@ export function MemberProfile({ member, isAuthenticated }: MemberProfileProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
           {/* ── Profile header card ──────────────────────────── */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-6 mb-6">
-            <div className="flex flex-col sm:flex-row gap-5 items-start">
-              {/* Avatar */}
-              <div className="relative flex-shrink-0">
-                {member.profilePhotoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={member.profilePhotoUrl}
-                    alt={displayName}
-                    className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-2 border-gray-100"
-                  />
-                ) : (
-                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-brand-blue flex items-center justify-center text-white font-bold text-2xl border-2 border-gray-100">
-                    {initials}
-                  </div>
-                )}
-                {member.isVerified && (
-                  <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-brand-blue flex items-center justify-center border-2 border-white" title="Expertly Verified">
-                    <svg className="h-3 w-3 text-white" fill="currentColor" viewBox="0 0 20 20" aria-hidden>
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                )}
-              </div>
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-card overflow-hidden mb-6">
+            {/* Navy top band */}
+            <div className="h-24 sm:h-28 bg-brand-navy relative">
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{ background: 'radial-gradient(ellipse 60% 80% at 30% 120%, rgba(245,158,11,0.08) 0%, transparent 60%), radial-gradient(ellipse 40% 60% at 80% 50%, rgba(37,99,235,0.07) 0%, transparent 60%)' }}
+                aria-hidden
+              />
+            </div>
 
-              {/* Details */}
-              <div className="flex-1 min-w-0">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2 mb-1">
-                      <h1 className="text-xl font-bold text-brand-navy">{displayName}</h1>
-                      {member.isVerified && (
-                        <svg className="h-5 w-5 text-brand-blue flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden>
-                          <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                      {tierLabel && (
-                        <span className={`text-xs font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full ${isSeasoned ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-gray-100 text-gray-600 border border-gray-200'}`}>
-                          {tierLabel}
-                        </span>
-                      )}
+            <div className="px-6 pb-6">
+              {/* Avatar — overlaps top band */}
+              <div className="flex flex-col sm:flex-row sm:items-end gap-5 -mt-14 sm:-mt-16">
+                <div className="relative flex-shrink-0">
+                  {member.profilePhotoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={member.profilePhotoUrl}
+                      alt={displayName}
+                      className="w-28 h-28 sm:w-36 sm:h-36 rounded-2xl object-cover object-top border-4 border-white shadow-lg"
+                    />
+                  ) : (
+                    <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-2xl bg-brand-navy flex items-center justify-center text-white font-bold text-4xl border-4 border-white shadow-lg">
+                      {initials}
                     </div>
-                    {member.designation && (
-                      <p className="text-sm font-medium text-brand-text-secondary">{member.designation}</p>
-                    )}
-                    {member.firmName && (
-                      <p className="text-xs text-brand-text-muted mt-0.5">{member.firmName}</p>
-                    )}
-                  </div>
+                  )}
+                  {member.isVerified && (
+                    <div className="absolute -bottom-1.5 -right-1.5 w-8 h-8 rounded-full bg-brand-blue flex items-center justify-center border-2 border-white shadow-sm" title="Expertly Verified">
+                      <svg className="h-4 w-4 text-white" fill="currentColor" viewBox="0 0 20 20" aria-hidden>
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
 
-                  {/* LinkedIn button */}
+                {/* LinkedIn button — aligned to bottom of avatar on desktop */}
+                <div className="flex-1 sm:pb-1 flex justify-end">
                   {member.linkedinUrl && (
                     <a
                       href={member.linkedinUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 rounded-lg bg-[#0077B5] hover:bg-[#006097] text-white text-xs font-semibold px-3 py-2 transition-colors flex-shrink-0"
+                      className="flex items-center gap-2 rounded-lg bg-[#0077B5] hover:bg-[#006097] text-white text-xs font-semibold px-4 py-2.5 transition-colors flex-shrink-0"
                     >
                       <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
                         <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
@@ -533,9 +519,32 @@ export function MemberProfile({ member, isAuthenticated }: MemberProfileProps) {
                     </a>
                   )}
                 </div>
+              </div>
+
+              {/* Details — below avatar */}
+              <div className="mt-4">
+                <div className="flex flex-wrap items-center gap-2 mb-1">
+                  <h1 className="text-2xl sm:text-3xl font-black text-brand-navy tracking-tight">{displayName}</h1>
+                  {member.isVerified && (
+                    <svg className="h-6 w-6 text-brand-blue flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden>
+                      <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  )}
+                  {tierLabel && (
+                    <span className={`text-xs font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full ${isSeasoned ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-gray-100 text-gray-600 border border-gray-200'}`}>
+                      {tierLabel}
+                    </span>
+                  )}
+                </div>
+                {member.designation && (
+                  <p className="text-base font-medium text-brand-text-secondary">{member.designation}</p>
+                )}
+                {member.firmName && (
+                  <p className="text-sm text-brand-text-muted mt-0.5">{member.firmName}</p>
+                )}
 
                 {/* Stats row */}
-                <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-brand-text-muted">
+                <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-brand-text-muted">
                   {location && (
                     <span className="flex items-center gap-1">
                       <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>

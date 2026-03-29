@@ -47,7 +47,6 @@ export function MemberCard({
     'Expert';
 
   const location = [member.city, member.country].filter(Boolean).join(', ');
-
   const serviceName = member.services?.name;
 
   const initials = displayName
@@ -61,89 +60,77 @@ export function MemberCard({
     <Link
       href={`/members/${member.slug}`}
       className={cn(
-        'group block bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200',
+        'group flex items-center gap-4 p-4 bg-white rounded-2xl border border-gray-100 hover:border-brand-gold/40 hover:shadow-card-hover transition-all duration-200',
         className,
       )}
     >
-      <div className="p-5">
-        {/* Avatar */}
-        <div className="flex justify-center mb-4">
-          {photoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={photoUrl}
-              alt={displayName}
-              className="w-16 h-16 rounded-full object-cover border-2 border-gray-100 group-hover:border-brand-navy/20 transition-colors"
-            />
-          ) : (
-            <div className="w-16 h-16 rounded-full bg-brand-navy flex items-center justify-center text-white font-semibold text-lg">
-              {initials}
-            </div>
+      {/* Avatar with verified dot */}
+      <div className="flex-shrink-0 relative">
+        {photoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={photoUrl}
+            alt={displayName}
+            className="w-14 h-14 rounded-xl object-cover object-top border-2 border-gray-100 group-hover:border-brand-gold/30 transition-colors"
+          />
+        ) : (
+          <div className="w-14 h-14 rounded-xl bg-brand-navy flex items-center justify-center text-white font-bold text-xl">
+            {initials}
+          </div>
+        )}
+        {member.isVerified && (
+          <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white flex items-center justify-center shadow-sm">
+            <svg className="h-2.5 w-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-label="Verified">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+        )}
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <h3 className="font-bold text-brand-navy text-sm leading-snug truncate">
+            {displayName}
+          </h3>
+          {member.memberTier && (
+            <TierBadge tier={member.memberTier} size="sm" />
           )}
         </div>
 
-        {/* Name + badges */}
-        <div className="text-center">
-          <h3 className="font-semibold text-brand-navy text-sm leading-snug group-hover:text-brand-navy">
-            {displayName}
-          </h3>
+        {member.designation && (
+          <p className="mt-0.5 text-xs text-gray-500 leading-snug line-clamp-1">
+            {member.designation}
+          </p>
+        )}
 
-          {member.designation && (
-            <p className="mt-1 text-xs text-gray-500 leading-snug line-clamp-2">
-              {member.designation}
-            </p>
-          )}
-
+        <div className="flex items-center gap-2 mt-2 flex-wrap">
           {serviceName && (
-            <p className="mt-1.5 text-xs font-medium text-brand-blue">
+            <span className="inline-flex items-center rounded-full bg-brand-blue-subtle px-2 py-0.5 text-[11px] font-semibold text-brand-blue">
               {serviceName}
-            </p>
+            </span>
           )}
-
           {location && (
-            <p className="mt-1 text-xs text-gray-400 flex items-center justify-center gap-1">
-              <svg
-                className="h-3 w-3 flex-shrink-0"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                aria-hidden
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                />
-              </svg>
-              {location}
-            </p>
-          )}
-
-          {/* Badges */}
-          <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5">
-            {member.isVerified && <VerifiedBadge size="sm" />}
-            {member.memberTier && (
-              <TierBadge tier={member.memberTier} size="sm" />
-            )}
-          </div>
-
-          {/* Full variant extras */}
-          {variant === 'full' && (
-            <div className="mt-3 pt-3 border-t border-gray-50">
-              <span className="text-xs text-brand-navy font-medium group-hover:underline">
-                View profile →
-              </span>
-            </div>
+            <span className="text-[11px] text-gray-400">{location}</span>
           )}
         </div>
       </div>
+
+      {/* Arrow / "View profile" */}
+      {variant === 'full' ? (
+        <span className="flex-shrink-0 text-xs font-semibold text-brand-blue group-hover:text-brand-gold transition-colors whitespace-nowrap hidden sm:block">
+          View profile
+        </span>
+      ) : null}
+      <svg
+        className="h-4 w-4 text-gray-200 group-hover:text-brand-gold group-hover:translate-x-0.5 transition-all flex-shrink-0"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        aria-hidden
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+      </svg>
     </Link>
   );
 }

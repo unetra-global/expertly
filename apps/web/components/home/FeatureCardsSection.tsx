@@ -2,70 +2,89 @@ import Link from 'next/link';
 
 const FEATURES = [
   {
+    number: '01',
+    title: 'Find Experts',
+    description:
+      'Search our global directory of vetted financial and legal professionals by specialty, location, and experience.',
+    cta: 'Explore Directory',
+    href: '/members',
     icon: (
-      <svg className="h-7 w-7 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+      <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
       </svg>
     ),
-    title: 'FIND EXPERTS',
-    description:
-      'Search our global directory of vetted financial and legal professionals.',
-    cta: 'EXPLORE',
-    href: '/members',
   },
   {
+    number: '02',
+    title: 'Read Insights',
+    description:
+      'In-depth technical analysis, regulatory updates, and expert commentary from verified finance and legal professionals.',
+    cta: 'Browse Articles',
+    href: '/articles',
     icon: (
-      <svg className="h-7 w-7 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+      <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
       </svg>
     ),
-    title: 'READ INSIGHTS',
-    description:
-      'In-depth technical analysis and updates on global regulatory changes.',
-    cta: 'READ',
-    href: '/articles',
   },
   {
+    number: '03',
+    title: 'Global Events',
+    description:
+      'Connect at our regional and international conferences, webinars, and networking events for finance and legal professionals.',
+    cta: 'View Events',
+    href: '/events',
     icon: (
-      <svg className="h-7 w-7 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+      <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
       </svg>
     ),
-    title: 'GLOBAL EVENTS',
-    description:
-      'Connect face-to-face at our regional and international conferences.',
-    cta: 'VIEW',
-    href: '/events',
   },
 ];
 
 export default function FeatureCardsSection() {
   return (
-    <section className="bg-gradient-to-b from-brand-navy to-gray-100 pt-0 pb-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+    <section className="relative bg-brand-navy pt-10 pb-2">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {FEATURES.map((feature) => (
             <Link
               key={feature.title}
               href={feature.href}
-              className="group bg-white rounded-2xl shadow-lg p-5 sm:p-6 flex flex-row sm:flex-col items-start gap-4 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200"
+              className="group relative border border-white/10 hover:border-brand-gold/40 rounded-2xl p-6 sm:p-7 flex flex-row sm:flex-col items-start gap-5 transition-all duration-300 overflow-hidden"
+              style={{ background: 'rgba(255,255,255,0.04)' }}
             >
-              {/* Icon — left on mobile, top on desktop */}
-              <div className="inline-flex items-center justify-center w-12 h-12 flex-shrink-0 rounded-xl bg-blue-50">
+              {/* Gold top-edge highlight on hover */}
+              <div
+                className="absolute top-0 left-6 right-6 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                style={{ background: 'linear-gradient(to right, transparent, rgba(245,158,11,0.5), transparent)' }}
+                aria-hidden
+              />
+
+              {/* Large faint number — decorative */}
+              <span
+                className="absolute right-4 bottom-1 text-[7rem] font-black leading-none pointer-events-none select-none tabular-nums text-white/[0.04]"
+                aria-hidden
+              >
+                {feature.number}
+              </span>
+
+              {/* Icon */}
+              <div className="relative inline-flex items-center justify-center w-12 h-12 flex-shrink-0 rounded-xl bg-white/[0.06] border border-white/10 text-brand-blue-light group-hover:text-brand-gold group-hover:border-brand-gold/30 group-hover:bg-brand-gold/5 transition-all duration-300">
                 {feature.icon}
               </div>
 
-              {/* Content + CTA */}
-              <div className="flex flex-col gap-2 min-w-0">
-                <h3 className="font-bold text-brand-navy text-sm tracking-wider">
+              {/* Content */}
+              <div className="relative flex flex-col gap-2 min-w-0 flex-1 sm:flex-none">
+                <h3 className="font-bold text-white text-base sm:text-lg tracking-tight">
                   {feature.title}
                 </h3>
-                <p className="text-sm text-brand-text-secondary leading-relaxed">
+                <p className="text-sm sm:text-base text-white/50 leading-relaxed">
                   {feature.description}
                 </p>
-                <span className="inline-flex items-center gap-1 text-xs font-bold text-brand-blue group-hover:gap-2 transition-all uppercase tracking-wider mt-1">
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-blue-light group-hover:text-brand-gold group-hover:gap-2.5 transition-all uppercase tracking-wider mt-2">
                   {feature.cta}
-                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                   </svg>
                 </span>
@@ -74,6 +93,8 @@ export default function FeatureCardsSection() {
           ))}
         </div>
       </div>
+
+      <div className="h-10" aria-hidden />
     </section>
   );
 }

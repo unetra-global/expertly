@@ -17,7 +17,8 @@
       "Bash(PGPASSWORD='X8B_@4JZLV%ks#i' psql -h aws-1-ap-southeast-1.pooler.supabase.com -p 5432 -U postgres.zdinxksdorsyuzsvmltd -d postgres -c \"SELECT table_name FROM information_schema.tables WHERE table_schema = ''public'' ORDER BY table_name;\")",
       "Bash(git commit -m \"Session 1.3: database migrations \\(17 files\\)\")",
       "Bash(npm install:*)",
-      "Bash(pnpm --version)"
+      "Bash(pnpm --version)",
+      "WebSearch"
     ]
   }
 }

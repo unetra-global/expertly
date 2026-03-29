@@ -61,33 +61,41 @@ export function MemberCard({ member, variant = 'teaser', onConsult, className }:
 
   return (
     <div className={cn(
-      'group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 overflow-hidden',
+      'group bg-white rounded-2xl border border-gray-100 hover:border-brand-gold/40 hover:shadow-card-hover transition-all duration-200 overflow-hidden',
       className
     )}>
-      <div className="p-5 flex gap-4">
-        {/* Avatar */}
-        <Link href={`/members/${member.slug}`} className="flex-shrink-0">
+      <div className="flex">
+
+        {/* Full-height photo column */}
+        <Link
+          href={`/members/${member.slug}`}
+          className="relative flex-shrink-0 w-28 sm:w-36 overflow-hidden"
+          tabIndex={-1}
+          aria-hidden
+        >
           {member.profilePhotoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={member.profilePhotoUrl}
               alt={displayName}
-              className="w-16 h-16 rounded-full object-cover border-2 border-gray-100 group-hover:border-brand-blue/30 transition-colors"
+              className="absolute inset-0 w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
             />
           ) : (
-            <div className="w-16 h-16 rounded-full bg-brand-navy flex items-center justify-center text-white font-semibold text-lg flex-shrink-0">
-              {initials}
+            <div className="absolute inset-0 bg-gradient-to-br from-brand-navy via-brand-navy-light to-brand-blue flex items-center justify-center">
+              <span className="text-white font-black text-4xl select-none">{initials}</span>
             </div>
           )}
+          {/* Subtle right-edge fade for blending */}
+          <div className="absolute inset-y-0 right-0 w-4 bg-gradient-to-r from-transparent to-black/[0.04]" aria-hidden />
         </Link>
 
         {/* Main content */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 p-4 sm:p-5">
           {/* Top row: name + tier + View Profile */}
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex items-center gap-2 flex-wrap">
               <Link href={`/members/${member.slug}`}>
-                <h3 className="font-bold text-brand-navy text-base leading-snug hover:text-brand-blue transition-colors">
+                <h3 className="font-bold text-brand-navy text-base leading-snug hover:text-brand-gold transition-colors">
                   {displayName}
                 </h3>
               </Link>
@@ -173,6 +181,7 @@ export function MemberCard({ member, variant = 'teaser', onConsult, className }:
             </button>
           )}
         </div>
+
       </div>
     </div>
   );

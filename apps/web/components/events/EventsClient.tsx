@@ -59,28 +59,28 @@ function EventCard({ event }: { event: EventListItem }) {
   const location = (format === 'online' || format === 'virtual') ? 'Online' : [event.city, event.country].filter(Boolean).join(', ');
 
   return (
-    <div className="group bg-white rounded-2xl border border-gray-100 shadow-card hover:shadow-card-hover transition-all duration-200 overflow-hidden flex">
-      {/* Date block */}
+    <div className="group bg-white rounded-2xl border border-gray-100 hover:border-brand-gold/40 hover:shadow-card-hover transition-all duration-200 overflow-hidden flex">
+      {/* Date block — bigger */}
       {singleDay ? (
-        <div className="w-16 sm:w-20 flex-shrink-0 flex flex-col items-center justify-center py-5 px-2 bg-blue-50 border-r border-blue-100">
-          <span className="text-2xl sm:text-3xl font-bold text-brand-blue leading-none tabular-nums">{startDay}</span>
-          <span className="text-xs font-semibold uppercase tracking-widest text-blue-400 mt-1">{startMonth}</span>
+        <div className="w-20 sm:w-24 flex-shrink-0 flex flex-col items-center justify-center py-6 px-2 bg-brand-navy border-r border-brand-navy-light">
+          <span className="text-3xl sm:text-4xl font-black text-white leading-none tabular-nums">{startDay}</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-brand-gold mt-1.5">{startMonth}</span>
         </div>
       ) : (
-        <div className="flex-shrink-0 flex flex-col items-center justify-center py-5 px-3 bg-blue-50 border-r border-blue-100 gap-1">
+        <div className="flex-shrink-0 flex flex-col items-center justify-center py-6 px-3 bg-brand-navy border-r border-brand-navy-light gap-1">
           <div className="flex items-center gap-2">
             <div className="text-center">
-              <span className="block text-xl sm:text-2xl font-bold text-brand-blue leading-none tabular-nums">{startDay}</span>
-              <span className="block text-xs font-semibold uppercase tracking-widest text-blue-400 mt-1">{startMonth}</span>
+              <span className="block text-2xl sm:text-3xl font-black text-white leading-none tabular-nums">{startDay}</span>
+              <span className="block text-[10px] font-bold uppercase tracking-widest text-brand-gold mt-1">{startMonth}</span>
             </div>
-            <svg className="h-3 w-3 text-blue-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+            <svg className="h-3 w-3 text-white/30 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
             </svg>
             <div className="text-center">
-              <span className="block text-xl sm:text-2xl font-bold text-brand-blue leading-none tabular-nums">
+              <span className="block text-2xl sm:text-3xl font-black text-white leading-none tabular-nums">
                 {endDate!.toLocaleDateString('en-GB', { day: '2-digit' })}
               </span>
-              <span className="block text-xs font-semibold uppercase tracking-widest text-blue-400 mt-1">
+              <span className="block text-[10px] font-bold uppercase tracking-widest text-brand-gold mt-1">
                 {endDate!.toLocaleDateString('en-GB', { month: 'short' }).toUpperCase()}
               </span>
             </div>
@@ -89,21 +89,21 @@ function EventCard({ event }: { event: EventListItem }) {
       )}
 
       {/* Content */}
-      <div className="flex-1 min-w-0 p-4 sm:p-5 flex items-center gap-4">
+      <div className="flex-1 min-w-0 p-5 sm:p-6 flex items-center gap-4">
         <div className="flex-1 min-w-0">
           <Link href={`/events/${event.slug}`}>
-            <h3 className="font-semibold text-brand-navy text-sm sm:text-base leading-snug group-hover:text-brand-blue transition-colors line-clamp-2 mb-1.5">
+            <h3 className="font-bold text-brand-navy text-base sm:text-lg leading-snug group-hover:text-brand-blue transition-colors line-clamp-2 mb-2">
               {event.title}
             </h3>
           </Link>
           {event.description && (
-            <p className="text-xs text-brand-text-secondary leading-relaxed line-clamp-2 mb-2">
+            <p className="text-sm text-brand-text-secondary leading-relaxed line-clamp-2 mb-3">
               {event.description}
             </p>
           )}
-          <div className="flex flex-wrap items-center gap-2 text-xs text-brand-text-muted">
+          <div className="flex flex-wrap items-center gap-2">
             {location && (
-              <span className="flex items-center gap-1">
+              <span className="flex items-center gap-1 text-xs text-brand-text-muted">
                 <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -111,7 +111,7 @@ function EventCard({ event }: { event: EventListItem }) {
                 {location}
               </span>
             )}
-            <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${formatColor}`}>
+            <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${formatColor}`}>
               {formatLabel}
             </span>
           </div>
@@ -121,7 +121,7 @@ function EventCard({ event }: { event: EventListItem }) {
         <div className="flex-shrink-0 hidden sm:block">
           <Link
             href={`/events/${event.slug}`}
-            className="inline-flex items-center justify-center px-4 py-2 rounded-lg border border-brand-blue text-xs font-bold text-brand-blue hover:bg-brand-blue hover:text-white transition-colors uppercase tracking-wide whitespace-nowrap"
+            className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-bold text-brand-navy hover:border-brand-navy hover:bg-brand-navy hover:text-white transition-all uppercase tracking-wide whitespace-nowrap"
           >
             View Details
           </Link>
@@ -307,10 +307,10 @@ export default function EventsClient({ initialFilters }: EventsClientProps) {
     <>
       {/* Page header */}
       <div className="bg-brand-navy">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
-          <p className="section-label mb-2">What&apos;s On</p>
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white">Discover Global Professional Events</h1>
-          <p className="mt-2 text-white/60 text-sm sm:text-base max-w-xl">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-16">
+          <p className="section-label mb-3">What&apos;s On</p>
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight">Discover Global Professional Events</h1>
+          <p className="mt-3 text-white/60 text-base sm:text-lg max-w-xl leading-relaxed">
             Conferences, webinars, and networking events for finance and legal professionals.
           </p>
 

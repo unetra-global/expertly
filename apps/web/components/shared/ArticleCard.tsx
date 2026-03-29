@@ -32,9 +32,9 @@ interface ArticleCardProps {
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('en-US', {
-    year: 'numeric',
     month: 'short',
     day: 'numeric',
+    year: 'numeric',
   });
 }
 
@@ -60,23 +60,23 @@ export function ArticleCard({ article, className }: ArticleCardProps) {
     <Link
       href={`/articles/${article.slug}`}
       className={cn(
-        'group block bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 overflow-hidden',
+        'group block bg-white rounded-2xl border border-gray-100 hover:border-brand-gold/40 hover:shadow-card-hover transition-all duration-200 overflow-hidden',
         className,
       )}
     >
-      {/* Cover image with category overlay */}
+      {/* Cover image */}
       <div className="relative aspect-[16/9] overflow-hidden bg-gray-100">
         {imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={imageUrl}
             alt={article.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-brand-navy to-brand-blue flex items-center justify-center">
+          <div className="w-full h-full bg-gradient-to-br from-brand-navy via-brand-navy-light to-brand-blue flex items-center justify-center">
             <svg
-              className="h-10 w-10 text-white/30"
+              className="h-10 w-10 text-white/20"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -91,38 +91,49 @@ export function ArticleCard({ article, className }: ArticleCardProps) {
             </svg>
           </div>
         )}
-        {/* Category badge — overlaid on image */}
-        {article.category?.name && (
-          <span className="absolute top-3 left-3 inline-flex items-center rounded-full bg-white/90 backdrop-blur-sm border border-gray-200/50 px-2.5 py-1 text-xs font-semibold text-brand-navy shadow-sm uppercase tracking-wide">
-            {article.category.name}
-          </span>
-        )}
+
+        {/* Category + read time overlaid */}
+        <div className="absolute inset-x-0 top-0 flex items-start justify-between p-3">
+          {article.category?.name && (
+            <span className="inline-flex items-center rounded-full bg-brand-navy/75 backdrop-blur-sm px-2.5 py-1 text-[11px] font-bold text-white uppercase tracking-wider">
+              {article.category.name}
+            </span>
+          )}
+          {readMinutes && (
+            <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-white/85 backdrop-blur-sm px-2 py-0.5 text-[11px] font-semibold text-brand-navy">
+              <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {readMinutes} min
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Content */}
       <div className="p-4 sm:p-5">
-        <h3 className="font-semibold text-brand-navy leading-snug line-clamp-2 group-hover:text-brand-blue transition-colors text-sm sm:text-base mb-2">
+        <h3 className="font-bold text-brand-navy leading-snug line-clamp-2 group-hover:text-brand-blue transition-colors text-sm sm:text-base">
           {article.title}
         </h3>
 
         {excerpt && (
-          <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed mb-4">
+          <p className="mt-2 text-xs text-gray-500 line-clamp-2 leading-relaxed">
             {excerpt}
           </p>
         )}
 
         {/* Author row */}
-        <div className="flex items-center justify-between gap-2 pt-3 border-t border-gray-50">
+        <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-gray-50">
           <div className="flex items-center gap-2.5 min-w-0">
             {article.author?.profilePhotoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={article.author.profilePhotoUrl}
                 alt={authorName ?? 'Author'}
-                className="w-8 h-8 rounded-full object-cover flex-shrink-0 border border-gray-100"
+                className="w-7 h-7 rounded-full object-cover flex-shrink-0 border border-gray-100"
               />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-brand-navy flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
+              <div className="w-7 h-7 rounded-full bg-brand-navy flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
                 {authorName?.[0]?.toUpperCase() ?? 'E'}
               </div>
             )}
@@ -132,39 +143,21 @@ export function ArticleCard({ article, className }: ArticleCardProps) {
                   {authorName}
                 </p>
               )}
-
-              {article.category?.name && (
-                <p className="text-xs font-medium text-gray-500 truncate leading-tight">
-                  {article.category.name}
+              {article.publishedAt && (
+                <p className="text-[11px] text-gray-400 leading-tight">
+                  {formatDate(article.publishedAt)}
                 </p>
               )}
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 flex-shrink-0 text-xs text-brand-blue font-semibold">
+          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-blue group-hover:text-brand-gold group-hover:gap-1.5 transition-all flex-shrink-0">
             Read
             <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
             </svg>
-          </div>
+          </span>
         </div>
-
-        {/* Date + read time — subtle footer */}
-        {(article.publishedAt || readMinutes) && (
-          <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
-            {readMinutes && (
-              <span className="flex items-center gap-1">
-                <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                {readMinutes} min read
-              </span>
-            )}
-            {article.publishedAt && (
-              <span>{formatDate(article.publishedAt)}</span>
-            )}
-          </div>
-        )}
       </div>
     </Link>
   );

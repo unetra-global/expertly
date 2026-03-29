@@ -1,46 +1,124 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { COUNTRY_NAMES } from '@expertly/utils';
 
-const PROFESSIONS = [
-  'Corporate Law',
-  'Tax & Accounting',
-  'Investment Banking',
-  'Compliance & Regulatory',
-  'Mergers & Acquisitions',
-  'Forensic Accounting',
-  'Intellectual Property',
-  'Financial Advisory',
+const PLACEHOLDERS = [
+  'M&A advisor in Singapore with 10+ years...',
+  'Tax specialist in London for hedge funds...',
+  'IP lawyer with biotech experience...',
+  'Compliance expert in UAE financial sector...',
+  'Corporate attorney with IPO experience...',
+  'Investment banker focused on emerging markets...',
 ];
+
+const BUTTON_LABELS = ['Find Members', 'Find Events', 'Find Articles'];
+
+const TYPING_SPEED = 55;
+const ERASE_SPEED = 30;
+const PAUSE_AFTER_TYPE = 2200;
+const PAUSE_AFTER_ERASE = 400;
+const BUTTON_CYCLE_MS = 2500;
 
 export default function HeroSection() {
   const router = useRouter();
-  const [profession, setProfession] = useState('');
-  const [country, setCountry] = useState('');
+  const [inputValue, setInputValue] = useState('');
+  const [placeholder, setPlaceholder] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
+  const [buttonIndex, setButtonIndex] = useState(0);
+  const [buttonVisible, setButtonVisible] = useState(true);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  function handleSearch(e: React.FormEvent) {
+  // Typewriter effect on placeholder
+  useEffect(() => {
+    let cancelled = false;
+    let phraseIndex = 0;
+    let charIndex = 0;
+    let erasing = false;
+    let timeout: ReturnType<typeof setTimeout>;
+
+    function tick() {
+      if (cancelled) return;
+      const phrase = PLACEHOLDERS[phraseIndex % PLACEHOLDERS.length] ?? '';
+
+      if (!erasing) {
+        charIndex++;
+        setPlaceholder(phrase.slice(0, charIndex));
+        if (charIndex >= phrase.length) {
+          erasing = true;
+          timeout = setTimeout(tick, PAUSE_AFTER_TYPE);
+        } else {
+          timeout = setTimeout(tick, TYPING_SPEED);
+        }
+      } else {
+        charIndex--;
+        setPlaceholder(phrase.slice(0, charIndex));
+        if (charIndex <= 0) {
+          erasing = false;
+          phraseIndex++;
+          timeout = setTimeout(tick, PAUSE_AFTER_ERASE);
+        } else {
+          timeout = setTimeout(tick, ERASE_SPEED);
+        }
+      }
+    }
+
+    timeout = setTimeout(tick, 600);
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+    };
+  }, []);
+
+  // Animate button label cycling
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setButtonVisible(false);
+      setTimeout(() => {
+        setButtonIndex((i) => (i + 1) % BUTTON_LABELS.length);
+        setButtonVisible(true);
+      }, 200);
+    }, BUTTON_CYCLE_MS);
+    return () => clearInterval(interval);
+  }, []);
+
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const params = new URLSearchParams();
-    if (profession) params.set('q', profession);
-    if (country) params.set('country', country);
-    router.push(`/members${params.toString() ? `?${params.toString()}` : ''}`);
+    const q = inputValue.trim();
+    if (q.length >= 2) {
+      router.push(`/search?q=${encodeURIComponent(q)}`);
+    }
   }
 
   return (
-    <section className="relative bg-brand-navy overflow-hidden">
-      {/* Subtle grid overlay */}
+    <section
+      className="relative overflow-hidden bg-brand-navy"
+      style={{
+        backgroundImage: [
+          'radial-gradient(ellipse 60% 40% at 50% -10%, rgba(37,99,235,0.07) 0%, transparent 60%)',
+          'radial-gradient(ellipse 40% 30% at 80% 80%, rgba(245,158,11,0.04) 0%, transparent 55%)',
+        ].join(', '),
+      }}
+    >
+      {/* Subtle dot grid */}
       <div
-        className="absolute inset-0 opacity-[0.04] pointer-events-none"
+        className="absolute inset-0 opacity-[0.035] pointer-events-none"
         style={{
           backgroundImage:
-            "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='g' width='40' height='40' patternUnits='userSpaceOnUse'%3E%3Cpath d='M 40 0 L 0 0 0 40' fill='none' stroke='white' stroke-width='1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3C/svg%3E\")",
+            "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Ccircle cx='1' cy='1' r='1' fill='white'/%3E%3C/svg%3E\")",
+          backgroundSize: '24px 24px',
         }}
         aria-hidden
       />
-      {/* Radial glow */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-brand-blue/10 rounded-full blur-3xl pointer-events-none" aria-hidden />
+      {/* Top glowing beam */}
+      <div
+        className="absolute top-0 left-0 right-0 h-px pointer-events-none"
+        style={{
+          background:
+            'linear-gradient(to right, transparent 0%, rgba(99,160,255,0.5) 35%, rgba(201,168,76,0.4) 65%, transparent 100%)',
+        }}
+        aria-hidden
+      />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 text-center">
         {/* Tag chip */}
@@ -62,70 +140,68 @@ export default function HeroSection() {
           Discover events that advance your career.
         </p>
 
-        {/* ── Search bar ──────────────────────────────────── */}
-        <form
-          onSubmit={handleSearch}
-          className="mt-10 max-w-2xl mx-auto bg-white rounded-2xl shadow-2xl p-2 flex flex-col sm:flex-row gap-2"
-        >
-          {/* Profession select */}
-          <div className="flex-1 relative">
-            <svg
-              className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-brand-text-muted pointer-events-none"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
-            <select
-              value={profession}
-              onChange={(e) => setProfession(e.target.value)}
-              className="w-full pl-9 pr-4 py-3 text-sm text-brand-text bg-transparent rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue appearance-none cursor-pointer"
-            >
-              <option value="">Select Services</option>
-              {PROFESSIONS.map((p) => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Divider */}
-          <div className="hidden sm:block w-px bg-gray-200 self-stretch my-1" />
-
-          {/* Country select */}
-          <div className="flex-1 relative">
-            <svg
-              className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-brand-text-muted pointer-events-none"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0zM15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            <select
-              value={country}
-              onChange={(e) => setCountry(e.target.value)}
-              className="w-full pl-9 pr-4 py-3 text-sm text-brand-text bg-transparent rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue appearance-none cursor-pointer"
-            >
-              <option value="">Select Country</option>
-              {COUNTRY_NAMES.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* CTA button */}
-          <button
-            type="submit"
-            className="flex-shrink-0 inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-brand-blue hover:bg-brand-blue-dark text-white text-sm font-semibold transition-colors whitespace-nowrap"
+        {/* ── AI Search bar ─────────────────────────────────── */}
+        <form onSubmit={handleSubmit} className="mt-10 max-w-3xl mx-auto">
+          <div
+            className={`relative flex items-center bg-white rounded-2xl shadow-2xl transition-shadow duration-200 ${
+              isFocused ? 'ring-2 ring-brand-blue ring-offset-2 ring-offset-transparent shadow-2xl' : ''
+            }`}
           >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+            {/* Search icon */}
+            <svg
+              className="absolute left-5 h-5 w-5 text-gray-400 pointer-events-none flex-shrink-0"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden
+            >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
-            FIND AN EXPERT
-          </button>
+
+            <input
+              ref={inputRef}
+              type="search"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              placeholder={isFocused ? '' : placeholder}
+              autoComplete="off"
+              aria-label="AI-powered search"
+              className="flex-1 pl-14 pr-4 py-4 text-base sm:text-lg text-gray-800 bg-transparent placeholder-gray-400 focus:outline-none"
+            />
+
+            {/* AI badge */}
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 mr-2 rounded-lg bg-brand-surface border border-gray-100 flex-shrink-0">
+              <svg className="h-3.5 w-3.5 text-brand-blue flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              <span className="text-xs font-semibold text-brand-text-muted tracking-wide">AI</span>
+            </div>
+
+            {/* Animated CTA button */}
+            <div className="flex-shrink-0 pr-2 py-2">
+              <button
+                type="submit"
+                className="inline-flex items-center justify-center gap-2 w-36 px-5 py-2.5 rounded-xl bg-brand-blue hover:bg-brand-blue-dark active:scale-95 text-white text-sm font-semibold transition-all duration-150 overflow-hidden"
+              >
+                <span
+                  className={`transition-all duration-200 ${
+                    buttonVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'
+                  }`}
+                >
+                  {BUTTON_LABELS[buttonIndex]}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <p className="mt-2.5 text-xs text-white/40 flex items-center justify-center gap-1.5">
+            <svg className="h-3 w-3 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            AI-powered &mdash; searches members, articles &amp; events
+          </p>
         </form>
 
         {/* Trust signal */}

@@ -49,16 +49,16 @@ function ArticleCard({ article }: { article: ArticleListItem }) {
   return (
     <Link
       href={`/articles/${article.slug}`}
-      className="group bg-white rounded-2xl border border-gray-100 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200 overflow-hidden flex"
+      className="group bg-white rounded-2xl border border-gray-100 hover:border-brand-gold/40 hover:shadow-card-hover transition-all duration-200 overflow-hidden flex"
     >
       {/* Thumbnail */}
-      <div className="w-32 sm:w-40 flex-shrink-0 bg-brand-surface overflow-hidden">
+      <div className="w-28 sm:w-40 flex-shrink-0 bg-brand-surface overflow-hidden self-stretch">
         {article.featuredImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={article.featuredImageUrl}
             alt={article.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-navy to-brand-navy-light min-h-[120px]">
@@ -73,38 +73,38 @@ function ArticleCard({ article }: { article: ArticleListItem }) {
       <div className="flex-1 flex flex-col p-4 sm:p-5 min-w-0">
         <div className="flex items-center gap-2 mb-2 flex-wrap">
           {article.category && (
-            <span className="inline-flex items-center rounded-full bg-brand-blue-subtle border border-blue-100 px-2.5 py-0.5 text-xs font-medium text-brand-blue">
+            <span className="inline-flex items-center rounded-full bg-brand-navy/[0.06] border border-brand-navy/10 px-2.5 py-0.5 text-xs font-bold text-brand-navy uppercase tracking-wide">
               {article.category.name}
             </span>
           )}
           {article.readTimeMinutes && (
             <span className="flex items-center gap-1 text-xs text-brand-text-muted ml-auto">
-              <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               {article.readTimeMinutes} min read
             </span>
           )}
         </div>
-        <h3 className="font-semibold text-brand-navy text-sm sm:text-base leading-snug group-hover:text-brand-blue transition-colors line-clamp-2 mb-1.5">
+        <h3 className="font-bold text-brand-navy text-sm sm:text-base leading-snug group-hover:text-brand-blue transition-colors line-clamp-2 mb-1.5">
           {article.title}
         </h3>
         {excerpt && (
-          <p className="text-xs text-brand-text-secondary leading-relaxed line-clamp-2 mb-3 flex-1">
+          <p className="text-xs sm:text-sm text-brand-text-secondary leading-relaxed line-clamp-1 mb-3 flex-1">
             {excerpt}
           </p>
         )}
-        <div className="flex items-center gap-2 pt-2 border-t border-gray-50 mt-auto">
+        <div className="flex items-center gap-2.5 pt-2.5 border-t border-gray-50 mt-auto">
           {article.author?.profilePhotoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={article.author.profilePhotoUrl} alt={authorName} className="w-8 h-8 rounded-full object-cover flex-shrink-0 border border-gray-100" />
+            <img src={article.author.profilePhotoUrl} alt={authorName} className="w-7 h-7 rounded-full object-cover flex-shrink-0 border border-gray-100" />
           ) : (
-            <div className="w-8 h-8 rounded-full bg-brand-navy flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
+            <div className="w-7 h-7 rounded-full bg-brand-navy flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
               {authorName[0]}
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-medium text-brand-text-secondary truncate leading-tight">{authorName}</p>
+            <p className="text-xs font-semibold text-brand-navy truncate leading-tight">{authorName}</p>
             {(article.author?.designation || article.author?.city || article.author?.country) && (
               <p className="text-xs text-gray-400 truncate leading-tight">
                 {[
@@ -329,12 +329,12 @@ export default function ArticleList({
     <>
       {/* Page header */}
       <div className="bg-brand-navy">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-16">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="section-label mb-2">Knowledge Hub</p>
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white">Expert Articles</h1>
-              <p className="mt-2 text-white/60 text-sm sm:text-base max-w-xl">
+              <p className="section-label mb-3">Knowledge Hub</p>
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight">Expert Articles</h1>
+              <p className="mt-3 text-white/60 text-base sm:text-lg max-w-xl leading-relaxed">
                 Articles and analysis from verified finance and legal professionals.
               </p>
             </div>
@@ -451,8 +451,8 @@ export default function ArticleList({
               <div className="flex flex-col gap-4">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <div key={i} className="bg-white rounded-2xl border border-gray-100 overflow-hidden animate-pulse flex">
-                    <div className="w-32 sm:w-40 bg-gray-100 flex-shrink-0 min-h-[120px]" />
-                    <div className="flex-1 p-5 space-y-2">
+                    <div className="w-28 sm:w-40 bg-gray-100 flex-shrink-0 min-h-[120px]" />
+                    <div className="flex-1 p-4 sm:p-5 space-y-2">
                       <div className="h-3 bg-gray-100 rounded w-1/3" />
                       <div className="h-4 bg-gray-100 rounded w-full" />
                       <div className="h-4 bg-gray-100 rounded w-3/4" />

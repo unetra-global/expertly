@@ -32,32 +32,34 @@ const NAV_COLUMNS = [
 
 export default function Footer() {
   return (
-    <footer className="bg-brand-navy text-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
-        {/* Logo + tagline */}
-        <div className="mb-10">
-          <Link href="/" className="inline-flex items-center gap-0.5">
-            <span className="text-2xl font-bold text-white">Expertly</span>
-            <span className="text-2xl font-bold text-brand-blue-light">.</span>
+    <footer className="bg-brand-navy">
+<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-8">
+        {/* Brand statement */}
+        <div className="mb-14">
+          <Link href="/" className="inline-flex items-baseline gap-0.5 group">
+            <span className="text-3xl sm:text-4xl font-black text-white tracking-tight group-hover:text-white/90 transition-colors">
+              Expertly
+            </span>
+            <span className="text-3xl sm:text-4xl font-black text-brand-gold">.</span>
           </Link>
-          <p className="mt-2 text-sm text-gray-400 max-w-xs">
-            The professional network for finance and legal experts.
+          <p className="mt-3 text-sm sm:text-base text-white/40 max-w-sm leading-relaxed">
+            The curated professional network for verified finance &amp; legal experts worldwide.
           </p>
         </div>
 
-        {/* 3-column grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-10">
+        {/* 3-column links */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 sm:gap-10 border-t border-white/[0.08] pt-10">
           {NAV_COLUMNS.map((col) => (
             <div key={col.heading}>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-4">
+              <h3 className="text-[10px] font-bold uppercase tracking-widest text-brand-gold mb-5">
                 {col.heading}
               </h3>
-              <ul className="space-y-2.5">
+              <ul className="space-y-3">
                 {col.links.map((link) => (
                   <li key={link.href}>
                     <Link
                       href={link.href}
-                      className="text-sm text-gray-300 hover:text-white transition-colors"
+                      className="text-sm text-white/50 hover:text-white transition-colors"
                     >
                       {link.label}
                     </Link>
@@ -70,13 +72,13 @@ export default function Footer() {
       </div>
 
       {/* Bottom bar */}
-      <div className="border-t border-white/10">
+      <div className="border-t border-white/[0.08]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row justify-between items-center gap-3">
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-white/25">
             © {new Date().getFullYear()} Expertly. All rights reserved.
           </p>
-          <p className="text-xs text-gray-500">
-            Built for finance &amp; legal professionals worldwide.
+          <p className="text-xs text-white/25">
+            Finance &amp; legal professionals · Verified &amp; trusted
           </p>
         </div>
       </div>
