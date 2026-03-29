@@ -25,14 +25,6 @@ const TABS: { id: Tab; label: string }[] = [
 
 // ── Small reusable pieces ────────────────────────────────────────────────────
 
-function Tag({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="inline-flex items-center rounded-full bg-brand-blue-subtle border border-blue-100 px-3 py-1 text-xs font-medium text-brand-blue">
-      {children}
-    </span>
-  );
-}
-
 function GrayTag({ children }: { children: React.ReactNode }) {
   return (
     <span className="inline-flex items-center rounded-full bg-gray-100 border border-gray-200 px-3 py-1 text-xs font-medium text-brand-text-secondary">
@@ -478,9 +470,9 @@ export function MemberProfile({ member, isAuthenticated }: MemberProfileProps) {
               />
             </div>
 
-            <div className="px-6 pb-6">
+            <div className="px-4 sm:px-6 pb-6">
               {/* Avatar — overlaps top band */}
-              <div className="flex flex-col sm:flex-row sm:items-end gap-5 -mt-14 sm:-mt-16">
+              <div className="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-5 -mt-14 sm:-mt-16">
                 <div className="relative flex-shrink-0">
                   {member.profilePhotoUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -583,6 +575,45 @@ export function MemberProfile({ member, isAuthenticated }: MemberProfileProps) {
             </div>
           </div>
 
+          {/* ── Mobile CTA — visible below lg where sidebar is hidden above fold ── */}
+          <div className="lg:hidden mb-6">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-4 flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                {hasFeeRange && (
+                  <p className="text-sm font-bold text-brand-navy">
+                    {member.feeCurrency ?? '$'}{member.feeRangeMin?.toLocaleString()}
+                    {member.feeRangeMax ? `–${member.feeCurrency ?? '$'}${member.feeRangeMax.toLocaleString()}` : '+'}
+                    <span className="text-xs font-normal text-brand-text-muted"> / hr</span>
+                  </p>
+                )}
+                {member.isAvailable !== false ? (
+                  <p className="text-xs text-green-600 font-medium flex items-center gap-1 mt-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
+                    Available
+                  </p>
+                ) : (
+                  <p className="text-xs text-brand-text-muted mt-0.5">Currently unavailable</p>
+                )}
+              </div>
+              {isAuthenticated ? (
+                <button
+                  onClick={() => setConsultOpen(true)}
+                  disabled={member.isAvailable === false}
+                  className="btn-primary flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed text-sm px-4 py-2"
+                >
+                  Request Consultation
+                </button>
+              ) : (
+                <Link
+                  href={`/auth?returnTo=/members/${member.slug}`}
+                  className="btn-primary flex-shrink-0 text-sm px-4 py-2 text-center"
+                >
+                  Sign in to Contact
+                </Link>
+              )}
+            </div>
+          </div>
+
           {/* ── Two-column layout ────────────────────────────── */}
           <div className="flex flex-col lg:flex-row gap-6 lg:items-start">
 
@@ -617,8 +648,8 @@ export function MemberProfile({ member, isAuthenticated }: MemberProfileProps) {
               </div>
             </div>
 
-            {/* ── Right: sidebar ────────────────────────────── */}
-            <aside className="lg:w-64 xl:w-72 flex-shrink-0 space-y-4">
+            {/* ── Right: sidebar — hidden on mobile (CTA shown above instead) ── */}
+            <aside className="hidden lg:block lg:w-64 xl:w-72 flex-shrink-0 space-y-4">
               <div className="lg:sticky lg:top-24 space-y-4">
 
                 {/* Consultation fee + CTA */}

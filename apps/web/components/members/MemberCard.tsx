@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import type { MemberListItem } from '@/types/api';
@@ -60,19 +62,17 @@ export function MemberCard({ member, variant = 'teaser', onConsult, className }:
     : null;
 
   return (
-    <div className={cn(
-      'group bg-white rounded-2xl border border-gray-100 hover:border-brand-gold/40 hover:shadow-card-hover transition-all duration-200 overflow-hidden',
-      className
-    )}>
+    <Link
+      href={`/members/${member.slug}`}
+      className={cn(
+        'group block bg-white rounded-2xl border border-gray-100 hover:border-brand-gold/40 hover:shadow-card-hover transition-all duration-200 overflow-hidden',
+        className
+      )}
+    >
       <div className="flex">
 
         {/* Full-height photo column */}
-        <Link
-          href={`/members/${member.slug}`}
-          className="relative flex-shrink-0 w-28 sm:w-36 overflow-hidden"
-          tabIndex={-1}
-          aria-hidden
-        >
+        <div className="relative flex-shrink-0 w-28 sm:w-36 overflow-hidden">
           {member.profilePhotoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -87,26 +87,21 @@ export function MemberCard({ member, variant = 'teaser', onConsult, className }:
           )}
           {/* Subtle right-edge fade for blending */}
           <div className="absolute inset-y-0 right-0 w-4 bg-gradient-to-r from-transparent to-black/[0.04]" aria-hidden />
-        </Link>
+        </div>
 
         {/* Main content */}
         <div className="flex-1 min-w-0 p-4 sm:p-5">
           {/* Top row: name + tier + View Profile */}
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex items-center gap-2 flex-wrap">
-              <Link href={`/members/${member.slug}`}>
-                <h3 className="font-bold text-brand-navy text-base leading-snug hover:text-brand-gold transition-colors">
-                  {displayName}
-                </h3>
-              </Link>
+              <h3 className="font-bold text-brand-navy text-base leading-snug group-hover:text-brand-gold transition-colors">
+                {displayName}
+              </h3>
               {member.memberTier && <TierBadge tier={member.memberTier} />}
             </div>
-            <Link
-              href={`/members/${member.slug}`}
-              className="hidden sm:inline-flex items-center gap-1 text-sm font-semibold text-white bg-brand-blue hover:bg-brand-blue-dark rounded-lg px-4 py-1.5 transition-colors whitespace-nowrap flex-shrink-0"
-            >
+            <span className="hidden sm:inline-flex items-center gap-1 text-sm font-semibold text-white bg-brand-blue rounded-lg px-4 py-1.5 whitespace-nowrap flex-shrink-0">
               View Profile
-            </Link>
+            </span>
           </div>
 
           {/* Designation */}
@@ -130,7 +125,7 @@ export function MemberCard({ member, variant = 'teaser', onConsult, className }:
             {variant === 'full' && member.yearsOfExperience && (
               <span className="flex items-center gap-1">
                 <svg className="h-3.5 w-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 002-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
                 {member.yearsOfExperience} Years Exp.
               </span>
@@ -171,10 +166,10 @@ export function MemberCard({ member, variant = 'teaser', onConsult, className }:
             )}
           </div>
 
-          {/* Consult CTA — authenticated only */}
+          {/* Consult CTA — authenticated only; stop propagation so card link doesn't fire */}
           {variant === 'full' && onConsult && (
             <button
-              onClick={() => onConsult(member)}
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onConsult(member); }}
               className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-brand-blue hover:bg-brand-blue-dark text-white text-xs font-semibold px-3 py-1.5 transition-colors"
             >
               Request Consultation
@@ -183,6 +178,6 @@ export function MemberCard({ member, variant = 'teaser', onConsult, className }:
         </div>
 
       </div>
-    </div>
+    </Link>
   );
 }
