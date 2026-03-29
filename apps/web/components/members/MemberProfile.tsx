@@ -589,8 +589,8 @@ export function MemberProfile({ member, isAuthenticated }: MemberProfileProps) {
             {/* ── Left: tabs + content ──────────────────────── */}
             <div className="flex-1 min-w-0">
               {/* Tab nav */}
-              <div className="bg-white rounded-xl border border-gray-100 shadow-sm mb-4">
-                <div className="flex">
+              <div className="bg-white rounded-xl border border-gray-100 shadow-sm mb-4 overflow-hidden">
+                <div className="flex overflow-x-auto scrollbar-none">
                   {TABS.map((tab) => (
                     <button
                       key={tab.id}

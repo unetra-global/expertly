@@ -42,53 +42,73 @@ const FEATURES = [
   },
 ];
 
+type Feature = typeof FEATURES[number];
+
+function FeatureCardInner({ feature }: { feature: Feature }) {
+  return (
+    <>
+      <div
+        className="absolute top-0 left-6 right-6 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+        style={{ background: 'linear-gradient(to right, transparent, rgba(245,158,11,0.5), transparent)' }}
+        aria-hidden
+      />
+      <span
+        className="absolute right-4 bottom-1 text-[7rem] font-black leading-none pointer-events-none select-none tabular-nums text-white/[0.04]"
+        aria-hidden
+      >
+        {feature.number}
+      </span>
+      <div className="relative inline-flex items-center justify-center w-12 h-12 flex-shrink-0 rounded-xl bg-white/[0.06] border border-white/10 text-brand-blue-light group-hover:text-brand-gold group-hover:border-brand-gold/30 group-hover:bg-brand-gold/5 transition-all duration-300">
+        {feature.icon}
+      </div>
+      <div className="relative flex flex-col gap-2 min-w-0">
+        <h3 className="font-bold text-white text-base sm:text-lg tracking-tight">
+          {feature.title}
+        </h3>
+        <p className="text-sm sm:text-base text-white/50 leading-relaxed">
+          {feature.description}
+        </p>
+        <span className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-blue-light group-hover:text-brand-gold group-hover:gap-2.5 transition-all uppercase tracking-wider mt-2">
+          {feature.cta}
+          <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+          </svg>
+        </span>
+      </div>
+    </>
+  );
+}
+
 export default function FeatureCardsSection() {
   return (
     <section className="relative bg-brand-navy pt-10 pb-2">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+        {/* Mobile: horizontal snap-scroll */}
+        <div className="sm:hidden flex gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-none -mx-4 px-4 pb-2">
           {FEATURES.map((feature) => (
             <Link
               key={feature.title}
               href={feature.href}
-              className="group relative border border-white/10 hover:border-brand-gold/40 rounded-2xl p-6 sm:p-7 flex flex-row sm:flex-col items-start gap-5 transition-all duration-300 overflow-hidden"
+              className="snap-start flex-shrink-0 w-[80vw] max-w-[300px] group relative border border-white/10 hover:border-brand-gold/40 rounded-2xl p-6 flex flex-col items-start gap-5 transition-all duration-300 overflow-hidden"
               style={{ background: 'rgba(255,255,255,0.04)' }}
             >
-              {/* Gold top-edge highlight on hover */}
-              <div
-                className="absolute top-0 left-6 right-6 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                style={{ background: 'linear-gradient(to right, transparent, rgba(245,158,11,0.5), transparent)' }}
-                aria-hidden
-              />
+              <FeatureCardInner feature={feature} />
+            </Link>
+          ))}
+          <div className="flex-shrink-0 w-4" aria-hidden />
+        </div>
 
-              {/* Large faint number — decorative */}
-              <span
-                className="absolute right-4 bottom-1 text-[7rem] font-black leading-none pointer-events-none select-none tabular-nums text-white/[0.04]"
-                aria-hidden
-              >
-                {feature.number}
-              </span>
-
-              {/* Icon */}
-              <div className="relative inline-flex items-center justify-center w-12 h-12 flex-shrink-0 rounded-xl bg-white/[0.06] border border-white/10 text-brand-blue-light group-hover:text-brand-gold group-hover:border-brand-gold/30 group-hover:bg-brand-gold/5 transition-all duration-300">
-                {feature.icon}
-              </div>
-
-              {/* Content */}
-              <div className="relative flex flex-col gap-2 min-w-0 flex-1 sm:flex-none">
-                <h3 className="font-bold text-white text-base sm:text-lg tracking-tight">
-                  {feature.title}
-                </h3>
-                <p className="text-sm sm:text-base text-white/50 leading-relaxed">
-                  {feature.description}
-                </p>
-                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-blue-light group-hover:text-brand-gold group-hover:gap-2.5 transition-all uppercase tracking-wider mt-2">
-                  {feature.cta}
-                  <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                  </svg>
-                </span>
-              </div>
+        {/* Desktop: 3-column grid */}
+        <div className="hidden sm:grid sm:grid-cols-3 gap-4">
+          {FEATURES.map((feature) => (
+            <Link
+              key={feature.title}
+              href={feature.href}
+              className="group relative border border-white/10 hover:border-brand-gold/40 rounded-2xl p-7 flex flex-col items-start gap-5 transition-all duration-300 overflow-hidden"
+              style={{ background: 'rgba(255,255,255,0.04)' }}
+            >
+              <FeatureCardInner feature={feature} />
             </Link>
           ))}
         </div>

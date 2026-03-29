@@ -226,10 +226,22 @@ export default function TestimonialSection() {
           <div className="lg:w-[42%]">
             <TestimonialCard testimonial={featured} isFeatured isMember={isMember} />
           </div>
-          <div className="lg:flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4 content-start">
-            {grid.slice(0, 4).map((t) => (
-              <TestimonialCard key={t.name} testimonial={t} isMember={isMember} />
-            ))}
+          <div className="lg:flex-1 min-w-0">
+            {/* Mobile: horizontal snap-scroll */}
+            <div className="sm:hidden flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-none -mx-4 px-4 pb-2">
+              {grid.slice(0, 4).map((t) => (
+                <div key={t.name} className="snap-start flex-shrink-0 w-[80vw] max-w-[280px]">
+                  <TestimonialCard testimonial={t} isMember={isMember} />
+                </div>
+              ))}
+              <div className="flex-shrink-0 w-4" aria-hidden />
+            </div>
+            {/* Desktop: 2×2 grid */}
+            <div className="hidden sm:grid sm:grid-cols-2 gap-4 content-start">
+              {grid.slice(0, 4).map((t) => (
+                <TestimonialCard key={t.name} testimonial={t} isMember={isMember} />
+              ))}
+            </div>
           </div>
         </div>
 

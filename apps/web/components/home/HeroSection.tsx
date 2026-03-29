@@ -168,7 +168,7 @@ export default function HeroSection() {
               placeholder={isFocused ? '' : placeholder}
               autoComplete="off"
               aria-label="AI-powered search"
-              className="flex-1 pl-14 pr-4 py-4 text-base sm:text-lg text-gray-800 bg-transparent placeholder-gray-400 focus:outline-none"
+              className="flex-1 min-w-0 pl-14 pr-2 py-4 text-base sm:text-lg text-gray-800 bg-transparent placeholder-gray-400 focus:outline-none"
             />
 
             {/* AI badge */}
@@ -183,7 +183,7 @@ export default function HeroSection() {
             <div className="flex-shrink-0 pr-2 py-2">
               <button
                 type="submit"
-                className="inline-flex items-center justify-center gap-2 w-36 px-5 py-2.5 rounded-xl bg-brand-blue hover:bg-brand-blue-dark active:scale-95 text-white text-sm font-semibold transition-all duration-150 overflow-hidden"
+                className="inline-flex items-center justify-center gap-2 w-28 sm:w-36 px-3 sm:px-5 py-2.5 rounded-xl bg-brand-blue hover:bg-brand-blue-dark active:scale-95 text-white text-sm font-semibold transition-all duration-150 overflow-hidden"
               >
                 <span
                   className={`transition-all duration-200 ${

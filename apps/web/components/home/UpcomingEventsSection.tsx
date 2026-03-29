@@ -185,11 +185,24 @@ export default function UpcomingEventsSection({ events }: UpcomingEventsSectionP
             <p className="text-sm text-brand-text-muted">No upcoming events planned at this time.</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
-            {events.slice(0, 3).map((event) => (
-              <HomeEventCard key={event.id} event={event} />
-            ))}
-          </div>
+          <>
+            {/* Mobile: horizontal snap-scroll */}
+            <div className="sm:hidden flex gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-none -mx-4 px-4 pb-2">
+              {events.slice(0, 3).map((event) => (
+                <div key={event.id} className="snap-start flex-shrink-0 w-[85vw] max-w-[360px]">
+                  <HomeEventCard event={event} />
+                </div>
+              ))}
+              <div className="flex-shrink-0 w-4" aria-hidden />
+            </div>
+
+            {/* Desktop: stacked list */}
+            <div className="hidden sm:flex sm:flex-col gap-3">
+              {events.slice(0, 3).map((event) => (
+                <HomeEventCard key={event.id} event={event} />
+              ))}
+            </div>
+          </>
         )}
       </div>
     </section>
