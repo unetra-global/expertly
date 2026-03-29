@@ -135,11 +135,25 @@ export default function FeaturedMembersSection({ members }: FeaturedMembersSecti
             <p className="text-sm text-brand-text-muted">No featured members found.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-5">
-            {members.slice(0, 4).map((member) => (
-              <HomeMemberCard key={member.id} member={member} />
-            ))}
-          </div>
+          <>
+            {/* Mobile: horizontal snap-scroll — cards peek at 72vw to signal more */}
+            <div className="sm:hidden flex gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-none -mx-4 px-4 pb-2">
+              {members.slice(0, 4).map((member) => (
+                <div key={member.id} className="snap-start flex-shrink-0 w-[72vw] max-w-[260px]">
+                  <HomeMemberCard member={member} />
+                </div>
+              ))}
+              {/* Trailing spacer so last card doesn't sit flush against edge */}
+              <div className="flex-shrink-0 w-4" aria-hidden />
+            </div>
+
+            {/* Desktop: 4-column grid */}
+            <div className="hidden sm:grid sm:grid-cols-4 gap-5">
+              {members.slice(0, 4).map((member) => (
+                <HomeMemberCard key={member.id} member={member} />
+              ))}
+            </div>
+          </>
         )}
       </div>
     </section>

@@ -27,6 +27,17 @@
   }
 }
 
+@layer utilities {
+  /* Hide scrollbar visually but keep it functional */
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @layer components {
   /* ── Buttons ─────────────────────────────────────────────────── */
 

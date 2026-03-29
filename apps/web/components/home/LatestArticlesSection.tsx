@@ -254,32 +254,57 @@ export default function LatestArticlesSection({ articles }: LatestArticlesSectio
           </div>
         ) : (
           <>
-            {/* Top row: featured (2/3) + 2 stacked side cards (1/3) */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            {/* ── Mobile layout ── */}
+            <div className="lg:hidden space-y-0">
+              {/* Featured article — full width */}
               {featured && (
-                <div className="lg:col-span-2">
+                <div className="mb-4">
                   <FeaturedCard article={featured} />
                 </div>
               )}
-              {sideArticles.length > 0 && (
-                <div className="flex flex-col gap-4 h-full">
-                  {sideArticles.map((article) => (
-                    <div key={article.id} className="flex-1 min-h-[180px]">
-                      <SideCard article={article} />
+
+              {/* Remaining articles — horizontal snap-scroll */}
+              {articles.length > 1 && (
+                <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-none -mx-4 px-4 pb-2">
+                  {articles.slice(1, 6).map((article) => (
+                    <div key={article.id} className="snap-start flex-shrink-0 w-[78vw] max-w-[280px]">
+                      <GridCard article={article} />
                     </div>
                   ))}
+                  <div className="flex-shrink-0 w-4" aria-hidden />
                 </div>
               )}
             </div>
 
-            {/* Bottom row: 3 equal cards */}
-            {bottomArticles.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mt-5">
-                {bottomArticles.map((article) => (
-                  <GridCard key={article.id} article={article} />
-                ))}
+            {/* ── Desktop layout ── */}
+            <div className="hidden lg:block">
+              {/* Top row: featured (2/3) + 2 stacked side cards (1/3) */}
+              <div className="grid grid-cols-3 gap-5">
+                {featured && (
+                  <div className="col-span-2">
+                    <FeaturedCard article={featured} />
+                  </div>
+                )}
+                {sideArticles.length > 0 && (
+                  <div className="flex flex-col gap-4 h-full">
+                    {sideArticles.map((article) => (
+                      <div key={article.id} className="flex-1 min-h-[180px]">
+                        <SideCard article={article} />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
+
+              {/* Bottom row: 3 equal cards */}
+              {bottomArticles.length > 0 && (
+                <div className="grid grid-cols-3 gap-5 mt-5">
+                  {bottomArticles.map((article) => (
+                    <GridCard key={article.id} article={article} />
+                  ))}
+                </div>
+              )}
+            </div>
           </>
         )}
 
