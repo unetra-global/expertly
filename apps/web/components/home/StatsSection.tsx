@@ -1,8 +1,8 @@
 const STATS = [
-  { value: '500+', label: 'Verified Experts', note: 'across finance & law' },
-  { value: '40+', label: 'Countries', note: 'globally represented' },
-  { value: '1,200+', label: 'Expert Articles', note: 'peer-reviewed insights' },
-  { value: '3,800+', label: 'Consultations', note: 'successfully matched' },
+  { value: '50+', label: 'Verified Experts', note: 'across finance & law' },
+  { value: '20+', label: 'Countries', note: 'globally represented' },
+  { value: '100+', label: 'Expert Articles', note: 'peer-reviewed insights' },
+  { value: '30+', label: 'Consultations', note: 'successfully matched' },
 ];
 
 export default function StatsSection() {

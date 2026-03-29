@@ -14,11 +14,11 @@ const PLACEHOLDERS = [
 
 const BUTTON_LABELS = ['Find Members', 'Find Events', 'Find Articles'];
 
-const TYPING_SPEED = 55;
+const TYPING_SPEED = 70;
 const ERASE_SPEED = 30;
 const PAUSE_AFTER_TYPE = 2200;
-const PAUSE_AFTER_ERASE = 400;
-const BUTTON_CYCLE_MS = 2500;
+const PAUSE_AFTER_ERASE = 100;
+const BUTTON_CYCLE_MS = 1200;
 
 export default function HeroSection() {
   const router = useRouter();
@@ -131,21 +131,20 @@ export default function HeroSection() {
 
         {/* Headline */}
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-[1.12] tracking-tight max-w-3xl mx-auto">
-          The World&apos;s Premier{' '}
+          The World&apos;s Premier Network for{' '}
           <span className="text-brand-blue-light">Finance &amp; Legal Experts</span>
         </h1>
 
         <p className="mt-5 text-base sm:text-lg text-white/60 max-w-xl mx-auto leading-relaxed">
           Connect with verified professionals. Read expert articles.
-          Discover events that advance your career.
+          Discover networking events and conferences.
         </p>
 
         {/* ── AI Search bar ─────────────────────────────────── */}
         <form onSubmit={handleSubmit} className="mt-10 max-w-3xl mx-auto">
           <div
-            className={`relative flex items-center bg-white rounded-2xl shadow-2xl transition-shadow duration-200 ${
-              isFocused ? 'ring-2 ring-brand-blue ring-offset-2 ring-offset-transparent shadow-2xl' : ''
-            }`}
+            className={`relative flex items-center bg-white rounded-2xl shadow-2xl transition-shadow duration-200 ${isFocused ? 'ring-2 ring-brand-blue ring-offset-2 ring-offset-transparent shadow-2xl' : ''
+              }`}
           >
             {/* Search icon */}
             <svg
@@ -186,9 +185,8 @@ export default function HeroSection() {
                 className="inline-flex items-center justify-center gap-2 w-28 sm:w-36 px-3 sm:px-5 py-2.5 rounded-xl bg-brand-blue hover:bg-brand-blue-dark active:scale-95 text-white text-sm font-semibold transition-all duration-150 overflow-hidden"
               >
                 <span
-                  className={`transition-all duration-200 ${
-                    buttonVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'
-                  }`}
+                  className={`hidden sm:inline transition-all duration-200 ${buttonVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'
+                    }`}
                 >
                   {BUTTON_LABELS[buttonIndex]}
                 </span>
@@ -206,7 +204,7 @@ export default function HeroSection() {
 
         {/* Trust signal */}
         <p className="mt-5 text-xs text-white/40">
-          All members vetted &amp; verified · Finance and legal specialists · Global network
+          All members vetted &amp; verified · Finance and legal specialists · Last mile connectivity
         </p>
       </div>
     </section>

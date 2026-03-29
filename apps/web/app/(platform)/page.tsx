@@ -72,8 +72,8 @@ export default async function HomePage() {
       <FeaturedMembersSection members={featuredMembers} />
       <LatestArticlesSection articles={latestArticles} />
       <UpcomingEventsSection events={upcomingEvents} />
-      <WhyJoinSection />
       <TestimonialSection />
+      <WhyJoinSection />
       <FAQSection />
     </>
   );

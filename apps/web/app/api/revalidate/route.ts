@@ -1,9 +1,25 @@
 import { revalidatePath } from 'next/cache';
 import { NextRequest, NextResponse } from 'next/server';
+import { timingSafeEqual } from 'crypto';
 
 interface RevalidateBody {
   path: string;
   secret: string;
+}
+
+function safeCompare(a: string, b: string): boolean {
+  try {
+    const aBuf = Buffer.from(a, 'utf8');
+    const bBuf = Buffer.from(b, 'utf8');
+    if (aBuf.length !== bBuf.length) {
+      // Compare against itself to keep constant time, then return false.
+      timingSafeEqual(aBuf, aBuf);
+      return false;
+    }
+    return timingSafeEqual(aBuf, bBuf);
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -20,7 +36,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  if (body.secret !== process.env.REVALIDATION_SECRET) {
+  const expected = process.env.REVALIDATION_SECRET ?? '';
+  if (!safeCompare(body.secret ?? '', expected)) {
     return NextResponse.json({ error: 'Invalid secret' }, { status: 401 });
   }
 

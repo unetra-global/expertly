@@ -19,17 +19,18 @@ function AuthorRow({ article, compact = false }: { article: ArticleCardData; com
     [article.author?.user?.firstName, article.author?.user?.lastName].filter(Boolean).join(' ') ||
     null;
   const designation = article.author?.designation;
+  const country = article.author?.country;
 
-  const avatarCls = compact ? 'w-8 h-8 text-xs' : 'w-10 h-10 text-sm';
+  const avatarCls = compact ? 'w-7 h-7 text-[10px]' : 'w-9 h-9 text-xs';
 
   return (
-    <div className="flex items-center gap-2.5 min-w-0">
+    <div className="flex items-center gap-2 min-w-0">
       {article.author?.profilePhotoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={article.author.profilePhotoUrl}
           alt={authorName ?? 'Author'}
-          className={`${avatarCls} rounded-full object-cover flex-shrink-0 border-2 border-white shadow-sm`}
+          className={`${avatarCls} rounded-full object-cover flex-shrink-0`}
         />
       ) : (
         <div className={`${avatarCls} rounded-full bg-brand-navy flex items-center justify-center text-white font-bold flex-shrink-0`}>
@@ -42,15 +43,25 @@ function AuthorRow({ article, compact = false }: { article: ArticleCardData; com
             {authorName}
           </p>
         )}
-        {designation && (
-          <p className={`text-brand-gold truncate leading-tight font-medium ${compact ? 'text-[10px]' : 'text-[11px]'}`}>
-            {designation}
+        {compact ? (
+          /* Compact: designation · country on one line, no date */
+          <p className="text-[10px] text-gray-400 truncate leading-tight">
+            {[designation, country].filter(Boolean).join(' · ')}
           </p>
-        )}
-        {article.publishedAt && (
-          <p className={`text-gray-400 leading-tight ${compact ? 'text-[10px]' : 'text-[11px]'}`}>
-            {formatDate(article.publishedAt)}
-          </p>
+        ) : (
+          /* Full: designation, then date · country below */
+          <>
+            {designation && (
+              <p className="text-[11px] text-brand-gold truncate leading-tight font-medium">
+                {designation}
+              </p>
+            )}
+            <p className="text-[11px] text-gray-400 leading-tight">
+              {[article.publishedAt ? formatDate(article.publishedAt) : null, country]
+                .filter(Boolean)
+                .join(' · ')}
+            </p>
+          </>
         )}
       </div>
     </div>
@@ -67,7 +78,7 @@ function FeaturedCard({ article }: { article: ArticleCardData }) {
   return (
     <Link
       href={`/articles/${article.slug}`}
-      className="group flex flex-col bg-white rounded-2xl border border-gray-100 hover:border-brand-gold/40 hover:shadow-card-hover transition-all duration-200 overflow-hidden h-full"
+      className="group flex flex-col bg-white rounded-2xl border border-brand-navy hover:border-brand-gold/40 hover:shadow-card-hover transition-all duration-200 overflow-hidden h-full"
     >
       {/* Image */}
       <div className="relative h-56 sm:h-72 flex-shrink-0 overflow-hidden bg-gray-100">
@@ -109,7 +120,7 @@ function FeaturedCard({ article }: { article: ArticleCardData }) {
           </p>
         )}
         {/* Author row always pinned to bottom */}
-        <div className="flex items-center justify-between gap-2 mt-auto pt-4 border-t border-gray-50">
+        <div className="flex items-center justify-between gap-2 mt-auto pt-4">
           <AuthorRow article={article} compact={false} />
           <span className="inline-flex items-center gap-1 text-xs font-bold text-brand-blue group-hover:text-brand-gold transition-colors flex-shrink-0">
             Read
@@ -126,11 +137,12 @@ function FeaturedCard({ article }: { article: ArticleCardData }) {
 /** Stacked card — right column, fills its flex-1 slot */
 function SideCard({ article }: { article: ArticleCardData }) {
   const imageUrl = article.coverImageUrl || article.featuredImageUrl;
+  const readMinutes = article.readTime || article.readTimeMinutes;
 
   return (
     <Link
       href={`/articles/${article.slug}`}
-      className="group flex flex-col h-full bg-white rounded-2xl border border-gray-100 hover:border-brand-gold/40 hover:shadow-card-hover transition-all duration-200 overflow-hidden"
+      className="group flex flex-col h-full bg-white rounded-2xl border border-brand-navy hover:border-brand-gold/40 hover:shadow-card-hover transition-all duration-200 overflow-hidden"
     >
       {/* Image */}
       <div className="relative h-32 flex-shrink-0 overflow-hidden bg-gray-100">
@@ -144,21 +156,29 @@ function SideCard({ article }: { article: ArticleCardData }) {
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-brand-navy to-brand-blue" />
         )}
-        {article.category?.name && (
-          <div className="absolute top-2.5 left-2.5">
+        <div className="absolute inset-x-0 top-0 flex items-start justify-between p-2">
+          {article.category?.name && (
             <span className="inline-flex items-center rounded-full bg-brand-navy/75 backdrop-blur-sm px-2 py-0.5 text-[10px] font-bold text-white uppercase tracking-wider">
               {article.category.name}
             </span>
-          </div>
-        )}
+          )}
+          {readMinutes && (
+            <span className="ml-auto inline-flex items-center gap-0.5 rounded-full bg-white/85 backdrop-blur-sm px-1.5 py-0.5 text-[10px] font-semibold text-brand-navy">
+              <svg className="h-2.5 w-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {readMinutes} min
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Content */}
       <div className="flex flex-col flex-1 p-3.5">
-        <h3 className="font-bold text-brand-navy text-sm leading-snug line-clamp-2 group-hover:text-brand-blue transition-colors">
+        <h3 className="font-bold text-brand-navy text-sm leading-snug line-clamp-2 group-hover:text-brand-blue transition-colors flex-1">
           {article.title}
         </h3>
-        <div className="mt-auto pt-2.5 border-t border-gray-50">
+        <div className="mt-3">
           <AuthorRow article={article} compact />
         </div>
       </div>
@@ -174,7 +194,7 @@ function GridCard({ article }: { article: ArticleCardData }) {
   return (
     <Link
       href={`/articles/${article.slug}`}
-      className="group block bg-white rounded-2xl border border-gray-100 hover:border-brand-gold/40 hover:shadow-card-hover transition-all duration-200 overflow-hidden"
+      className="group block bg-white rounded-2xl border border-brand-navy hover:border-brand-gold/40 hover:shadow-card-hover transition-all duration-200 overflow-hidden"
     >
       {/* Image */}
       <div className="relative aspect-[16/9] overflow-hidden bg-gray-100">
@@ -207,6 +227,11 @@ function GridCard({ article }: { article: ArticleCardData }) {
         <h3 className="font-bold text-brand-navy text-sm leading-snug line-clamp-2 group-hover:text-brand-blue transition-colors">
           {article.title}
         </h3>
+        {article.excerpt && (
+          <p className="mt-1.5 text-[11px] text-gray-500 line-clamp-2 leading-relaxed">
+            {article.excerpt.includes('<') ? stripHtml(article.excerpt) : article.excerpt}
+          </p>
+        )}
         <div className="flex items-center justify-between gap-2 mt-3">
           <AuthorRow article={article} compact />
           <span className="text-[10px] font-bold text-brand-blue group-hover:text-brand-gold transition-colors flex-shrink-0">
@@ -224,7 +249,7 @@ export default function LatestArticlesSection({ articles }: LatestArticlesSectio
   const bottomArticles = articles.slice(3, 6);
 
   return (
-    <section className="py-20 bg-brand-surface">
+    <section className="py-20 bg-brand-navy">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Section header */}
@@ -233,13 +258,13 @@ export default function LatestArticlesSection({ articles }: LatestArticlesSectio
             <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-brand-gold mb-2">
               Knowledge Base
             </p>
-            <h2 className="text-3xl sm:text-4xl font-black text-brand-navy tracking-tight">
+            <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
               Latest Articles
             </h2>
           </div>
           <Link
             href="/articles"
-            className="group inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-brand-navy border border-gray-200 rounded-lg px-4 py-2 hover:border-brand-navy hover:bg-brand-navy hover:text-white transition-all duration-200 flex-shrink-0"
+            className="group inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-white border border-white/20 rounded-lg px-4 py-2 hover:border-white hover:bg-white hover:text-brand-navy transition-all duration-200 flex-shrink-0"
           >
             View All
             <svg className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -249,8 +274,8 @@ export default function LatestArticlesSection({ articles }: LatestArticlesSectio
         </div>
 
         {articles.length === 0 ? (
-          <div className="rounded-2xl bg-white border border-gray-100 py-16 text-center">
-            <p className="text-sm text-brand-text-muted">No articles published yet.</p>
+          <div className="rounded-2xl bg-white/5 border border-white/10 py-16 text-center">
+            <p className="text-sm text-white/50">No articles published yet.</p>
           </div>
         ) : (
           <>

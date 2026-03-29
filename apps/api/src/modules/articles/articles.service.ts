@@ -62,6 +62,7 @@ function sanitizeBody(html: string): string {
     allowedAttributes: {
       a: ['href', 'target', 'rel'],
     },
+    allowedSchemes: ['http', 'https'],
   });
 }
 

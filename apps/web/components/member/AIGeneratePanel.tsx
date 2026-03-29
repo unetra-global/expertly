@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 import { X, Sparkles, RotateCcw } from 'lucide-react';
 import { getBrowserClient } from '@/lib/supabase';
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001') + '/api/v1';
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4001') + '/api/v1';
 
 // ── Questions ─────────────────────────────────────────────────────────────────
 
@@ -186,7 +186,7 @@ export default function AIGeneratePanel({ categoryId, onGenerated, onClose }: Pr
       const isFetchNetworkError =
         err instanceof TypeError && /failed to fetch/i.test(err.message);
       const message = isFetchNetworkError
-        ? 'Could not connect to AI service. Ensure API is running at http://localhost:3001 and that you are opening the app on localhost/127.0.0.1.'
+        ? 'Could not connect to AI service. Ensure API is running at http://localhost:4001 and that you are opening the app on localhost/127.0.0.1.'
         : err instanceof Error
           ? err.message
           : 'AI generation failed. Please try again.';

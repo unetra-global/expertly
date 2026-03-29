@@ -8,6 +8,7 @@ import { ValidationPipe, VersioningType, Logger } from '@nestjs/common';
 import fastifyCookie from '@fastify/cookie';
 import fastifyMultipart from '@fastify/multipart';
 import fastifyHelmet from '@fastify/helmet';
+import fastifyRateLimit from '@fastify/rate-limit';
 import { AppModule } from './app.module';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
@@ -55,6 +56,19 @@ async function bootstrap(): Promise<void> {
   await app.register(fastifyMultipart, {
     limits: { fileSize: 15 * 1024 * 1024 }, // 15MB
   });
+  // Global rate limit — in-process store (no Redis required).
+  // Tighter per-route overrides are set on /auth and /search/ai below.
+  await app.register(fastifyRateLimit, {
+    global: true,
+    max: 120,           // 120 requests per minute per IP (global default)
+    timeWindow: 60_000,
+    errorResponseBuilder: (_req, context) => ({
+      statusCode: 429,
+      error: 'Too Many Requests',
+      message: `Rate limit reached. Retry after ${Math.ceil((context as { ttl: number }).ttl / 1000)} seconds.`,
+    }),
+  });
+
   await app.register(fastifyHelmet, {
     contentSecurityPolicy: {
       directives: {

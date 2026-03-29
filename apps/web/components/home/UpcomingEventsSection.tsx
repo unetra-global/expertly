@@ -68,9 +68,9 @@ function HomeEventCard({ event }: { event: HomepageEvent }) {
     event.eventFormat === 'virtual' ||
     event.eventFormat === 'online';
 
-  const locationStr = isOnline
-    ? 'Online'
-    : [event.city, event.country].filter(Boolean).join(', ') || event.location;
+  const city = !isOnline ? (event.city ?? null) : null;
+  const country = !isOnline ? (event.country ?? null) : null;
+  const locationStr = isOnline ? 'Online' : event.location ?? null;
 
   const typeKey = event.eventType?.toLowerCase() || event.eventFormat?.toLowerCase() || '';
   const typeLabel = EVENT_TYPE_LABELS[typeKey] ?? null;
@@ -118,17 +118,28 @@ function HomeEventCard({ event }: { event: HomepageEvent }) {
       <div className="flex-1 min-w-0 p-5 sm:p-6 flex items-center gap-4">
         <div className="flex-1 min-w-0">
           <Link href={`/events/${event.slug}`}>
-            <h3 className="font-bold text-brand-navy text-base sm:text-lg leading-snug group-hover:text-brand-blue transition-colors line-clamp-2 mb-2">
+            <h3 className="font-bold text-brand-navy text-base sm:text-lg leading-snug group-hover:text-brand-blue transition-colors line-clamp-2 mb-1.5">
               {event.title}
             </h3>
           </Link>
+          {event.description && (
+            <p className="text-xs text-brand-text-muted line-clamp-2 leading-relaxed mb-2">
+              {event.description}
+            </p>
+          )}
           <div className="flex flex-wrap items-center gap-2">
-            {locationStr && (
+            {(isOnline || city || country || locationStr) && (
               <span className="inline-flex items-center gap-1 text-xs text-brand-text-muted">
                 <svg className="h-3.5 w-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0zM15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                {locationStr}
+                {isOnline && <span>Online</span>}
+                {!isOnline && city && <span>{city}</span>}
+                {!isOnline && city && country && <span>,</span>}
+                {!isOnline && country && (
+                  <span className="font-semibold text-brand-navy">{country}</span>
+                )}
+                {!isOnline && !city && !country && locationStr && <span>{locationStr}</span>}
               </span>
             )}
             {typeLabel && (

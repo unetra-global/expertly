@@ -5,7 +5,7 @@ const FEATURES = [
     number: '01',
     title: 'Find Experts',
     description:
-      'Search our global directory of vetted financial and legal professionals by specialty, location, and experience.',
+      'Search our global directory of verified financial & legal professionals using our AI architecture.',
     cta: 'Explore Directory',
     href: '/members',
     icon: (
@@ -31,7 +31,7 @@ const FEATURES = [
     number: '03',
     title: 'Global Events',
     description:
-      'Connect at our regional and international conferences, webinars, and networking events for finance and legal professionals.',
+      'Discover finance and legal events and conferences worldwide, helping you to network wherever you go.',
     cta: 'View Events',
     href: '/events',
     icon: (

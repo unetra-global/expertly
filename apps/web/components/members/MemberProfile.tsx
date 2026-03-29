@@ -584,7 +584,7 @@ export function MemberProfile({ member, isAuthenticated }: MemberProfileProps) {
           </div>
 
           {/* ── Two-column layout ────────────────────────────── */}
-          <div className="flex flex-col lg:flex-row gap-6 items-start">
+          <div className="flex flex-col lg:flex-row gap-6 lg:items-start">
 
             {/* ── Left: tabs + content ──────────────────────── */}
             <div className="flex-1 min-w-0">

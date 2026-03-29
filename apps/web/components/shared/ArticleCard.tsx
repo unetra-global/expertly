@@ -17,6 +17,8 @@ export interface ArticleCardData {
     slug?: string;
     profilePhotoUrl?: string;
     designation?: string;
+    city?: string;
+    country?: string;
     user?: {
       firstName?: string;
       lastName?: string;
