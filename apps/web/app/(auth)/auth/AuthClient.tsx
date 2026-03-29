@@ -188,11 +188,9 @@ export default function AuthPage() {
         />
 
         {/* Logo */}
-        <div className="relative flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-lg bg-brand-blue flex items-center justify-center">
-            <span className="text-white font-bold text-base leading-none select-none">E</span>
-          </div>
-          <span className="text-white font-bold text-lg tracking-wide">Expertly</span>
+        <div className="relative inline-flex items-baseline gap-0.5">
+          <span className="text-2xl font-black text-white tracking-tight">Expertly</span>
+          <span className="text-2xl font-black text-brand-gold">.</span>
         </div>
 
         {/* Value props */}
@@ -234,11 +232,9 @@ export default function AuthPage() {
       <div className="flex-1 flex flex-col items-center justify-center px-4 py-12 bg-brand-surface">
         <div className="w-full max-w-md">
           {/* Mobile logo */}
-          <div className="lg:hidden flex items-center justify-center gap-2.5 mb-8">
-            <div className="w-8 h-8 rounded bg-brand-blue flex items-center justify-center">
-              <span className="text-white font-bold text-sm leading-none select-none">E</span>
-            </div>
-            <span className="text-brand-navy font-bold text-lg tracking-wide">Expertly</span>
+          <div className="lg:hidden flex items-baseline justify-center gap-0.5 mb-8">
+            <span className="text-2xl font-black text-brand-navy tracking-tight">Expertly</span>
+            <span className="text-2xl font-black text-brand-gold">.</span>
           </div>
 
           {/* Card */}

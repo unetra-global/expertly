@@ -67,13 +67,11 @@ export function NavbarClient({
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
 
           {/* ── Logo ─────────────────────────────────────── */}
-          <Link href="/" className="flex-shrink-0 flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-lg bg-brand-blue flex items-center justify-center flex-shrink-0 group-hover:bg-brand-blue-dark transition-colors">
-              <span className="text-white font-bold text-sm leading-none select-none">E</span>
-            </div>
-            <span className="text-white font-bold text-lg tracking-wide hidden sm:block">
+          <Link href="/" className="flex-shrink-0 inline-flex items-baseline gap-0.5 group">
+            <span className="text-xl font-black text-white tracking-tight group-hover:text-white/90 transition-colors">
               Expertly
             </span>
+            <span className="text-xl font-black text-brand-gold">.</span>
           </Link>
 
           {/* ── Desktop nav links ─────────────────────────── */}
@@ -229,13 +227,13 @@ export function NavbarClient({
         <div className="flex items-center justify-between px-5 h-20 border-b border-white/10 flex-shrink-0">
           <Link
             href="/"
-            className="flex items-center gap-2.5 group"
+            className="inline-flex items-baseline gap-0.5 group"
             onClick={() => setMobileOpen(false)}
           >
-            <div className="w-7 h-7 rounded bg-brand-blue flex items-center justify-center group-hover:bg-brand-blue-dark transition-colors">
-              <span className="text-white font-bold text-xs leading-none select-none">E</span>
-            </div>
-            <span className="text-white font-bold text-sm tracking-wide">Expertly</span>
+            <span className="text-lg font-black text-white tracking-tight group-hover:text-white/90 transition-colors">
+              Expertly
+            </span>
+            <span className="text-lg font-black text-brand-gold">.</span>
           </Link>
           <button
             onClick={() => setMobileOpen(false)}
