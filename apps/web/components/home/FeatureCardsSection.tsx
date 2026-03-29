@@ -5,7 +5,7 @@ const FEATURES = [
     number: '01',
     title: 'Find Experts',
     description:
-      'Search our global directory of verified financial & legal professionals using our AI architecture.',
+      'Search our global directory of verified financial & legal professionals using our AI platform.',
     cta: 'Explore Directory',
     href: '/members',
     icon: (
@@ -16,7 +16,7 @@ const FEATURES = [
   },
   {
     number: '02',
-    title: 'Read Insights',
+    title: 'Expertly Articles',
     description:
       'In-depth technical analysis, regulatory updates, and expert commentary from verified finance and legal professionals.',
     cta: 'Browse Articles',

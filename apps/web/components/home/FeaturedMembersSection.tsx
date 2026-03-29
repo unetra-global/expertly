@@ -58,46 +58,52 @@ function HomeMemberCard({ member }: { member: MemberCardData }) {
           </div>
         )}
 
-        {/* Service tag — overlaid at bottom left */}
+        {/* Service tag — bottom left of photo */}
         {serviceName && (
           <div className="absolute bottom-3 left-3">
-            <span className="inline-flex items-center rounded-full bg-white/90 backdrop-blur-sm px-2.5 py-1 text-[11px] font-bold text-brand-navy shadow-sm">
+            <span className="inline-flex items-center rounded-full bg-brand-gold px-2.5 py-1 text-[11px] font-bold text-white shadow-sm">
               {serviceName}
             </span>
           </div>
         )}
+
       </div>
 
       {/* Info strip */}
-      <div className="p-4">
+      <div className="p-4 flex flex-col gap-1.5">
+
+        {/* Name + arrow */}
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <h3 className="font-bold text-brand-navy text-sm sm:text-base leading-snug group-hover:text-brand-blue transition-colors truncate">
+            <h3 className="font-bold text-brand-navy text-sm sm:text-base leading-snug group-hover:text-brand-blue transition-colors">
               {displayName}
             </h3>
-            {member.designation && (
-              <p className="mt-0.5 text-xs text-gray-500 line-clamp-1 leading-snug">
-                {member.designation}
-              </p>
-            )}
           </div>
           <svg
-            className="h-4 w-4 text-gray-200 group-hover:text-brand-gold transition-colors flex-shrink-0 mt-0.5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            aria-hidden
+            className="h-4 w-4 text-gray-200 group-hover:text-brand-gold transition-colors flex-shrink-0 mt-0.5 shrink-0"
+            fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden
           >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
         </div>
 
+        {/* Designation */}
+        {member.designation && (
+          <p className="text-[11px] font-medium text-gray-500 leading-snug line-clamp-1">
+            {member.designation}
+          </p>
+        )}
+
+        {/* Location — city muted, country highlighted */}
         {location && (
-          <p className="mt-2 text-[11px] text-gray-400 flex items-center gap-1">
-            <svg className="h-3 w-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+          <p className="mt-0.5 text-[11px] flex items-center gap-1">
+            <svg className="h-3 w-3 flex-shrink-0 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0zM15 11a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            {location}
+            {member.city && (
+              <span className="text-gray-400">{member.city}{member.country ? ',\u00a0' : ''}</span>
+            )}
+            {member.country && <span className="font-semibold text-brand-navy">{member.country}</span>}
           </p>
         )}
       </div>
@@ -116,7 +122,7 @@ export default function FeaturedMembersSection({ members }: FeaturedMembersSecti
               OUR NETWORK
             </p>
             <h2 className="text-3xl sm:text-4xl font-bold text-brand-navy tracking-tight">
-              Featured Members
+              Expertly Members
             </h2>
           </div>
           <Link

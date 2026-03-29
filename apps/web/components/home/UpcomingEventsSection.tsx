@@ -174,10 +174,10 @@ export default function UpcomingEventsSection({ events }: UpcomingEventsSectionP
         <div className="flex items-end justify-between mb-10">
           <div>
             <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-brand-gold mb-2">
-              CALENDAR
+              GLOBAL EVENTS
             </p>
             <h2 className="text-3xl sm:text-4xl font-bold text-brand-navy tracking-tight">
-              Upcoming Events
+              Be Part of What’s Next
             </h2>
           </div>
           <Link

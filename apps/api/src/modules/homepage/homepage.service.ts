@@ -11,7 +11,7 @@ const FEATURED_MEMBER_FIELDS =
   'services!primary_service_id(name)';
 
 const ARTICLE_FIELDS =
-  'id, title, slug, excerpt, cover_image_url, tags, read_time, published_at, author_id, ' +
+  'id, title, slug, excerpt, body, cover_image_url, tags, read_time, published_at, author_id, ' +
   'author:members!author_id(id, slug, designation, city, country, profile_photo_url, user:users!user_id(first_name, last_name)), ' +
   'category:categories!category_id(id, name)';
 
@@ -33,7 +33,7 @@ export class HomepageService {
   ) {}
 
   async getHomepageData(): Promise<HomepageData> {
-    const key = this.cache.buildKey('homepage', 'data');
+    const key = this.cache.buildKey('homepage', 'data_v2');
 
     return this.cache.getOrFetch<HomepageData>(
       key,

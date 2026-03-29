@@ -25,6 +25,7 @@ function AuthorRow({ article, compact = false }: { article: ArticleCardData; com
 
   return (
     <div className="flex items-center gap-2 min-w-0">
+
       {article.author?.profilePhotoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -32,6 +33,7 @@ function AuthorRow({ article, compact = false }: { article: ArticleCardData; com
           alt={authorName ?? 'Author'}
           className={`${avatarCls} rounded-full object-cover flex-shrink-0`}
         />
+
       ) : (
         <div className={`${avatarCls} rounded-full bg-brand-navy flex items-center justify-center text-white font-bold flex-shrink-0`}>
           {authorName?.[0]?.toUpperCase() ?? 'E'}
@@ -52,15 +54,10 @@ function AuthorRow({ article, compact = false }: { article: ArticleCardData; com
           /* Full: designation, then date · country below */
           <>
             {designation && (
-              <p className="text-[11px] text-brand-gold truncate leading-tight font-medium">
+              <p className="text-[11px] ">
                 {designation}
               </p>
             )}
-            <p className="text-[11px] text-gray-400 leading-tight">
-              {[article.publishedAt ? formatDate(article.publishedAt) : null, country]
-                .filter(Boolean)
-                .join(' · ')}
-            </p>
           </>
         )}
       </div>
@@ -119,15 +116,16 @@ function FeaturedCard({ article }: { article: ArticleCardData }) {
             {excerpt}
           </p>
         )}
+        {article.body && (
+          <p className="mt-3 text-sm text-gray-400 line-clamp-4 leading-relaxed">
+            {article.body.includes('<') ? stripHtml(article.body) : article.body}
+          </p>
+        )}
+
+        <hr className='mt-4' />
         {/* Author row always pinned to bottom */}
         <div className="flex items-center justify-between gap-2 mt-auto pt-4">
           <AuthorRow article={article} compact={false} />
-          <span className="inline-flex items-center gap-1 text-xs font-bold text-brand-blue group-hover:text-brand-gold transition-colors flex-shrink-0">
-            Read
-            <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-            </svg>
-          </span>
         </div>
       </div>
     </Link>
@@ -177,7 +175,15 @@ function SideCard({ article }: { article: ArticleCardData }) {
       <div className="flex flex-col flex-1 p-3.5">
         <h3 className="font-bold text-brand-navy text-sm leading-snug line-clamp-2 group-hover:text-brand-blue transition-colors flex-1">
           {article.title}
+
         </h3>
+        {article.excerpt && (
+
+          <p className="mt-2 text-xs text-gray-500 line-clamp-2 leading-relaxed mb-2">
+            {article.excerpt}
+          </p>
+        )}
+        <hr></hr>
         <div className="mt-3">
           <AuthorRow article={article} compact />
         </div>
@@ -228,15 +234,14 @@ function GridCard({ article }: { article: ArticleCardData }) {
           {article.title}
         </h3>
         {article.excerpt && (
-          <p className="mt-1.5 text-[11px] text-gray-500 line-clamp-2 leading-relaxed">
+          <p className=" text-xs text-gray-500 line-clamp-2 leading-relaxed mt-4 mb-4">
             {article.excerpt.includes('<') ? stripHtml(article.excerpt) : article.excerpt}
           </p>
         )}
-        <div className="flex items-center justify-between gap-2 mt-3">
+
+        <hr></hr>
+        <div className="flex items-center justify-between gap-2 pt-2">
           <AuthorRow article={article} compact />
-          <span className="text-[10px] font-bold text-brand-blue group-hover:text-brand-gold transition-colors flex-shrink-0">
-            Read →
-          </span>
         </div>
       </div>
     </Link>

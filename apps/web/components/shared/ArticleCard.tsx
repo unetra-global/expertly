@@ -6,6 +6,7 @@ export interface ArticleCardData {
   slug: string;
   title: string;
   excerpt?: string;
+  body?: string;
   coverImageUrl?: string;
   /** From full ArticleListItem shape — may be present in homepage API response */
   featuredImageUrl?: string;
