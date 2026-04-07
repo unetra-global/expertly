@@ -98,7 +98,7 @@ export class OpsService {
       .from('applications')
       .select(
         'id, user_id, status, current_step, first_name, last_name, designation, headline, bio, ' +
-          'linkedin_url, profile_photo_url, profile_photo_base64, ' +
+          'linkedin_url, profile_photo_url, ' +
           'region, state, city, country, phone_extension, phone, contact_email, ' +
           'years_of_experience, firm_name, firm_size, website_url, ' +
           'consultation_fee_min_usd, consultation_fee_max_usd, qualifications, credentials, ' +
@@ -106,13 +106,26 @@ export class OpsService {
           'key_engagements, engagements, availability, ' +
           'motivation_why, motivation_engagement, motivation_unique, ' +
           'membership_tier, submitted_at, reviewed_at, ' +
-          'rejection_reason, re_application_eligible_at, created_at, updated_at',
+          'rejection_reason, re_application_eligible_at, created_at, updated_at, ' +
+          'user:users!user_id(profile_photo_base64)',
       )
       .eq('id', id)
       .single();
 
-    if (error || !data) throw new NotFoundException('Application not found');
-    return data;
+    if (error || !data) {
+      this.logger.error(`getApplication failed for id=${id}`, error?.message);
+      throw new NotFoundException('Application not found');
+    }
+
+    // Flatten profile_photo_base64 from joined users row up to the top level
+    const { user: appUser, ...appRow } = data as unknown as {
+      user: { profile_photo_base64: string | null } | null;
+      [key: string]: unknown;
+    };
+    return {
+      ...appRow,
+      profile_photo_base64: appUser?.profile_photo_base64 ?? null,
+    };
   }
 
   async approveApplication(
@@ -130,9 +143,9 @@ export class OpsService {
     if (!app) throw new NotFoundException('Application not found');
     const row = app as any;
 
-    if (!['submitted', 'under_review'].includes(row.status)) {
+    if (!['submitted', 'under_review', 'waitlisted'].includes(row.status)) {
       throw new BadRequestException(
-        'Only submitted or under_review applications can be approved',
+        'Only submitted, under_review, or waitlisted applications can be approved',
       );
     }
 
@@ -141,6 +154,7 @@ export class OpsService {
       .update({
         status: 'approved',
         primary_service_id: body.serviceId,
+        membership_tier: body.membershipTier,
         reviewed_at: new Date().toISOString(),
       })
       .eq('id', id);
@@ -313,7 +327,7 @@ export class OpsService {
         'id, slug, designation, headline, bio, ' +
           'membership_status, is_verified, is_featured, member_tier, ' +
           'membership_start_date, membership_expiry_date, ' +
-          'linkedin_url, profile_photo_url, profile_photo_base64, ' +
+          'linkedin_url, profile_photo_url, ' +
           'country, city, region, state, ' +
           'contact_phone, contact_email, firm_name, firm_size, website, ' +
           'years_of_experience, consultation_fee_min_usd, consultation_fee_max_usd, ' +
@@ -321,15 +335,18 @@ export class OpsService {
           'primary_service_id, key_engagements, ' +
           'motivation_why, motivation_engagement, motivation_unique, ' +
           'pending_service_change, re_verification_requested_at, user_id, created_at, updated_at, ' +
-          'user:users!user_id(first_name, last_name, email)',
+          'user:users!user_id(first_name, last_name, email, profile_photo_base64)',
       )
       .eq('id', id)
       .single();
 
-    if (error || !data) throw new NotFoundException('Member not found');
+    if (error || !data) {
+      this.logger.error(`getMember failed for id=${id}`, error?.message);
+      throw new NotFoundException('Member not found');
+    }
 
     const { user, membership_expiry_date, ...m } = data as unknown as {
-      user: { first_name: string; last_name: string; email: string } | null;
+      user: { first_name: string; last_name: string; email: string; profile_photo_base64: string | null } | null;
       membership_expiry_date: string | null;
       [key: string]: unknown;
     };
@@ -340,6 +357,7 @@ export class OpsService {
       first_name: user?.first_name ?? '',
       last_name: user?.last_name ?? '',
       email: user?.email ?? '',
+      profile_photo_base64: user?.profile_photo_base64 ?? null,
     };
   }
 
@@ -358,7 +376,7 @@ export class OpsService {
           'linkedin_url, profile_photo_url, firm_name, firm_size, website_url, region, country, state, ' +
           'phone_extension, phone, contact_email, city, ' +
           'years_of_experience, consultation_fee_min_usd, consultation_fee_max_usd, qualifications, ' +
-          'credentials, work_experience, education, primary_service_id, ' +
+          'credentials, work_experience, education, primary_service_id, membership_tier, ' +
           'secondary_service_ids, key_engagements, engagements, availability, ' +
           'motivation_why, motivation_engagement, motivation_unique',
       )
@@ -410,11 +428,10 @@ export class OpsService {
       .insert({
         user_id: a.user_id,
         slug,
-        first_name: a.first_name,
-        last_name: a.last_name,
+        // Note: first_name and last_name live in the `users` table, NOT `members`
         designation: a.designation,
-        headline: a.headline,
-        bio: a.bio,
+        headline: a.headline ?? '',
+        bio: a.bio ?? '',
         linkedin_url: a.linkedin_url,
         profile_photo_url: a.profile_photo_url,
         firm_name: a.firm_name,
@@ -429,18 +446,19 @@ export class OpsService {
         years_of_experience: a.years_of_experience,
         consultation_fee_min_usd: a.consultation_fee_min_usd,
         consultation_fee_max_usd: a.consultation_fee_max_usd,
-        qualifications: a.qualifications,
-        credentials: a.credentials,
-        work_experience: a.work_experience,
-        education: a.education,
+        // qualifications is TEXT[] in both applications and members (after migration 052)
+        qualifications: Array.isArray(a.qualifications) ? a.qualifications : (a.qualifications ? [a.qualifications] : []),
+        credentials: a.credentials ?? [],
+        work_experience: a.work_experience ?? [],
+        education: a.education ?? [],
         primary_service_id: a.primary_service_id,
         key_engagements: a.key_engagements ?? [],
-        engagements: a.engagements,
+        engagements: a.engagements ?? [],
         availability: a.availability,
         motivation_why: a.motivation_why,
         motivation_engagement: a.motivation_engagement,
         motivation_unique: a.motivation_unique,
-        member_tier: 'budding_entrepreneur',
+        member_tier: a.membership_tier ?? 'budding_entrepreneur',
         membership_status: 'active',
         membership_start_date: new Date().toISOString().split('T')[0],
         membership_expiry_date: expiryAt,
@@ -548,27 +566,22 @@ export class OpsService {
 
     const { data: member } = await sb
       .from('members')
-      .select('id, first_name, last_name, user_id')
+      .select('id, user_id, user:users!user_id(first_name, last_name, email)')
       .eq('id', id)
       .single();
 
     if (!member) throw new NotFoundException('Member not found');
     const m = member as any;
+    const u = m.user ?? {};
 
     await sb
       .from('members')
       .update({ is_verified: true, verified_at: new Date().toISOString() })
       .eq('id', id);
 
-    const { data: user } = await sb
-      .from('users')
-      .select('email')
-      .eq('id', m.user_id)
-      .single();
-
     await this.email.sendK12VerifiedBadgeAwarded({
-      to: (user as any)?.email ?? '',
-      memberName: `${m.first_name ?? ''} ${m.last_name ?? ''}`.trim(),
+      to: u.email ?? '',
+      memberName: `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim(),
     });
 
     await this.cache.delByPattern('expertly:members:*');
@@ -642,6 +655,37 @@ export class OpsService {
     return { message: 'Credential updated' };
   }
 
+  async addCredential(
+    memberId: string,
+    body: { name: string; issuingBody?: string; year?: number; url?: string; isVerified?: boolean },
+  ) {
+    const { data: member } = await this.supabase.adminClient
+      .from('members')
+      .select('credentials')
+      .eq('id', memberId)
+      .single();
+
+    if (!member) throw new NotFoundException('Member not found');
+
+    const credentials = (((member as any).credentials as any[]) ?? []).slice();
+    credentials.push({
+      id: crypto.randomUUID(),
+      name: body.name,
+      issuing_body: body.issuingBody ?? null,
+      year: body.year ?? null,
+      url: body.url ?? null,
+      is_verified: body.isVerified ?? false,
+      verified_at: body.isVerified ? new Date().toISOString() : null,
+    });
+
+    await this.supabase.adminClient
+      .from('members')
+      .update({ credentials })
+      .eq('id', memberId);
+
+    return { message: 'Credential added' };
+  }
+
   async verifyTestimonial(
     memberId: string,
     body: { testimonialIndex: number; verified: boolean },
@@ -654,12 +698,13 @@ export class OpsService {
 
     const { data: member } = await sb
       .from('members')
-      .select('id, first_name, last_name, user_id, pending_service_id')
+      .select('id, user_id, pending_service_id, user:users!user_id(first_name, last_name, email)')
       .eq('id', id)
       .single();
 
     if (!member) throw new NotFoundException('Member not found');
     const m = member as any;
+    const u = m.user ?? {};
 
     if (!m.pending_service_id) {
       throw new BadRequestException('No pending service change');
@@ -692,14 +737,8 @@ export class OpsService {
       is_primary: true,
     });
 
-    const { data: user } = await sb
-      .from('users')
-      .select('email')
-      .eq('id', m.user_id)
-      .single();
-
-    const memberEmail = (user as any)?.email ?? '';
-    const memberName = `${m.first_name ?? ''} ${m.last_name ?? ''}`.trim();
+    const memberEmail = u.email ?? '';
+    const memberName = `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim();
 
     await this.email.sendK19ServiceChangeApproved({
       to: memberEmail,
@@ -724,27 +763,22 @@ export class OpsService {
 
     const { data: member } = await sb
       .from('members')
-      .select('id, first_name, last_name, user_id')
+      .select('id, user_id, user:users!user_id(first_name, last_name, email)')
       .eq('id', id)
       .single();
 
     if (!member) throw new NotFoundException('Member not found');
     const m = member as any;
+    const u = m.user ?? {};
 
     await sb
       .from('members')
       .update({ pending_service_id: null })
       .eq('id', id);
 
-    const { data: user } = await sb
-      .from('users')
-      .select('email')
-      .eq('id', m.user_id)
-      .single();
-
     await this.email.sendK20ServiceChangeRejected({
-      to: (user as any)?.email ?? '',
-      memberName: `${m.first_name ?? ''} ${m.last_name ?? ''}`.trim(),
+      to: u.email ?? '',
+      memberName: `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim(),
       rejectionReason: body.rejectionReason,
     });
 

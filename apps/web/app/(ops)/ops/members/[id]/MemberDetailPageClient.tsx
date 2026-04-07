@@ -74,13 +74,13 @@ export default function MemberDetailPage() {
   };
 
   const verifyMutation = useMutation({
-    mutationFn: () => apiClient.post(`/ops/members/${id}/verify`, {}),
+    mutationFn: () => apiClient.patch(`/ops/members/${id}/verify`, {}),
     onSuccess: invalidate,
   });
 
   const suspendMutation = useMutation({
     mutationFn: () =>
-      apiClient.post(`/ops/members/${id}/suspend`, { reason: suspendReason }),
+      apiClient.patch(`/ops/members/${id}/suspend`, { reason: suspendReason }),
     onSuccess: () => {
       invalidate();
       setShowSuspendModal(false);
@@ -118,9 +118,7 @@ export default function MemberDetailPage() {
 
   const serviceChangeMutation = useMutation({
     mutationFn: () =>
-      apiClient.post(`/ops/members/${id}/service-change`, {
-        newServiceId: serviceChangeId,
-      }),
+      apiClient.patch(`/ops/members/${id}/approve-service-change`, {}),
     onSuccess: invalidate,
   });
 
@@ -320,11 +318,14 @@ export default function MemberDetailPage() {
             <div className="bg-white rounded-xl border border-slate-200 p-5">
               <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Qualifications</h4>
               <div className="flex flex-wrap gap-2">
-                {member.qualifications.split(',').map((q, i) => (
-                  <span key={i} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
-                    {q.trim()}
-                  </span>
-                ))}
+                {(Array.isArray(member.qualifications)
+                  ? member.qualifications
+                  : String(member.qualifications).split(','))
+                  .map((q, i) => (
+                    <span key={i} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                      {String(q).trim()}
+                    </span>
+                  ))}
               </div>
             </div>
           )}

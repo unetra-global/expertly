@@ -129,6 +129,14 @@ export class OpsController {
     return this.ops.toggleFeatured(id, body);
   }
 
+  @Post('members/:id/credential')
+  addCredential(
+    @Param('id') id: string,
+    @Body() body: { name: string; issuingBody?: string; year?: number; url?: string; isVerified?: boolean },
+  ) {
+    return this.ops.addCredential(id, body);
+  }
+
   @Patch('members/:id/credentials')
   verifyCredential(
     @Param('id') id: string,

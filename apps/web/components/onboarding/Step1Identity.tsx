@@ -36,30 +36,30 @@ function liDate(d: { month?: string; year?: number } | null | undefined): string
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function parseLinkedInResponse(raw: any, profileUrl: string): import('@/stores/onboardingStore').LinkedInPrefillResult {
   return {
-    firstName:      raw.firstName ?? '',
-    lastName:       raw.lastName ?? '',
-    headline:       raw.headline ?? '',
-    bio:            raw.about ?? '',
-    linkedinUrl:    raw.linkedinUrl ?? profileUrl,
-    designation:    raw.experience?.[0]?.position ?? '',
+    firstName: raw.firstName ?? '',
+    lastName: raw.lastName ?? '',
+    headline: raw.headline ?? '',
+    bio: raw.about ?? '',
+    linkedinUrl: raw.linkedinUrl ?? profileUrl,
+    designation: raw.experience?.[0]?.position ?? '',
     profilePhotoUrl: raw.photo ?? raw.profilePicture?.url ?? '',
-    city:    raw.location?.parsed?.city ?? '',
+    city: raw.location?.parsed?.city ?? '',
     country: raw.location?.parsed?.country ?? '',
-    state:   raw.location?.parsed?.state ?? '',
+    state: raw.location?.parsed?.state ?? '',
     experience: (raw.experience ?? []).slice(0, 5).map((e: any) => ({
-      firm:      e.companyName ?? '',
-      title:     e.position ?? '',
+      firm: e.companyName ?? '',
+      title: e.position ?? '',
       startDate: liDate(e.startDate),
-      endDate:   e.endDate?.text === 'Present' ? '' : liDate(e.endDate),
+      endDate: e.endDate?.text === 'Present' ? '' : liDate(e.endDate),
       isCurrent: e.endDate?.text === 'Present',
-      city:      e.location?.split(',')[0]?.trim() ?? '',
+      city: e.location?.split(',')[0]?.trim() ?? '',
     })),
     education: (raw.education ?? []).slice(0, 3).map((e: any) => ({
       institution: e.schoolName ?? '',
-      degree:      e.degree ?? '',
-      field:       e.fieldOfStudy ?? '',
-      startYear:   e.startDate?.year ?? '',
-      endYear:     e.endDate?.year ?? '',
+      degree: e.degree ?? '',
+      field: e.fieldOfStudy ?? '',
+      startYear: e.startDate?.year ?? '',
+      endYear: e.endDate?.year ?? '',
     })),
   };
 }
@@ -122,19 +122,19 @@ export function Step1Identity({ onNext }: Props) {
   // Sync fields when LinkedIn prefill populates the store
   useEffect(() => {
     setFields((f) => ({
-      firstName:      formData.firstName  || f.firstName,
-      lastName:       formData.lastName   || f.lastName,
+      firstName: formData.firstName || f.firstName,
+      lastName: formData.lastName || f.lastName,
       phoneExtension: formData.phoneExtension || f.phoneExtension,
-      phone:          formData.phone      || f.phone,
-      contactEmail:   formData.contactEmail || f.contactEmail,
-      region:         formData.region     || f.region,
-      country:        formData.country    || f.country,
-      state:          formData.state      || f.state,
-      city:           formData.city       || f.city,
-      linkedinUrl:    formData.linkedinUrl || f.linkedinUrl,
-      designation:    formData.designation || f.designation,
-      headline:       formData.headline   || f.headline,
-      bio:            formData.bio        || f.bio,
+      phone: formData.phone || f.phone,
+      contactEmail: formData.contactEmail || f.contactEmail,
+      region: formData.region || f.region,
+      country: formData.country || f.country,
+      state: formData.state || f.state,
+      city: formData.city || f.city,
+      linkedinUrl: formData.linkedinUrl || f.linkedinUrl,
+      designation: formData.designation || f.designation,
+      headline: formData.headline || f.headline,
+      bio: formData.bio || f.bio,
     }));
     if (formData.profilePhotoBase64) setPhotoPreview(formData.profilePhotoBase64);
   }, [formData]);
@@ -210,7 +210,7 @@ export function Step1Identity({ onNext }: Props) {
     setLinkedinLoading(true);
     try {
       const res = await fetch(
-        'https://n8n.shreyansmaloo.site/webhook/e3842ccc-130b-4170-b465-3188386e6298',
+        'https://n8n.unetraglobal.com/webhook/e3842ccc-130b-4170-b465-3188386e6298',
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -285,11 +285,10 @@ export function Step1Identity({ onNext }: Props) {
       {/* Toast */}
       {toast && (
         <div
-          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium shadow-lg border ${
-            toast.type === 'success'
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium shadow-lg border ${toast.type === 'success'
               ? 'bg-green-50 border-green-200 text-green-800'
               : 'bg-red-50 border-red-200 text-red-800'
-          }`}
+            }`}
         >
           {toast.type === 'success' ? (
             <svg className="h-4 w-4 shrink-0 text-green-600" fill="currentColor" viewBox="0 0 20 20" aria-hidden>

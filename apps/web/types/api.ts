@@ -459,7 +459,7 @@ export interface OpsMember {
   yearsOfExperience?: number;
   consultationFeeMinUsd?: number;
   consultationFeeMaxUsd?: number;
-  qualifications?: string;
+  qualifications?: string[] | string; // TEXT[] after migration 052 (string fallback for legacy data)
   credentials?: Credential[];
   workExperience?: WorkExperience[];
   education?: Education[];
