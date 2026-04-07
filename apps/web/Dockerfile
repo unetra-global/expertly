@@ -38,6 +38,8 @@ ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 
 # Install dependencies and build
 RUN pnpm install --frozen-lockfile
+# Ensure public directory exists even if the repo doesn't contain any static assets
+RUN mkdir -p /app/apps/web/public
 RUN pnpm --filter web build
 
 # ── Stage 2: Production ───────────────────────────────────────────────────────
