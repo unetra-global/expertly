@@ -16,14 +16,12 @@ import { EventsModule } from './modules/events/events.module';
 import { ConsultationModule } from './modules/consultation/consultation.module';
 import { SearchModule } from './modules/search/search.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
-// Week 8 modules
 import { AutomationModule } from './modules/automation/automation.module';
 import { AiModule } from './modules/ai/ai.module';
 import { EmailModule } from './modules/email/email.module';
 import { RssModule } from './modules/rss/rss.module';
 import { OpsModule } from './modules/ops/ops.module';
 import { AdminModule } from './modules/admin/admin.module';
-// Week 10 modules
 import { SchedulerModule } from './modules/scheduler/scheduler.module';
 import { NewsletterModule } from './modules/newsletter/newsletter.module';
 
@@ -61,4 +59,4 @@ import { NewsletterModule } from './modules/newsletter/newsletter.module';
     NewsletterModule,
   ],
 })
-export class AppModule {}
+export class AppModule { }
