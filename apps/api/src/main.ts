@@ -59,7 +59,7 @@ async function bootstrap(): Promise<void> {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        imgSrc: ["'self'", 'data:', 'blob:', '*.supabase.co', 'storage.expertly.net'],
+        imgSrc: ["'self'", 'data:', 'blob:', '*.supabase.co', 'storage.expertly.net', 'storage.expertly.network'],
         fontSrc: ["'self'", 'fonts.googleapis.com', 'fonts.gstatic.com'],
         frameSrc: ["'none'"],
         connectSrc: ["'self'", '*.supabase.co'],
@@ -69,7 +69,7 @@ async function bootstrap(): Promise<void> {
 
   // CORS
   const isProd = process.env.NODE_ENV === 'production';
-  const prodOrigins = ['https://expertly.net', 'https://www.expertly.net'];
+  const prodOrigins = ['https://expertly.net', 'https://www.expertly.net', 'https://expertly.network', 'https://www.expertly.network'];
   const isLocalDevOrigin = (origin: string): boolean =>
     /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
 
