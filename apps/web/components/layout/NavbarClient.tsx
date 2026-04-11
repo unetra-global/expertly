@@ -68,10 +68,10 @@ export function NavbarClient({
 
           {/* ── Logo ─────────────────────────────────────── */}
           <Link href="/" className="flex-shrink-0 inline-flex items-baseline gap-0.5 group">
-            <span className="text-xl font-black text-white tracking-tight group-hover:text-white/90 transition-colors">
+            <span className="text-2xl font-black text-white tracking-tight group-hover:text-white/90 transition-colors">
               Expertly
             </span>
-            <span className="text-xl font-black text-brand-gold">.</span>
+            <span className="text-2xl font-black text-brand-gold">.</span>
           </Link>
 
           {/* ── Desktop nav links ─────────────────────────── */}
@@ -82,7 +82,7 @@ export function NavbarClient({
                 <Link
                   key={href}
                   href={href}
-                  className={`text-sm font-semibold transition-colors whitespace-nowrap pb-0.5 ${
+                  className={`text-base font-semibold transition-colors whitespace-nowrap pb-0.5 ${
                     isActive
                       ? 'text-white border-b-2 border-brand-blue'
                       : 'text-white hover:text-white/75 border-b-2 border-transparent'
@@ -99,7 +99,7 @@ export function NavbarClient({
             {!isLoggedIn && (
               <Link
                 href="/auth"
-                className="inline-flex items-center px-4 py-2 rounded-lg bg-brand-blue hover:bg-brand-blue-dark text-white text-sm font-semibold transition-colors"
+                className="inline-flex items-center px-4 py-2 rounded-lg bg-brand-blue hover:bg-brand-blue-dark text-white text-base font-semibold transition-colors"
               >
                 Log In
               </Link>
@@ -108,7 +108,7 @@ export function NavbarClient({
             {isLoggedIn && isOps && (
               <Link
                 href="/ops"
-                className="inline-flex items-center px-4 py-2 rounded-lg bg-brand-blue hover:bg-brand-blue-dark text-white text-sm font-semibold transition-colors"
+                className="inline-flex items-center px-4 py-2 rounded-lg bg-brand-blue hover:bg-brand-blue-dark text-white text-base font-semibold transition-colors"
               >
                 Dashboard
               </Link>
@@ -117,7 +117,7 @@ export function NavbarClient({
             {isLoggedIn && isMember && !isOps && (
               <Link
                 href="/member/dashboard"
-                className="inline-flex items-center px-4 py-2 rounded-lg bg-brand-blue hover:bg-brand-blue-dark text-white text-sm font-semibold transition-colors"
+                className="inline-flex items-center px-4 py-2 rounded-lg bg-brand-blue hover:bg-brand-blue-dark text-white text-base font-semibold transition-colors"
               >
                 Member Portal
               </Link>
@@ -126,7 +126,7 @@ export function NavbarClient({
             {isLoggedIn && !isMember && !isOps && (
               <Link
                 href="/application"
-                className="inline-flex items-center px-4 py-2 rounded-lg bg-brand-blue hover:bg-brand-blue-dark text-white text-sm font-semibold transition-colors"
+                className="inline-flex items-center px-4 py-2 rounded-lg bg-brand-blue hover:bg-brand-blue-dark text-white text-base font-semibold transition-colors"
               >
                 Become a Member
               </Link>
@@ -137,12 +137,12 @@ export function NavbarClient({
               <div className="relative ml-1">
                 <button
                   onClick={() => setUserMenuOpen((o) => !o)}
-                  className="flex items-center justify-center w-8 h-8 rounded-full bg-brand-blue-light text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-blue focus:ring-offset-2 focus:ring-offset-brand-navy overflow-hidden"
+                  className="flex items-center justify-center w-9 h-9 rounded-full bg-brand-blue-light text-white text-base font-semibold focus:outline-none focus:ring-2 focus:ring-brand-blue focus:ring-offset-2 focus:ring-offset-brand-navy overflow-hidden"
                   aria-label="User menu"
                 >
                   {userAvatarUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={userAvatarUrl} alt="Avatar" className="w-8 h-8 object-cover" />
+                    <img src={userAvatarUrl} alt="Avatar" className="w-9 h-9 object-cover" />
                   ) : (
                     initials
                   )}
@@ -230,10 +230,10 @@ export function NavbarClient({
             className="inline-flex items-baseline gap-0.5 group"
             onClick={() => setMobileOpen(false)}
           >
-            <span className="text-lg font-black text-white tracking-tight group-hover:text-white/90 transition-colors">
+            <span className="text-xl font-black text-white tracking-tight group-hover:text-white/90 transition-colors">
               Expertly
             </span>
-            <span className="text-lg font-black text-brand-gold">.</span>
+            <span className="text-xl font-black text-brand-gold">.</span>
           </Link>
           <button
             onClick={() => setMobileOpen(false)}
