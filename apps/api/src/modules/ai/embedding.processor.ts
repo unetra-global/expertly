@@ -85,7 +85,7 @@ export class EmbeddingProcessor implements OnModuleInit, OnModuleDestroy {
         const { data: m } = await sb
           .from('members')
           .select(
-            'first_name, last_name, designation, headline, bio, country, city, qualifications',
+            'designation, headline, bio, country, city, qualifications, users!user_id(first_name, last_name)',
           )
           .eq('id', entityId)
           .single();
@@ -103,8 +103,8 @@ export class EmbeddingProcessor implements OnModuleInit, OnModuleDestroy {
           ((row?.qualifications as string[] | null) ?? []).join(' ');
 
         text = [
-          row?.first_name,
-          row?.last_name,
+          row?.users?.first_name,
+          row?.users?.last_name,
           row?.designation,
           row?.headline,
           row?.bio,

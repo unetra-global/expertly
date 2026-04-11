@@ -1,24 +1,10 @@
--- Audit 2: Replace incorrect generic taxonomy with spec-compliant
--- finance/legal taxonomy per MASTER_TDD.md Section 9.
---
--- The prior seed (017) used generic advisory categories (CTO Advisory,
--- CMO Advisory, etc.). The spec defines 8 finance/legal categories.
---
--- Strategy: clear derived data safely, then re-seed.
+-- Finance/legal taxonomy per MASTER_TDD.md Section 9.
+-- 8 categories with stable sequential UUIDs, 40+ services.
 
--- 1. Clear referencing data (safe for dev/staging)
-DELETE FROM member_services;
-UPDATE applications SET assigned_service_id = NULL WHERE assigned_service_id IS NOT NULL;
+-- ─── Categories ──────────────────────────────────────────────────────────────
+-- Stable UUIDs: 00000000-0000-0000-0000-00000000000X
 
--- 2. Clear existing taxonomy
-DELETE FROM services;
-DELETE FROM service_categories;
-
--- ─── Service Categories (spec Section 9) ─────────────────────────────────────
--- Map spec short IDs ('cat-001') to stable UUIDs
--- Format: 00000000-0000-0000-0000-00000000000X
-
-INSERT INTO service_categories (id, name, slug, domain, sort_order, is_active) VALUES
+INSERT INTO categories (id, name, slug, domain, sort_order, is_active) VALUES
   ('00000000-0000-0000-0000-000000000001', 'Direct Tax',          'direct-tax',       'finance', 1, true),
   ('00000000-0000-0000-0000-000000000002', 'Indirect Tax',        'indirect-tax',     'finance', 2, true),
   ('00000000-0000-0000-0000-000000000003', 'Accounting',          'accounting',       'finance', 3, true),
@@ -40,12 +26,12 @@ INSERT INTO services (category_id, name, slug, sort_order, is_active) VALUES
 
 -- ─── Indirect Tax ─────────────────────────────────────────────────────────────
 INSERT INTO services (category_id, name, slug, regions, sort_order, is_active) VALUES
-  ('00000000-0000-0000-0000-000000000002', 'GST Advisory',    'gst-advisory',  ARRAY['IN'],       1, true),
-  ('00000000-0000-0000-0000-000000000002', 'GST Compliance',  'gst-compliance',ARRAY['IN'],       2, true),
-  ('00000000-0000-0000-0000-000000000002', 'GST Litigation',  'gst-litigation',ARRAY['IN'],       3, true),
-  ('00000000-0000-0000-0000-000000000002', 'Customs & Trade', 'customs-trade', NULL,              4, true),
-  ('00000000-0000-0000-0000-000000000002', 'VAT Advisory',    'vat-advisory',  ARRAY['AE','UK'],  5, true),
-  ('00000000-0000-0000-0000-000000000002', 'Excise & Duties', 'excise-duties', NULL,              6, true);
+  ('00000000-0000-0000-0000-000000000002', 'GST Advisory',    'gst-advisory',   ARRAY['IN'],      1, true),
+  ('00000000-0000-0000-0000-000000000002', 'GST Compliance',  'gst-compliance', ARRAY['IN'],      2, true),
+  ('00000000-0000-0000-0000-000000000002', 'GST Litigation',  'gst-litigation', ARRAY['IN'],      3, true),
+  ('00000000-0000-0000-0000-000000000002', 'Customs & Trade', 'customs-trade',  NULL,             4, true),
+  ('00000000-0000-0000-0000-000000000002', 'VAT Advisory',    'vat-advisory',   ARRAY['AE','UK'], 5, true),
+  ('00000000-0000-0000-0000-000000000002', 'Excise & Duties', 'excise-duties',  NULL,             6, true);
 
 -- ─── Accounting ───────────────────────────────────────────────────────────────
 INSERT INTO services (category_id, name, slug, sort_order, is_active) VALUES
@@ -78,5 +64,4 @@ INSERT INTO services (category_id, name, slug, sort_order, is_active) VALUES
   ('00000000-0000-0000-0000-000000000006', 'Intellectual Property', 'intellectual-property', 4, true),
   ('00000000-0000-0000-0000-000000000006', 'Real Estate Law',       'real-estate-law',       5, true);
 
--- ─── Legal - Industries & Others (no services in spec; categories remain) ────
--- cat-007 and cat-008 are reserved — services will be added as the platform grows.
+-- cat-007 (Legal - Industries) and cat-008 (Others): services added as platform grows.
