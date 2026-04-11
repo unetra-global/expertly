@@ -83,8 +83,8 @@ export async function GET(request: NextRequest) {
     .eq('supabase_uid', user.id)
     .maybeSingle();
 
-  // ── State 3: Account inactive or deleted ──────────────────────────────────
-  if (!dbUser?.is_active || dbUser?.is_deleted) {
+  // ── State 3: Account inactive or deleted (only applies if the row exists) ──
+  if (dbUser && (!dbUser.is_active || dbUser.is_deleted)) {
     await supabase.auth.signOut();
     return buildRedirect(
       `${appUrl}/auth?error=account_suspended`,

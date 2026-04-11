@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
-import { State } from 'country-state-city';
+import { State, City } from 'country-state-city';
 import { useOnboardingStore } from '@/stores/onboardingStore';
 import { getBrowserClient } from '@/lib/supabase';
 import { apiClient } from '@/lib/apiClient';
@@ -96,7 +96,6 @@ export function Step1Identity({ onNext }: Props) {
     state: formData.state,
     city: formData.city,
     linkedinUrl: formData.linkedinUrl,
-    designation: formData.designation,
     headline: formData.headline,
     bio: formData.bio,
   });
@@ -105,6 +104,14 @@ export function Step1Identity({ onNext }: Props) {
   const [availableStates, setAvailableStates] = useState<{ name: string; isoCode: string }[]>(() => {
     const iso = NAME_TO_CODE[formData.country];
     return iso ? State.getStatesOfCountry(iso) : [];
+  });
+
+  // Cities available for selected state
+  const [availableCities, setAvailableCities] = useState<{ name: string }[]>(() => {
+    const iso = NAME_TO_CODE[formData.country];
+    if (!iso || !formData.state) return [];
+    const st = State.getStatesOfCountry(iso).find((s) => s.name === formData.state);
+    return st ? City.getCitiesOfState(iso, st.isoCode) : [];
   });
 
   // Pre-populate email from auth session (non-destructive)
@@ -132,7 +139,6 @@ export function Step1Identity({ onNext }: Props) {
       state: formData.state || f.state,
       city: formData.city || f.city,
       linkedinUrl: formData.linkedinUrl || f.linkedinUrl,
-      designation: formData.designation || f.designation,
       headline: formData.headline || f.headline,
       bio: formData.bio || f.bio,
     }));
@@ -158,19 +164,30 @@ export function Step1Identity({ onNext }: Props) {
       region,
       country: countries.includes(f.country) ? f.country : '',
       state: '',
+      city: '',
     }));
     setAvailableStates([]);
-    setErrors((e) => ({ ...e, region: '', country: '', state: '' }));
+    setAvailableCities([]);
+    setErrors((e) => ({ ...e, region: '', country: '', state: '', city: '' }));
   }
 
   function handleCountryChange(country: string) {
     const iso = NAME_TO_CODE[country];
     const states = iso ? State.getStatesOfCountry(iso) : [];
     setAvailableStates(states);
-    // Auto-set region if we know which one this country belongs to
+    setAvailableCities([]);
     const autoRegion = COUNTRY_TO_REGION[country] ?? '';
-    setFields((f) => ({ ...f, country, state: '', region: f.region || autoRegion }));
-    setErrors((e) => ({ ...e, country: '', state: '' }));
+    setFields((f) => ({ ...f, country, state: '', city: '', region: f.region || autoRegion }));
+    setErrors((e) => ({ ...e, country: '', state: '', city: '' }));
+  }
+
+  function handleStateChange(stateName: string) {
+    const iso = NAME_TO_CODE[fields.country];
+    const st = availableStates.find((s) => s.name === stateName);
+    const cities = iso && st ? City.getCitiesOfState(iso, st.isoCode) : [];
+    setAvailableCities(cities);
+    setFields((f) => ({ ...f, state: stateName, city: '' }));
+    setErrors((e) => ({ ...e, state: '', city: '' }));
   }
 
   // ── Photo upload ─────────────────────────────────────────────────────────────
@@ -266,7 +283,6 @@ export function Step1Identity({ onNext }: Props) {
     } else if (!/^https?:\/\/(www\.)?linkedin\.com\/in\/.+/i.test(fields.linkedinUrl.trim())) {
       errs.linkedinUrl = 'Enter a valid LinkedIn profile URL (e.g. https://linkedin.com/in/yourname)';
     }
-    if (!fields.designation.trim()) errs.designation = 'Designation is required';
     if (!fields.headline.trim()) errs.headline = 'Headline is required';
     if (!fields.bio.trim()) errs.bio = 'Bio is required';
     if (!formData.profilePhotoBase64) errs.photo = 'Profile photo is required';
@@ -469,37 +485,58 @@ export function Step1Identity({ onNext }: Props) {
           </div>
         </div>
 
-        {/* ── 5. State (shown only when states are available) ── */}
-        {availableStates.length > 0 && (
-          <div className="mb-4">
+        {/* ── 5. State + City ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div>
             <label className="block text-xs font-semibold text-brand-text-secondary mb-1.5">
               State / Province
             </label>
-            <select
-              value={fields.state}
-              onChange={(e) => updateField('state', e.target.value)}
-              className="input-base w-full"
-            >
-              <option value="">Select state</option>
-              {availableStates.map((s) => (
-                <option key={s.isoCode} value={s.name}>{s.name}</option>
-              ))}
-            </select>
+            {availableStates.length > 0 ? (
+              <select
+                value={fields.state}
+                onChange={(e) => handleStateChange(e.target.value)}
+                className="input-base w-full"
+              >
+                <option value="">Select state</option>
+                {availableStates.map((s) => (
+                  <option key={s.isoCode} value={s.name}>{s.name}</option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="text"
+                value={fields.state}
+                onChange={(e) => updateField('state', e.target.value)}
+                placeholder="e.g. California"
+                className="input-base w-full"
+              />
+            )}
           </div>
-        )}
-
-        {/* ── 6. City ── */}
-        <div className="mb-4">
-          <label className="block text-xs font-semibold text-brand-text-secondary mb-1.5">
-            City
-          </label>
-          <input
-            type="text"
-            value={fields.city}
-            onChange={(e) => updateField('city', e.target.value)}
-            placeholder="e.g. London"
-            className="input-base w-full"
-          />
+          <div>
+            <label className="block text-xs font-semibold text-brand-text-secondary mb-1.5">
+              City
+            </label>
+            {availableCities.length > 0 ? (
+              <select
+                value={fields.city}
+                onChange={(e) => updateField('city', e.target.value)}
+                className="input-base w-full"
+              >
+                <option value="">Select city</option>
+                {availableCities.map((c) => (
+                  <option key={c.name} value={c.name}>{c.name}</option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="text"
+                value={fields.city}
+                onChange={(e) => updateField('city', e.target.value)}
+                placeholder="e.g. London"
+                className="input-base w-full"
+              />
+            )}
+          </div>
         </div>
 
         {/* ── 7. LinkedIn URL ── */}
@@ -517,22 +554,7 @@ export function Step1Identity({ onNext }: Props) {
           {errors.linkedinUrl && <p className="mt-1 text-xs text-red-500">{errors.linkedinUrl}</p>}
         </div>
 
-        {/* ── 8. Designation ── */}
-        <div className="mb-4">
-          <label className="block text-xs font-semibold text-brand-text-secondary mb-1.5">
-            Designation <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            value={fields.designation}
-            onChange={(e) => updateField('designation', e.target.value)}
-            placeholder="e.g. Partner, Tax Advisory"
-            className={`input-base w-full ${errors.designation ? 'border-red-300 focus:ring-red-200' : ''}`}
-          />
-          {errors.designation && <p className="mt-1 text-xs text-red-500">{errors.designation}</p>}
-        </div>
-
-        {/* ── 9. Professional headline ── */}
+        {/* ── 8. Professional headline ── */}
         <div className="mb-4">
           <div className="flex items-center justify-between mb-1.5">
             <label className="block text-xs font-semibold text-brand-text-secondary">

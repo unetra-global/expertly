@@ -70,21 +70,6 @@ export function Step4Motivation({ onBack, onNext }: Props) {
     <div className="space-y-6">
       {/* Intro card */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-6 sm:p-8">
-        <div className="flex items-start gap-4 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-brand-blue-subtle border border-blue-100 flex items-center justify-center shrink-0">
-            <svg className="w-5 h-5 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3-3-3z" />
-            </svg>
-          </div>
-          <div>
-            <h2 className="text-lg font-bold text-brand-navy">Your Motivation</h2>
-            <p className="text-sm text-brand-text-muted mt-1 leading-relaxed">
-              These three questions help our review team understand who you are beyond your credentials.
-              There are no right answers — we&apos;re looking for authenticity, self-awareness, and genuine fit with the network.
-            </p>
-          </div>
-        </div>
-
         <div className="space-y-8">
           {QUESTIONS.map(({ field, label, placeholder, hint }, idx) => (
             <div key={field}>

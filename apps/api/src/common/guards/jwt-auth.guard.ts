@@ -54,14 +54,39 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     // Fetch DB user row
-    const { data: dbUser, error: userErr } = await this.supabase.adminClient
+    let { data: dbUser, error: userErr } = await this.supabase.adminClient
       .from('users')
       .select('id, role, is_active, is_deleted')
       .eq('supabase_uid', supabaseUser.id)
       .single();
 
     if (userErr || !dbUser) {
-      throw new UnauthorizedException('User record not found');
+      // Auto-create user row on first login (after OAuth signup)
+      const meta = supabaseUser.user_metadata as Record<string, string> | undefined;
+      const firstName = meta?.['given_name'] ?? meta?.['first_name'] ?? '';
+      const lastName = meta?.['family_name'] ?? meta?.['last_name'] ?? '';
+
+      const { data: newUser, error: insertErr } = await this.supabase.adminClient
+        .from('users')
+        .insert({
+          supabase_uid: supabaseUser.id,
+          email: supabaseUser.email ?? '',
+          first_name: firstName,
+          last_name: lastName,
+          role: 'user',
+          is_active: true,
+          is_deleted: false,
+        })
+        .select('id, role, is_active, is_deleted')
+        .single();
+
+      if (insertErr || !newUser) {
+        this.logger.error('Failed to auto-create user record', insertErr?.message);
+        throw new UnauthorizedException('User record not found');
+      }
+
+      dbUser = newUser;
+      userErr = null;
     }
 
     const userRow = dbUser as UserRow;

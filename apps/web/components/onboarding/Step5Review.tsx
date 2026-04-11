@@ -429,7 +429,7 @@ export function Step5Review({ onBack }: Props) {
               {formData.consultationFeeMinUsd !== '' ? (
                 <>
                   USD {formData.consultationFeeMinUsd.toLocaleString()}
-                  {formData.consultationFeeMaxUsd !== '' && ` – ${formData.consultationFeeMaxUsd.toLocaleString()}`}
+                  {formData.consultationFeeMaxUsd != null && formData.consultationFeeMaxUsd !== '' && ` – ${(formData.consultationFeeMaxUsd as number).toLocaleString()}`}
                 </>
               ) : '—'}
             </p>
