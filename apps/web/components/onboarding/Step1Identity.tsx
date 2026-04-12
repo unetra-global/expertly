@@ -297,7 +297,7 @@ export function Step1Identity({ onNext }: Props) {
   const initials = (fields.firstName?.[0] ?? '') + (fields.lastName?.[0] ?? '') || 'You';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6"> # sample
       {/* Toast */}
       {toast && (
         <div
