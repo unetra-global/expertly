@@ -18,17 +18,21 @@ export default async function MemberLayout({
 }) {
   const supabase = createServerClient();
 
+  // Use getSession() — reads from cookies, no network call.
+  // Middleware already validated the JWT with Supabase's server on every request.
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
-  if (!user) {
+  if (!session?.user) {
     redirect('/auth');
   }
 
+  const user = session.user;
+
   const { data: dbUser } = await supabase
     .from('users')
-    .select('role')
+    .select('id, role')
     .eq('supabase_uid', user.id)
     .maybeSingle();
 
@@ -44,9 +48,20 @@ export default async function MemberLayout({
     redirect('/auth');
   }
 
+  // Fetch avatar for member role (passed to Navbar to avoid a second DB query)
+  let avatarUrl: string | undefined;
+  if (role === 'member' && dbUser?.id) {
+    const { data: memberData } = await supabase
+      .from('members')
+      .select('profile_photo_url')
+      .eq('user_id', dbUser.id)
+      .maybeSingle();
+    avatarUrl = memberData?.profile_photo_url ?? undefined;
+  }
+
   return (
     <>
-      <Navbar />
+      <Navbar prefetchedUser={{ role, email: user.email, avatarUrl }} />
       <main className="flex-1 min-h-[calc(100vh-4rem)]">{children}</main>
       <Footer />
     </>

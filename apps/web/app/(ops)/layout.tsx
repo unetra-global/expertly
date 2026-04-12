@@ -15,13 +15,17 @@ export default async function OpsLayout({
 }) {
   const supabase = createServerClient();
 
+  // Use getSession() — reads from cookies, no network call.
+  // Middleware already validated the JWT with Supabase's server on every request.
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
-  if (!user) {
+  if (!session?.user) {
     redirect('/auth');
   }
+
+  const user = session.user;
 
   const { data: dbUser } = await supabase
     .from('users')
@@ -36,7 +40,7 @@ export default async function OpsLayout({
 
   return (
     <>
-      <Navbar />
+      <Navbar prefetchedUser={{ role: dbUser.role, email: user.email }} />
       <main className="flex-1 bg-gray-50 min-h-[calc(100vh-4rem)]">
         {children}
       </main>

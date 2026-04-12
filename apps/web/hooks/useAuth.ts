@@ -12,8 +12,11 @@ export function useUser() {
   useEffect(() => {
     const supabase = getBrowserClient();
 
-    void supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
+    // Use getSession() instead of getUser() — reads from localStorage, no network call.
+    // getUser() makes a round-trip to Supabase Auth API on every mount; getSession()
+    // returns the same user object from the locally-stored session cookie.
+    void supabase.auth.getSession().then(({ data }) => {
+      setUser(data.session?.user ?? null);
       setLoading(false);
     });
 

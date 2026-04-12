@@ -100,14 +100,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function ArticleSlugPage({ params }: PageProps) {
   const supabase = createServerClient();
-  const [article, { data: { user } }] = await Promise.all([
+  // Use getSession() — reads from cookies, no network call. This check is for UI
+  // personalisation (guest vs logged-in view) and is not a security gate.
+  const [article, { data: { session } }] = await Promise.all([
     fetchArticle(params.slug),
-    supabase.auth.getUser(),
+    supabase.auth.getSession(),
   ]);
 
   if (!article) notFound();
 
-  const isGuest = !user;
+  const isGuest = !session?.user;
 
   const [related, moreByAuthor] = await Promise.all([
     fetchRelatedArticles(article.id),

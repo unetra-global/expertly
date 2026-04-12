@@ -16,11 +16,14 @@ export default async function ApplicationLayout({
 }) {
   const supabase = createServerClient();
 
+  // Use getSession() — reads from cookies, no network call.
+  // Middleware now validates JWT for /application routes via getUser() before
+  // this layout runs, so a second network call here is redundant.
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
-  if (!user) {
+  if (!session?.user) {
     redirect('/auth?returnTo=/application');
   }
 

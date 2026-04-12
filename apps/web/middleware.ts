@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { type NextRequest, NextResponse } from 'next/server';
 
-const PROTECTED_PREFIXES = ['/member', '/ops'];
+const PROTECTED_PREFIXES = ['/member', '/ops', '/onboarding', '/application'];
 
 export async function middleware(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
@@ -46,5 +46,5 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 }
 
 export const config = {
-  matcher: ['/member/:path*', '/ops/:path*'],
+  matcher: ['/member/:path*', '/ops/:path*', '/onboarding/:path*', '/onboarding', '/application/:path*', '/application'],
 };

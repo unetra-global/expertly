@@ -13,11 +13,28 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Shared promise for the current getSession() call.
+ * Multiple concurrent API calls (e.g. on dashboard mount) will share one
+ * getSession() call instead of each firing their own.
+ * Cleared after the microtask queue drains so the next distinct call starts fresh.
+ */
+let sessionPromise: Promise<string | null> | null = null;
+
 async function getAuthHeader(): Promise<Record<string, string>> {
-  const supabase = getBrowserClient();
-  // getSession() triggers silent refresh if token expired
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
+  if (!sessionPromise) {
+    const supabase = getBrowserClient();
+    sessionPromise = supabase.auth
+      .getSession()
+      .then(({ data }) => data.session?.access_token ?? null)
+      .finally(() => {
+        // Clear after current tick so the burst of concurrent calls shares this
+        // promise, but the next independent call gets a fresh one.
+        setTimeout(() => { sessionPromise = null; }, 0);
+      });
+  }
+
+  const token = await sessionPromise;
   if (!token) return {};
   return { Authorization: `Bearer ${token}` };
 }

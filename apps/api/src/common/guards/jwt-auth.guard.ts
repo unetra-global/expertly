@@ -23,6 +23,19 @@ interface MemberRow {
   membership_status: MembershipStatus;
 }
 
+/** Short-lived in-process cache to avoid hitting Supabase Auth API on every request. */
+interface CachedAuthUser {
+  user: AuthUser;
+  /** Unix ms timestamp after which this entry is stale. */
+  expiresAt: number;
+}
+
+const AUTH_CACHE_TTL_MS = 30_000; // 30 seconds
+const AUTH_CACHE_MAX_SIZE = 2_000; // cap entries to bound memory
+
+/** Module-level map so the cache is shared across all guard instances. */
+const authCache = new Map<string, CachedAuthUser>();
+
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   protected readonly logger = new Logger(JwtAuthGuard.name);
@@ -46,10 +59,18 @@ export class JwtAuthGuard implements CanActivate {
       throw new UnauthorizedException('No authentication token provided');
     }
 
+    // --- Cache hit: skip Supabase Auth API call ---
+    const cached = authCache.get(token);
+    if (cached && cached.expiresAt > Date.now()) {
+      request.user = cached.user;
+      return true;
+    }
+
     const { data: { user: supabaseUser }, error } =
       await this.supabase.adminClient.auth.getUser(token);
 
     if (error || !supabaseUser) {
+      authCache.delete(token); // ensure stale entry is evicted on failure
       throw new UnauthorizedException('Invalid or expired token');
     }
 
@@ -123,6 +144,15 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     request.user = authUser;
+
+    // --- Populate cache ---
+    if (authCache.size >= AUTH_CACHE_MAX_SIZE) {
+      // Evict the oldest entry when the cap is reached
+      const firstKey = authCache.keys().next().value as string;
+      authCache.delete(firstKey);
+    }
+    authCache.set(token, { user: authUser, expiresAt: Date.now() + AUTH_CACHE_TTL_MS });
+
     return true;
   }
 

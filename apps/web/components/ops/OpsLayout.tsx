@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { useUser } from '@/hooks/useAuth';
+import { useSession } from '@/hooks/useAuth';
 
 interface NavItem {
   label: string;
@@ -30,7 +30,9 @@ interface OpsLayoutProps {
 
 export default function OpsLayout({ children, isAdmin = true }: OpsLayoutProps) {
   const pathname = usePathname();
-  const { user } = useUser();
+  // useSession() reads from localStorage — no network call, unlike useUser()/getUser()
+  const { session } = useSession();
+  const user = session?.user;
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const visibleItems = NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin);

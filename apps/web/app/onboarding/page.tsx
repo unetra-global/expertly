@@ -14,21 +14,23 @@ export const metadata = {
 
 export default async function OnboardingPage() {
   const supabase = createServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
-  // 1. Must be authenticated
-  if (!user) {
+  // Single auth call: getSession() reads from cookies, no network call.
+  // Middleware already validated the JWT via getUser() for /onboarding routes,
+  // so we don't need to repeat that validation here.
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  // 1. Must be authenticated (middleware redirects unauthenticated users, but
+  //    guard here as a safety net for environments where middleware is bypassed)
+  if (!session?.user) {
     redirect('/auth?returnTo=/onboarding');
   }
 
   // 2. Check for an existing application and redirect appropriately
   try {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    const token = session?.access_token;
+    const token = session.access_token;
 
     if (token) {
       const res = await fetch(`${API_BASE}/api/v1/applications/me`, {
