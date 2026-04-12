@@ -30,6 +30,15 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get('code');
   const oauthError = searchParams.get('error');
 
+  // Post-auth destination — encoded in the callback URL by AuthClient so it
+  // survives the OAuth round-trip. Only honoured for new users (State 9);
+  // existing members/ops/users-with-applications always go to their own route.
+  const nextRaw = searchParams.get('next');
+  const safeNext =
+    nextRaw && nextRaw.startsWith('/') && !nextRaw.startsWith('//')
+      ? nextRaw
+      : null;
+
   // ── State 1: OAuth error or missing code ──────────────────────────────────
   if (oauthError || !code) {
     return NextResponse.redirect(`${appUrl}/`);
@@ -115,7 +124,7 @@ export async function GET(request: NextRequest) {
 
   // ── State 9: No application ───────────────────────────────────────────────
   if (!application) {
-    return buildRedirect(`${appUrl}/`, cookiesToSet);
+    return buildRedirect(`${appUrl}${safeNext ?? '/'}`, cookiesToSet);
   }
 
   const status = application.status as ApplicationStatus;
@@ -143,7 +152,7 @@ export async function GET(request: NextRequest) {
   }
 
   // ── State 9: Fallback ─────────────────────────────────────────────────────
-  return buildRedirect(`${appUrl}/`, cookiesToSet);
+  return buildRedirect(`${appUrl}${safeNext ?? '/'}`, cookiesToSet);
 }
 
 /** Build a redirect response and attach any cookies set during auth exchange. */

@@ -31,16 +31,21 @@ export default function AuthPage() {
   const error = searchParams?.get('error');
   const authError = searchParams?.get('authError');
 
-  // Redirect already-authenticated users away from the auth page
+  // Redirect already-authenticated users away from the auth page.
+  // Pass returnTo as ?next= so the redirect route can honour it for new users.
   useEffect(() => {
+    const returnTo = searchParams?.get('returnTo');
     getBrowserClient().auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        router.replace('/auth/redirect');
+        const dest = returnTo
+          ? `/auth/redirect?next=${encodeURIComponent(returnTo)}`
+          : '/auth/redirect';
+        router.replace(dest);
       } else {
         setSessionChecked(true);
       }
     });
-  }, [router]);
+  }, [router, searchParams]);
 
   // Persist returnTo from query params
   useEffect(() => {
@@ -65,27 +70,23 @@ export default function AuthPage() {
     redirectedRef.current = true;
     setLoading(true);
 
-    // Store intent so callback can adjust routing hints if needed
     sessionStorage.setItem('authIntent', intent);
 
-    // Save referrer as returnTo if not already set
-    if (!sessionStorage.getItem('returnTo')) {
-      const from = document.referrer
-        ? new URL(document.referrer).pathname
-        : null;
-      if (from && from !== '/auth') {
-        sessionStorage.setItem('returnTo', from);
-      }
-    }
-
-    const appUrl =
-      process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const supabase = getBrowserClient();
+
+    // Encode the post-auth destination in the callback URL so it survives the
+    // OAuth round-trip. sessionStorage is inaccessible in the server-side
+    // callback route handler, so we carry the value in the URL itself.
+    const returnTo = searchParams?.get('returnTo');
+    const callbackUrl = returnTo
+      ? `${appUrl}/auth/callback?next=${encodeURIComponent(returnTo)}`
+      : `${appUrl}/auth/callback`;
 
     await supabase.auth.signInWithOAuth({
       provider: 'linkedin_oidc',
       options: {
-        redirectTo: `${appUrl}/auth/callback`,
+        redirectTo: callbackUrl,
         scopes: 'openid profile email',
       },
     });
@@ -104,6 +105,7 @@ export default function AuthPage() {
 
     setLoading(true);
     const supabase = getBrowserClient();
+    const returnTo = searchParams?.get('returnTo');
 
     if (intent === 'signin') {
       const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -127,7 +129,9 @@ export default function AuthPage() {
         email: email.trim(),
         password,
         options: {
-          emailRedirectTo: `${appUrl}/auth/callback`,
+          emailRedirectTo: returnTo
+              ? `${appUrl}/auth/callback?next=${encodeURIComponent(returnTo)}`
+              : `${appUrl}/auth/callback`,
           data: {
             first_name: firstName.trim(),
             last_name: lastName.trim(),
@@ -153,8 +157,12 @@ export default function AuthPage() {
       }
     }
 
-    // Redirect to server route that checks role/application and routes accordingly
-    router.push('/auth/redirect');
+    // Redirect to server route that checks role/application and routes accordingly.
+    // Pass ?next= so new users land on the right page after sign-in/sign-up.
+    const dest = returnTo
+      ? `/auth/redirect?next=${encodeURIComponent(returnTo)}`
+      : '/auth/redirect';
+    router.push(dest);
   }
 
   const errorMessage =

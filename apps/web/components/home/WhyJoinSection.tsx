@@ -129,7 +129,7 @@ export default function WhyJoinSection() {
               </ul>
 
               <Link
-                href="/application"
+                href="/onboarding"
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-gold hover:bg-amber-500 text-white font-bold text-sm transition-colors self-start"
               >
                 Apply for Membership

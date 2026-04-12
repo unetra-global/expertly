@@ -125,7 +125,7 @@ export function NavbarClient({
 
             {isLoggedIn && !isMember && !isOps && (
               <Link
-                href="/application"
+                href="/onboarding"
                 className="inline-flex items-center px-4 py-2 rounded-lg bg-brand-blue hover:bg-brand-blue-dark text-white text-base font-semibold transition-colors"
               >
                 Become a Member

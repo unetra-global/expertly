@@ -52,7 +52,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   if (!user) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = '/auth';
-    loginUrl.searchParams.set('redirect', pathname);
+    loginUrl.searchParams.set('returnTo', pathname);
     return NextResponse.redirect(loginUrl);
   }
 

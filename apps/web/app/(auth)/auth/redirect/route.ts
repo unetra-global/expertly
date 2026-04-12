@@ -16,8 +16,16 @@ type ApplicationStatus =
  * the OAuth code exchange (session is already established).
  */
 export async function GET(request: NextRequest) {
-  const { origin } = new URL(request.url);
+  const { origin, searchParams: urlSearchParams } = new URL(request.url);
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || origin;
+
+  // Post-auth destination passed by AuthClient as ?next= in the push URL.
+  // Only honoured for new users; existing members/ops always go to their route.
+  const nextRaw = urlSearchParams.get('next');
+  const safeNext =
+    nextRaw && nextRaw.startsWith('/') && !nextRaw.startsWith('//')
+      ? nextRaw
+      : null;
 
   const cookieStore = cookies();
 
@@ -82,7 +90,7 @@ export async function GET(request: NextRequest) {
     .maybeSingle();
 
   if (!application) {
-    return NextResponse.redirect(`${appUrl}/`);
+    return NextResponse.redirect(`${appUrl}${safeNext ?? '/'}`);
   }
 
   const status = application.status as ApplicationStatus;
@@ -104,5 +112,5 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(dest);
   }
 
-  return NextResponse.redirect(`${appUrl}/`);
+  return NextResponse.redirect(`${appUrl}${safeNext ?? '/'}`);
 }

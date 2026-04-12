@@ -16,7 +16,7 @@ const NAV_COLUMNS = [
       { label: 'Member Directory', href: '/members' },
       { label: 'Latest Articles', href: '/articles' },
       { label: 'Upcoming Events', href: '/events' },
-      { label: 'Apply for Membership', href: '/application' },
+      { label: 'Apply for Membership', href: '/onboarding' },
     ],
   },
   {
