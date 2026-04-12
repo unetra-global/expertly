@@ -111,7 +111,10 @@ export async function GET(request: NextRequest) {
     .maybeSingle();
 
   if (!application) {
-    return NextResponse.redirect(`${appOrigin}${safeNext ?? '/'}`);
+    // Default to /onboarding — users with no application are here to apply.
+    // safeNext is only respected when it points somewhere specific (e.g. a
+    // member profile they were trying to view before being asked to sign in).
+    return NextResponse.redirect(`${appOrigin}${safeNext ?? '/onboarding'}`);
   }
 
   const status = application.status as ApplicationStatus;
@@ -134,5 +137,5 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  return NextResponse.redirect(`${appOrigin}${safeNext ?? '/'}`);
+  return NextResponse.redirect(`${appOrigin}${safeNext ?? '/onboarding'}`);
 }

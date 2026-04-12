@@ -179,8 +179,11 @@ export async function GET(request: NextRequest) {
     .maybeSingle();
 
   // ── State 9: No application ───────────────────────────────────────────────
+  // Default to /onboarding for users with no application — they signed up
+  // to apply for membership. safeNext is only used when it points elsewhere
+  // (e.g. a member profile they were trying to view before signing in).
   if (!application) {
-    return buildRedirect(`${appOrigin}${safeNext ?? '/'}`, cookiesToSet);
+    return buildRedirect(`${appOrigin}${safeNext ?? '/onboarding'}`, cookiesToSet);
   }
 
   const status = application.status as ApplicationStatus;
@@ -208,7 +211,7 @@ export async function GET(request: NextRequest) {
   }
 
   // ── State 9: Fallback ─────────────────────────────────────────────────────
-  return buildRedirect(`${appOrigin}${safeNext ?? '/'}`, cookiesToSet);
+  return buildRedirect(`${appOrigin}${safeNext ?? '/onboarding'}`, cookiesToSet);
 }
 
 /** Attach all accumulated cookies to a redirect response. */

@@ -165,10 +165,13 @@ export default function AuthPage() {
 
     // Redirect to server route that checks role/application and routes accordingly.
     // Pass ?next= so new users land on the right page after sign-in/sign-up.
+    // Use window.location.href (full browser navigation) instead of router.push
+    // because router.push does a SPA fetch to the Route Handler and may not
+    // follow the HTTP redirect response properly in all Next.js versions.
     const dest = returnTo
       ? `/auth/redirect?next=${encodeURIComponent(returnTo)}`
       : '/auth/redirect';
-    router.push(dest);
+    window.location.href = dest;
   }
 
   const errorMessage =
