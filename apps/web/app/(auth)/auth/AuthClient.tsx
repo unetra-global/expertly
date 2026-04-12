@@ -72,16 +72,20 @@ export default function AuthPage() {
 
     sessionStorage.setItem('authIntent', intent);
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const supabase = getBrowserClient();
+
+    // window.location.origin is always correct for the current environment
+    // (http://localhost:3000 locally, https://yourdomain.com in production,
+    // Vercel preview URLs on preview deploys) — no env var needed.
+    const origin = window.location.origin;
 
     // Encode the post-auth destination in the callback URL so it survives the
     // OAuth round-trip. sessionStorage is inaccessible in the server-side
     // callback route handler, so we carry the value in the URL itself.
     const returnTo = searchParams?.get('returnTo');
     const callbackUrl = returnTo
-      ? `${appUrl}/auth/callback?next=${encodeURIComponent(returnTo)}`
-      : `${appUrl}/auth/callback`;
+      ? `${origin}/auth/callback?next=${encodeURIComponent(returnTo)}`
+      : `${origin}/auth/callback`;
 
     await supabase.auth.signInWithOAuth({
       provider: 'linkedin_oidc',
@@ -124,14 +128,14 @@ export default function AuthPage() {
         return;
       }
     } else {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+      const origin = window.location.origin;
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: email.trim(),
         password,
         options: {
           emailRedirectTo: returnTo
-              ? `${appUrl}/auth/callback?next=${encodeURIComponent(returnTo)}`
-              : `${appUrl}/auth/callback`,
+            ? `${origin}/auth/callback?next=${encodeURIComponent(returnTo)}`
+            : `${origin}/auth/callback`,
           data: {
             first_name: firstName.trim(),
             last_name: lastName.trim(),

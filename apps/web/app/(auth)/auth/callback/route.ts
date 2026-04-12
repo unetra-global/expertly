@@ -21,11 +21,14 @@ type ApplicationStatus =
  * State 6: user + draft application → /application
  * State 7: user + submitted/under_review/approved/waitlisted → /application/status
  * State 8: user + rejected application (eligible or not) → /application/status[?canReApply=true]
- * State 9: new user or no application → /
+ * State 9: new user or no application → safeNext ?? /
+ *
+ * All redirects use new URL(path, request.url) — the origin is derived from
+ * the live request, so this works on localhost, staging, production, and
+ * Vercel preview deploys without any NEXT_PUBLIC_APP_URL env var.
  */
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url);
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || origin;
+  const { searchParams } = new URL(request.url);
 
   const code = searchParams.get('code');
   const oauthError = searchParams.get('error');
@@ -41,7 +44,7 @@ export async function GET(request: NextRequest) {
 
   // ── State 1: OAuth error or missing code ──────────────────────────────────
   if (oauthError || !code) {
-    return NextResponse.redirect(`${appUrl}/`);
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
   // Build a Supabase client that can write session cookies to the response
@@ -73,7 +76,7 @@ export async function GET(request: NextRequest) {
   // ── State 2: Code exchange ────────────────────────────────────────────────
   const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
   if (exchangeError) {
-    return buildRedirect(`${appUrl}/?authError=oauth_failed`, cookiesToSet);
+    return buildRedirect(new URL('/?authError=oauth_failed', request.url), cookiesToSet);
   }
 
   // Get authenticated user
@@ -82,7 +85,7 @@ export async function GET(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return buildRedirect(`${appUrl}/`, cookiesToSet);
+    return buildRedirect(new URL('/', request.url), cookiesToSet);
   }
 
   // ── Fetch user record (role + is_active + is_deleted) ────────────────────
@@ -96,7 +99,7 @@ export async function GET(request: NextRequest) {
   if (dbUser && (!dbUser.is_active || dbUser.is_deleted)) {
     await supabase.auth.signOut();
     return buildRedirect(
-      `${appUrl}/auth?error=account_suspended`,
+      new URL('/auth?error=account_suspended', request.url),
       cookiesToSet,
     );
   }
@@ -105,12 +108,12 @@ export async function GET(request: NextRequest) {
 
   // ── State 4: Ops roles ────────────────────────────────────────────────────
   if (role === 'backend_admin' || role === 'ops') {
-    return buildRedirect(`${appUrl}/ops`, cookiesToSet);
+    return buildRedirect(new URL('/ops', request.url), cookiesToSet);
   }
 
   // ── State 5: Member ───────────────────────────────────────────────────────
   if (role === 'member') {
-    return buildRedirect(`${appUrl}/member/dashboard`, cookiesToSet);
+    return buildRedirect(new URL('/member/dashboard', request.url), cookiesToSet);
   }
 
   // ── States 6–9: Regular user — check application status ──────────────────
@@ -124,19 +127,19 @@ export async function GET(request: NextRequest) {
 
   // ── State 9: No application ───────────────────────────────────────────────
   if (!application) {
-    return buildRedirect(`${appUrl}${safeNext ?? '/'}`, cookiesToSet);
+    return buildRedirect(new URL(safeNext ?? '/', request.url), cookiesToSet);
   }
 
   const status = application.status as ApplicationStatus;
 
   // ── State 6: Draft application ────────────────────────────────────────────
   if (status === 'draft') {
-    return buildRedirect(`${appUrl}/application`, cookiesToSet);
+    return buildRedirect(new URL('/application', request.url), cookiesToSet);
   }
 
   // ── State 7: Active application ───────────────────────────────────────────
   if (['submitted', 'under_review', 'approved', 'waitlisted'].includes(status)) {
-    return buildRedirect(`${appUrl}/application/status`, cookiesToSet);
+    return buildRedirect(new URL('/application/status', request.url), cookiesToSet);
   }
 
   // ── State 8: Rejected application ────────────────────────────────────────
@@ -145,19 +148,22 @@ export async function GET(request: NextRequest) {
     const canReApply = eligibleAt
       ? new Date(eligibleAt) <= new Date()
       : true;
-    const dest = canReApply
-      ? `${appUrl}/application/status?canReApply=true`
-      : `${appUrl}/application/status`;
-    return buildRedirect(dest, cookiesToSet);
+    return buildRedirect(
+      new URL(
+        canReApply ? '/application/status?canReApply=true' : '/application/status',
+        request.url,
+      ),
+      cookiesToSet,
+    );
   }
 
   // ── State 9: Fallback ─────────────────────────────────────────────────────
-  return buildRedirect(`${appUrl}${safeNext ?? '/'}`, cookiesToSet);
+  return buildRedirect(new URL(safeNext ?? '/', request.url), cookiesToSet);
 }
 
 /** Build a redirect response and attach any cookies set during auth exchange. */
 function buildRedirect(
-  url: string,
+  url: URL,
   cookiesToSet: Array<{ name: string; value: string; options: CookieOptions }>,
 ): NextResponse {
   const response = NextResponse.redirect(url);
