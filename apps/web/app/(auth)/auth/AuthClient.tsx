@@ -74,10 +74,11 @@ export default function AuthPage() {
 
     const supabase = getBrowserClient();
 
-    // window.location.origin is always correct for the current environment
-    // (http://localhost:3000 locally, https://yourdomain.com in production,
-    // Vercel preview URLs on preview deploys) — no env var needed.
-    const origin = window.location.origin;
+    // NEXT_PUBLIC_APP_URL takes priority — it is baked into the bundle at
+    // Docker build time and must equal the public-facing domain. Falls back to
+    // window.location.origin for environments where the env var is not set
+    // (e.g. local dev without a .env, or non-Docker deployments).
+    const origin = (process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin).replace(/\/$/, '');
 
     // Encode the post-auth destination in the callback URL so it survives the
     // OAuth round-trip. sessionStorage is inaccessible in the server-side
@@ -131,7 +132,10 @@ export default function AuthPage() {
         return;
       }
     } else {
-      const origin = window.location.origin;
+      // NEXT_PUBLIC_APP_URL takes priority — baked into the bundle at Docker build
+      // time and must equal the public-facing domain. Falls back to window.location.origin
+      // for environments where the env var is not set (local dev without .env, etc.).
+      const origin = (process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin).replace(/\/$/, '');
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: email.trim(),
         password,
