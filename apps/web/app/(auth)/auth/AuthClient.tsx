@@ -47,14 +47,6 @@ export default function AuthPage() {
     });
   }, [router, searchParams]);
 
-  // Persist returnTo from query params
-  useEffect(() => {
-    const returnTo = searchParams?.get('returnTo');
-    if (returnTo) {
-      sessionStorage.setItem('returnTo', returnTo);
-    }
-  }, [searchParams]);
-
   // Reset form state when switching tabs or methods
   useEffect(() => {
     setFormError(null);
@@ -70,31 +62,27 @@ export default function AuthPage() {
     redirectedRef.current = true;
     setLoading(true);
 
-    sessionStorage.setItem('authIntent', intent);
-
     const supabase = getBrowserClient();
-
-    // NEXT_PUBLIC_APP_URL takes priority — it is baked into the bundle at
-    // Docker build time and must equal the public-facing domain. Falls back to
-    // window.location.origin for environments where the env var is not set
-    // (e.g. local dev without a .env, or non-Docker deployments).
     const origin = (process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin).replace(/\/$/, '');
-
-    // Encode the post-auth destination in the callback URL so it survives the
-    // OAuth round-trip. sessionStorage is inaccessible in the server-side
-    // callback route handler, so we carry the value in the URL itself.
     const returnTo = searchParams?.get('returnTo');
-    // Do NOT encodeURIComponent here — Supabase validates redirectTo against
-    // its allowlist using exact string matching. Encoding '/' as '%2F' would
-    // cause a mismatch and Supabase would fall back to the Site URL instead.
-    const callbackUrl = returnTo
-      ? `${origin}/auth/callback?next=${returnTo}`
-      : `${origin}/auth/callback`;
 
+    // Store the post-auth destination in a short-lived cookie BEFORE the
+    // OAuth redirect. This is the only reliable mechanism for LinkedIn OIDC —
+    // the provider strips custom query parameters (like ?next=) from the
+    // redirectTo URL during the OAuth round-trip, so embedding the destination
+    // in the URL is not sufficient. Cookies survive the full browser redirect
+    // chain independently.
+    if (returnTo) {
+      setRedirectCookie(returnTo);
+    }
+
+    // The callbackUrl intentionally omits ?next= — the cookie above is the
+    // authoritative source. The Supabase allowlist only needs the bare callback
+    // URL for LinkedIn OAuth.
     await supabase.auth.signInWithOAuth({
       provider: 'linkedin_oidc',
       options: {
-        redirectTo: callbackUrl,
+        redirectTo: `${origin}/auth/callback`,
         scopes: 'openid profile email',
       },
     });
@@ -132,15 +120,21 @@ export default function AuthPage() {
         return;
       }
     } else {
-      // NEXT_PUBLIC_APP_URL takes priority — baked into the bundle at Docker build
-      // time and must equal the public-facing domain. Falls back to window.location.origin
-      // for environments where the env var is not set (local dev without .env, etc.).
       const origin = (process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin).replace(/\/$/, '');
+
+      // Set the cookie for same-device email confirmation (best-effort).
+      // The emailRedirectTo ?next= param below covers cross-device confirmation.
+      if (returnTo) {
+        setRedirectCookie(returnTo);
+      }
+
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: email.trim(),
         password,
         options: {
-          // Do NOT encodeURIComponent — same Supabase exact-match reason as OAuth above.
+          // Keep ?next= in emailRedirectTo so it works when the user confirms
+          // their email on a different device (where the cookie won't be present).
+          // Do NOT encodeURIComponent — Supabase exact-matches the allowlist.
           emailRedirectTo: returnTo
             ? `${origin}/auth/callback?next=${returnTo}`
             : `${origin}/auth/callback`,
@@ -577,6 +571,34 @@ export default function AuthPage() {
       </div>
     </div>
   );
+}
+
+/**
+ * Write a short-lived first-party cookie that the server-side /auth/callback
+ * route handler can read to determine where to send the user after OAuth.
+ *
+ * Why a cookie instead of a URL param?
+ * LinkedIn OIDC strips custom query parameters (e.g. ?next=) from the
+ * redirectTo URL during its OAuth redirect chain. Cookies are sent with
+ * every same-site request regardless of how the browser arrived at the URL,
+ * so they reliably survive the full OAuth round-trip.
+ *
+ * SameSite=Lax is intentional: it allows the cookie to be sent when the
+ * browser follows a cross-site top-level redirect (i.e. Supabase → our
+ * callback URL), which is exactly the OAuth completion scenario.
+ */
+function setRedirectCookie(path: string) {
+  const parts = [
+    `post_auth_redirect=${encodeURIComponent(path)}`,
+    'Path=/',
+    'SameSite=Lax',
+    'Max-Age=600', // 10 minutes — more than enough for any OAuth flow
+  ];
+  // Only add Secure on HTTPS to allow local dev over HTTP
+  if (window.location.protocol === 'https:') {
+    parts.push('Secure');
+  }
+  document.cookie = parts.join('; ');
 }
 
 function Spinner() {
