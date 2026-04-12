@@ -12,8 +12,9 @@ export function useUser() {
   useEffect(() => {
     const supabase = getBrowserClient();
 
-    void supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
+    // getSession() reads from local storage — no Supabase network call on mount.
+    void supabase.auth.getSession().then(({ data }) => {
+      setUser(data.session?.user ?? null);
       setLoading(false);
     });
 

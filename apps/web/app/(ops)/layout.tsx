@@ -15,9 +15,12 @@ export default async function OpsLayout({
 }) {
   const supabase = createServerClient();
 
+  // getSession() reads from cookies — no Supabase network call.
+  // Middleware already validated the token and refreshed it if needed.
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
+  const user = session?.user ?? null;
 
   if (!user) {
     redirect('/auth');

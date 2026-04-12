@@ -12,9 +12,11 @@ export default async function Navbar() {
 
   try {
     const supabase = createServerClient();
+    // getSession() reads from cookies — no Supabase network call.
     const {
-      data: { user },
-    } = await supabase.auth.getUser();
+      data: { session },
+    } = await supabase.auth.getSession();
+    const user = session?.user ?? null;
 
     if (user) {
       userEmail = user.email;

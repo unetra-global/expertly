@@ -14,51 +14,49 @@ export const metadata = {
 
 export default async function OnboardingPage() {
   const supabase = createServerClient();
+
+  // getSession() reads from cookies — no Supabase network call.
+  // Middleware already validated the token and refreshed it if needed.
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
   // 1. Must be authenticated
-  if (!user) {
+  if (!session?.user) {
     redirect('/auth?returnTo=/onboarding');
   }
 
+  const token = session.access_token;
+
   // 2. Check for an existing application and redirect appropriately
   try {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    const token = session?.access_token;
+    const res = await fetch(`${API_BASE}/api/v1/applications/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    });
 
-    if (token) {
-      const res = await fetch(`${API_BASE}/api/v1/applications/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-        cache: 'no-store',
-      });
+    if (res.ok) {
+      const json = (await res.json()) as {
+        success: boolean;
+        data?: { status: string };
+      };
+      const application = json.data;
 
-      if (res.ok) {
-        const json = (await res.json()) as {
-          success: boolean;
-          data?: { status: string };
-        };
-        const application = json.data;
+      if (application) {
+        const { status } = application;
 
-        if (application) {
-          const { status } = application;
+        // Already submitted / in review / resolved → show status
+        if (
+          ['submitted', 'under_review', 'approved', 'waitlisted', 'rejected'].includes(
+            status,
+          )
+        ) {
+          redirect('/application/status');
+        }
 
-          // Already submitted / in review / resolved → show status
-          if (
-            ['submitted', 'under_review', 'approved', 'waitlisted', 'rejected'].includes(
-              status,
-            )
-          ) {
-            redirect('/application/status');
-          }
-
-          // Draft in progress → resume at /application
-          if (status === 'draft') {
-            redirect('/application');
-          }
+        // Draft in progress → resume at /application
+        if (status === 'draft') {
+          redirect('/application');
         }
       }
     }

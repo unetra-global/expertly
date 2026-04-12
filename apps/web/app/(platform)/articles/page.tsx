@@ -64,9 +64,10 @@ export default async function ArticlesPage({ searchParams }: PageProps) {
     ...(sp.maxReadTime && { maxReadTime: sp.maxReadTime }),
   };
 
-  // Check if the logged-in user is a member
+  // Check if the logged-in user is a member — getSession() reads from cookies, no network call.
   const supabase = createServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user ?? null;
   let isMember = false;
   if (user) {
     const { data: dbUser } = await supabase

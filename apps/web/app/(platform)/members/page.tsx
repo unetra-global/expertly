@@ -49,11 +49,12 @@ function isUuid(value: string | undefined): value is string {
 }
 
 export default async function MembersPage({ searchParams }: PageProps) {
-  // Resolve auth state server-side to determine card variant
+  // Resolve auth state server-side to determine card variant — getSession() reads from cookies, no network call.
   const supabase = createServerClient();
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
+  const user = session?.user ?? null;
 
   const sp = searchParams as Record<string, string>;
   // Support both legacy single serviceId and new multi-select serviceIds

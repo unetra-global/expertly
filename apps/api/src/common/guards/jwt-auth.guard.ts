@@ -23,6 +23,19 @@ interface MemberRow {
   membership_status: MembershipStatus;
 }
 
+interface CachedAuthUser {
+  user: AuthUser;
+  expiresAt: number;
+}
+
+// Module-level cache — shared across all requests within the same NestJS process.
+// Avoids a round-trip to GET /auth/v1/user on every API call.
+// TTL of 30 s is well within the Supabase access-token lifetime (default 1 h),
+// so a revoked token can still pass for at most 30 s — acceptable for this app.
+const AUTH_CACHE_TTL_MS = 30_000;
+const AUTH_CACHE_MAX_SIZE = 2_000;
+const authCache = new Map<string, CachedAuthUser>();
+
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   protected readonly logger = new Logger(JwtAuthGuard.name);
@@ -46,10 +59,18 @@ export class JwtAuthGuard implements CanActivate {
       throw new UnauthorizedException('No authentication token provided');
     }
 
+    // Cache hit — skip Supabase network call
+    const cached = authCache.get(token);
+    if (cached && cached.expiresAt > Date.now()) {
+      request.user = cached.user;
+      return true;
+    }
+
     const { data: { user: supabaseUser }, error } =
       await this.supabase.adminClient.auth.getUser(token);
 
     if (error || !supabaseUser) {
+      authCache.delete(token);
       throw new UnauthorizedException('Invalid or expired token');
     }
 
@@ -121,6 +142,12 @@ export class JwtAuthGuard implements CanActivate {
         }
       }
     }
+
+    // Populate cache — evict oldest entry if at capacity
+    if (authCache.size >= AUTH_CACHE_MAX_SIZE) {
+      authCache.delete(authCache.keys().next().value as string);
+    }
+    authCache.set(token, { user: authUser, expiresAt: Date.now() + AUTH_CACHE_TTL_MS });
 
     request.user = authUser;
     return true;

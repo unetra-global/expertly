@@ -100,10 +100,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function ArticleSlugPage({ params }: PageProps) {
   const supabase = createServerClient();
-  const [article, { data: { user } }] = await Promise.all([
+  // getSession() reads from cookies — no Supabase network call.
+  const [article, { data: { session } }] = await Promise.all([
     fetchArticle(params.slug),
-    supabase.auth.getUser(),
+    supabase.auth.getSession(),
   ]);
+  const user = session?.user ?? null;
 
   if (!article) notFound();
 
