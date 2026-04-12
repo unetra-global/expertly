@@ -6,13 +6,14 @@
 
 ---
 
-## Quick-reference: the three root causes
+## Quick-reference: the four root causes
 
 | # | Where | What was happening | Fix applied |
 |---|-------|--------------------|-------------|
 | 1 | NestJS backend | `JwtAuthGuard` called `adminClient.auth.getUser(token)` on **every API request**, hitting `GET /auth/v1/user` over the network each time | In-memory cache (30 s TTL) in `apps/api/src/common/guards/jwt-auth.guard.ts` |
 | 2 | Next.js server components | Middleware wrote refreshed tokens only to `response.cookies`, leaving `request.cookies` stale — every server component in the same render cycle saw the expired token and independently fired `POST /auth/v1/token?grant_type=refresh_token` | Middleware now writes to **both** `request.cookies` and `response.cookies`; `autoRefreshToken: false` on `createServerClient()` |
 | 3 | Browser (client) | When the access token expired, every concurrent API call that received a 401 independently called `refreshSession()` in the same tick | `sharedRefresh()` deduplication promise in `apps/web/lib/apiClient.ts` |
+| 4 | OAuth callback + email redirect route handlers | After `exchangeCodeForSession()` succeeded in `/auth/callback`, a separate `getUser()` call raced against the in-flight 429 storm, returned `null`, and the `if (!user)` branch redirected the user to `/` instead of `/onboarding`. Same issue existed in `/auth/redirect`. | `/auth/callback`: use `exchangeData.user` directly from the exchange response (commit `977db4e`). `/auth/redirect`: switch from `getUser()` to `getSession()` since middleware already validated the token. |
 
 ---
 
@@ -186,23 +187,30 @@ const newToken = await sharedRefresh();
 
 ---
 
-## Files changed (commit `7b306ad` + `fc5b155`)
+## Files changed
 
 ```
-apps/api/src/common/guards/jwt-auth.guard.ts   ← auth cache (root cause 1)
-apps/web/middleware.ts                          ← dual cookie write + /onboarding + /application (root cause 2)
-apps/web/lib/supabase-server.ts                ← autoRefreshToken:false only (root cause 2)
-apps/web/lib/apiClient.ts                      ← sharedRefresh() + sessionPromise (root cause 3)
-apps/web/app/(member)/layout.tsx               ← getSession() instead of getUser()
-apps/web/app/(ops)/layout.tsx                  ← getSession() instead of getUser()
-apps/web/app/(ops)/ops/layout.tsx              ← getSession() instead of getUser()
-apps/web/app/(platform)/application/layout.tsx ← getSession() instead of getUser()
-apps/web/app/(platform)/articles/[slug]/page.tsx ← getSession() instead of getUser()
-apps/web/app/(platform)/articles/page.tsx      ← getSession() instead of getUser()
-apps/web/app/(platform)/members/page.tsx       ← getSession() instead of getUser()
-apps/web/app/onboarding/page.tsx               ← collapsed double auth call to single getSession()
-apps/web/components/layout/Navbar.tsx          ← getSession() instead of getUser()
-apps/web/hooks/useAuth.ts                      ← useUser() hook uses getSession() internally
+commit 7b306ad + fc5b155  (root causes 1–3)
+  apps/api/src/common/guards/jwt-auth.guard.ts   ← auth cache (root cause 1)
+  apps/web/middleware.ts                          ← dual cookie write + /onboarding + /application (root cause 2)
+  apps/web/lib/supabase-server.ts                ← autoRefreshToken:false only (root cause 2)
+  apps/web/lib/apiClient.ts                      ← sharedRefresh() + sessionPromise (root cause 3)
+  apps/web/app/(member)/layout.tsx               ← getSession() instead of getUser()
+  apps/web/app/(ops)/layout.tsx                  ← getSession() instead of getUser()
+  apps/web/app/(ops)/ops/layout.tsx              ← getSession() instead of getUser()
+  apps/web/app/(platform)/application/layout.tsx ← getSession() instead of getUser()
+  apps/web/app/(platform)/articles/[slug]/page.tsx ← getSession() instead of getUser()
+  apps/web/app/(platform)/articles/page.tsx      ← getSession() instead of getUser()
+  apps/web/app/(platform)/members/page.tsx       ← getSession() instead of getUser()
+  apps/web/app/onboarding/page.tsx               ← collapsed double auth call to single getSession()
+  apps/web/components/layout/Navbar.tsx          ← getSession() instead of getUser()
+  apps/web/hooks/useAuth.ts                      ← useUser() hook uses getSession() internally
+
+commit 977db4e  (root cause 4 — callback)
+  apps/web/app/(auth)/auth/callback/route.ts     ← use exchangeData.user, not separate getUser()
+
+commit after 977db4e  (root cause 4 — redirect)
+  apps/web/app/(auth)/auth/redirect/route.ts     ← getSession() instead of getUser()
 ```
 
 ---

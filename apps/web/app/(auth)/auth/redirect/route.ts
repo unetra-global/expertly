@@ -68,13 +68,26 @@ export async function GET(request: NextRequest) {
     },
   );
 
+  // Use getSession() instead of getUser() — getSession() reads from cookies
+  // with no Supabase network call. getUser() makes a GET /auth/v1/user call
+  // which can race against the 429 refresh-token storm and return null even
+  // when the session cookies are valid.
+  //
+  // This route is only ever navigated to immediately after a successful
+  // signInWithPassword (fresh token) or from AuthClient's "already
+  // authenticated" redirect (valid existing session). In both cases the
+  // cookies hold a valid session and getSession() is authoritative.
+  // Any expired token that slips through will be caught by middleware on
+  // the next protected route (e.g. /onboarding).
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
-  if (!user) {
+  if (!session?.user) {
     return NextResponse.redirect(`${appOrigin}/auth`);
   }
+
+  const user = session.user;
 
   // ── Fetch user record (role + is_active + is_deleted) ────────────────────
   const { data: dbUser } = await supabase
