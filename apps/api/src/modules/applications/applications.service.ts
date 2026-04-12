@@ -11,7 +11,6 @@ import { AuthUser } from '@expertly/types';
 import { Step1Dto } from './dto/step-1.dto';
 import { Step2Dto } from './dto/step-2.dto';
 import { Step3Dto } from './dto/step-3.dto';
-import { Step4Dto } from './dto/step-4.dto';
 import { SubmitDto } from './dto/submit.dto';
 
 const APPLICATION_SELECT =
@@ -21,7 +20,6 @@ const APPLICATION_SELECT =
   'consultation_fee_min_usd, consultation_fee_max_usd, qualifications, credentials, ' +
   'work_experience, education, primary_service_id, secondary_service_ids, ' +
   'key_engagements, engagements, availability, ' +
-  'motivation_why, motivation_engagement, motivation_unique, ' +
   'consents, creation_mode, submitted_at, ' +
   're_application_eligible_at, created_at, updated_at';
 
@@ -255,53 +253,14 @@ export class ApplicationsService {
     return data;
   }
 
-  // ─── Step 4: Motivation ───────────────────────────────────────────────────
-
-  async updateStep4(
-    user: AuthUser,
-    id: string,
-    dto: Step4Dto,
-  ): Promise<unknown> {
-    const app = await this.findOwnedDraft(user, id);
-
-    const nextStep = 4;
-    if (nextStep > app.current_step + 1) {
-      throw new BadRequestException('Complete previous steps first');
-    }
-
-    const payload: Record<string, unknown> = {
-      motivation_why: dto.motivationWhy,
-      motivation_engagement: dto.motivationEngagement,
-      motivation_unique: dto.motivationUnique,
-    };
-
-    Object.keys(payload).forEach((k) => {
-      if (payload[k] === undefined) delete payload[k];
-    });
-
-    if (app.current_step < nextStep) {
-      payload.current_step = nextStep;
-    }
-
-    const { data, error } = await this.supabase.adminClient
-      .from('applications')
-      .update(payload)
-      .eq('id', id)
-      .select(APPLICATION_SELECT)
-      .single();
-
-    if (error) throw error;
-    return data;
-  }
-
   // ─── Submit Application ───────────────────────────────────────────────────
 
   async submit(user: AuthUser, id: string, dto: SubmitDto): Promise<unknown> {
     const app = await this.findOwnedDraft(user, id);
 
-    // Validate all 4 steps complete
-    if (app.current_step < 4) {
-      throw new BadRequestException('All 4 steps must be completed before submitting');
+    // Validate all 3 steps complete
+    if (app.current_step < 3) {
+      throw new BadRequestException('All 3 steps must be completed before submitting');
     }
 
     // Validate required fields

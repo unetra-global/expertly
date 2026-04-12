@@ -6,7 +6,7 @@ import { OnboardingLayout } from './OnboardingLayout';
 
 interface Props {
   applicationId: string;
-  currentStep: 1 | 2 | 3;
+  currentStep: 1 | 2 | 3 | 4;
 }
 
 /**

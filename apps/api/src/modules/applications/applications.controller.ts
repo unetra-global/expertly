@@ -15,7 +15,6 @@ import { ApplicationsService } from './applications.service';
 import { Step1Dto } from './dto/step-1.dto';
 import { Step2Dto } from './dto/step-2.dto';
 import { Step3Dto } from './dto/step-3.dto';
-import { Step4Dto } from './dto/step-4.dto';
 import { SubmitDto } from './dto/submit.dto';
 
 @Controller('applications')
@@ -58,15 +57,6 @@ export class ApplicationsController {
     @Body() dto: Step3Dto,
   ): Promise<unknown> {
     return this.applications.updateStep3(user, id, dto);
-  }
-
-  @Patch(':id/step-4')
-  updateStep4(
-    @CurrentUser() user: AuthUser,
-    @Param('id') id: string,
-    @Body() dto: Step4Dto,
-  ): Promise<unknown> {
-    return this.applications.updateStep4(user, id, dto);
   }
 
   @Post(':id/submit')

@@ -18,17 +18,11 @@ function fmtDate(d: string): string {
   return m ? `${m} ${year}` : (year ?? '');
 }
 
-const MOTIVATION_QUESTIONS = [
-  { field: 'motivationWhy' as const,        label: 'Why do you want to join Expertly?' },
-  { field: 'motivationEngagement' as const, label: 'What types of clients or engagements are you looking for?' },
-  { field: 'motivationUnique' as const,     label: 'What makes your perspective distinctive?' },
-];
-
 interface Props {
   onBack: () => void;
 }
 
-export function Step5Review({ onBack }: Props) {
+export function Step4Review({ onBack }: Props) {
   const router = useRouter();
   const {
     formData,
@@ -136,12 +130,6 @@ export function Step5Review({ onBack }: Props) {
         keyEngagements: formData.keyEngagements,
         engagements: formData.engagements,
         availability: formData.availability,
-      });
-
-      await apiClient.patch(`/applications/${appId}/step-4`, {
-        motivationWhy: formData.motivationWhy || undefined,
-        motivationEngagement: formData.motivationEngagement || undefined,
-        motivationUnique: formData.motivationUnique || undefined,
       });
 
       // 3. Submit with consents
@@ -443,20 +431,6 @@ export function Step5Review({ onBack }: Props) {
         </div>
       </div>
 
-      {/* ── Motivation ───────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-6 sm:p-8">
-        <h3 className="text-xs font-bold uppercase tracking-widest text-brand-text-muted mb-4">Your Motivation</h3>
-        <div className="space-y-5">
-          {MOTIVATION_QUESTIONS.map(({ field, label }) => (
-            <div key={field}>
-              <p className="text-xs font-semibold text-brand-text-secondary mb-1">{label}</p>
-              <p className="text-sm text-brand-text-secondary leading-relaxed whitespace-pre-wrap">
-                {formData[field] || <span className="text-brand-text-muted italic">Not answered</span>}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
 
       {/* ── Declaration & Consent — hidden once submitted ────── */}
       {!applicationId && (

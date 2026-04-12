@@ -47,7 +47,7 @@ export default async function ApplicationPage() {
       data?: {
         id: string;
         status: string;
-        currentStep?: 1 | 2 | 3;
+        currentStep?: 1 | 2 | 3 | 4;
       };
     };
 

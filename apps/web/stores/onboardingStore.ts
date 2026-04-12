@@ -98,13 +98,7 @@ export interface Step3Data {
   availability: AvailabilityData;
 }
 
-export interface Step4Data {
-  motivationWhy: string;
-  motivationEngagement: string;
-  motivationUnique: string;
-}
-
-export type OnboardingFormData = Step1Data & Step2Data & Step3Data & Step4Data;
+export type OnboardingFormData = Step1Data & Step2Data & Step3Data;
 
 // ── LinkedIn prefill result shape ─────────────────────────────────────────────
 
@@ -140,7 +134,7 @@ export interface LinkedInPrefillResult {
 
 interface OnboardingState {
   formData: OnboardingFormData;
-  currentStep: 1 | 2 | 3 | 4 | 5;
+  currentStep: 1 | 2 | 3 | 4;
   applicationId: string | null;
   linkedInPrefillApplied: boolean;
   isSubmitting: boolean;
@@ -151,8 +145,7 @@ interface OnboardingActions {
   setStep1: (data: Partial<Step1Data>) => void;
   setStep2: (data: Partial<Step2Data>) => void;
   setStep3: (data: Partial<Step3Data>) => void;
-  setStep4: (data: Partial<Step4Data>) => void;
-  setStep: (step: 1 | 2 | 3 | 4 | 5) => void;
+  setStep: (step: 1 | 2 | 3 | 4) => void;
   setApplicationId: (id: string) => void;
   setIsSubmitting: (val: boolean) => void;
   setErrors: (errors: Record<string, string>) => void;
@@ -203,10 +196,6 @@ const defaultFormData: OnboardingFormData = {
     timezone: '',
     notes: '',
   },
-  // Step 4
-  motivationWhy: '',
-  motivationEngagement: '',
-  motivationUnique: '',
 };
 
 const initialState: OnboardingState = {
@@ -232,9 +221,6 @@ export const useOnboardingStore = create<OnboardingState & OnboardingActions>()(
         set((state) => ({ formData: { ...state.formData, ...data } })),
 
       setStep3: (data) =>
-        set((state) => ({ formData: { ...state.formData, ...data } })),
-
-      setStep4: (data) =>
         set((state) => ({ formData: { ...state.formData, ...data } })),
 
       setStep: (step) => set({ currentStep: step }),
@@ -349,7 +335,7 @@ export const useOnboardingStore = create<OnboardingState & OnboardingActions>()(
     }),
     {
       name: 'expertly-onboarding',
-      version: 6, // bumped: firmWebsiteUrl added, consentTerms/consentVerification removed
+      version: 7, // bumped: motivation step removed
       storage: createJSONStorage(() => {
         // SSR guard — sessionStorage is not available on the server
         if (typeof window !== 'undefined') return window.sessionStorage;

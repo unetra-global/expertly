@@ -7,18 +7,16 @@ import { getBrowserClient } from '@/lib/supabase';
 import { Step1Identity } from './Step1Identity';
 import { Step2Experience } from './Step2Experience';
 import { Step3Services } from './Step3Services';
-import { Step4Motivation } from './Step4Motivation';
-import { Step5Review } from './Step5Review';
+import { Step4Review } from './Step4Review';
 
 const STEPS = [
   { number: 1 as const, label: 'Identity' },
   { number: 2 as const, label: 'Experience' },
   { number: 3 as const, label: 'Services' },
-  { number: 4 as const, label: 'Motivation' },
-  { number: 5 as const, label: 'Review' },
+  { number: 4 as const, label: 'Review' },
 ];
 
-type Step = 1 | 2 | 3 | 4 | 5;
+type Step = 1 | 2 | 3 | 4;
 
 export function OnboardingLayout() {
   const { currentStep, setStep, applicationId } = useOnboardingStore();
@@ -56,7 +54,7 @@ export function OnboardingLayout() {
   }
 
   function handleNext() {
-    if (currentStep < 5) setStep((currentStep + 1) as Step);
+    if (currentStep < 4) setStep((currentStep + 1) as Step);
   }
 
   // ── LinkedIn not linked → show gate ────────────────────────────────────────
@@ -296,7 +294,7 @@ export function OnboardingLayout() {
                               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                             </svg>
                           ) : (
-                            <span className={isCurrent ? 'text-white' : 'text-white/40'}>{step.number}</span>
+                            <span className={isCurrent ? 'text-white' : 'text-white/40'}>{idx + 1}</span>
                           )}
                         </div>
                         <span className={`mt-1.5 text-[10px] sm:text-xs font-medium transition-colors duration-200 ${isCurrent ? 'text-white' : isCompleted ? 'text-brand-blue cursor-pointer hover:text-white' : 'text-white/30'}`}>
@@ -317,8 +315,7 @@ export function OnboardingLayout() {
         {currentStep === 1 && <Step1Identity onNext={handleNext} />}
         {currentStep === 2 && <Step2Experience onBack={handleBack} onNext={handleNext} />}
         {currentStep === 3 && <Step3Services onBack={handleBack} onNext={handleNext} />}
-        {currentStep === 4 && <Step4Motivation onBack={handleBack} onNext={handleNext} />}
-        {currentStep === 5 && <Step5Review onBack={handleBack} />}
+        {currentStep === 4 && <Step4Review onBack={handleBack} />}
       </div>
     </div>
   );

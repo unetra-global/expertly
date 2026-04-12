@@ -94,9 +94,6 @@ CREATE TABLE members (
   work_experience              JSONB             NOT NULL DEFAULT '[]',
   education                    JSONB             NOT NULL DEFAULT '[]',
   key_engagements              JSONB             NOT NULL DEFAULT '[]',
-  motivation_why               TEXT,
-  motivation_engagement        TEXT,
-  motivation_unique            TEXT,
   availability                 JSONB,
   engagement                   JSONB,
   engagements                  JSONB             DEFAULT '[]',
@@ -173,10 +170,6 @@ CREATE TABLE applications (
   work_experience          JSONB              NOT NULL DEFAULT '[]',
   education                JSONB              NOT NULL DEFAULT '[]',
   key_engagements          JSONB              NOT NULL DEFAULT '[]',
-  -- Motivation
-  motivation_why           TEXT,
-  motivation_engagement    TEXT,
-  motivation_unique        TEXT,
   -- Availability / engagement
   engagements              JSONB              NOT NULL DEFAULT '{}',
   availability             JSONB              NOT NULL DEFAULT '{}',

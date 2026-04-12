@@ -241,7 +241,7 @@ export type ApplicationStatus =
 export interface ApplicationDraft {
   id: string;
   status: ApplicationStatus;
-  currentStep?: 1 | 2 | 3;
+  currentStep?: 1 | 2 | 3 | 4;
   rejectionReason?: string;
   reApplicationEligibleAt?: string;
   submittedAt?: string;
