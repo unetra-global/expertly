@@ -83,8 +83,11 @@ export default function AuthPage() {
     // OAuth round-trip. sessionStorage is inaccessible in the server-side
     // callback route handler, so we carry the value in the URL itself.
     const returnTo = searchParams?.get('returnTo');
+    // Do NOT encodeURIComponent here — Supabase validates redirectTo against
+    // its allowlist using exact string matching. Encoding '/' as '%2F' would
+    // cause a mismatch and Supabase would fall back to the Site URL instead.
     const callbackUrl = returnTo
-      ? `${origin}/auth/callback?next=${encodeURIComponent(returnTo)}`
+      ? `${origin}/auth/callback?next=${returnTo}`
       : `${origin}/auth/callback`;
 
     await supabase.auth.signInWithOAuth({
@@ -133,8 +136,9 @@ export default function AuthPage() {
         email: email.trim(),
         password,
         options: {
+          // Do NOT encodeURIComponent — same Supabase exact-match reason as OAuth above.
           emailRedirectTo: returnTo
-            ? `${origin}/auth/callback?next=${encodeURIComponent(returnTo)}`
+            ? `${origin}/auth/callback?next=${returnTo}`
             : `${origin}/auth/callback`,
           data: {
             first_name: firstName.trim(),
