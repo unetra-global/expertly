@@ -131,18 +131,21 @@ export async function GET(request: NextRequest) {
   );
 
   // ── State 2: Code exchange ────────────────────────────────────────────────
-  const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-  if (exchangeError) {
+  // Use the user returned directly from exchangeCodeForSession — do NOT call
+  // getUser() afterwards. The app is hitting Supabase's refresh_token rate
+  // limit (429 storm from concurrent middleware refreshes), and a separate
+  // getUser() call can race against that storm, attempt to refresh the old
+  // expired token, fail, and return null — landing the user on the homepage.
+  // The exchange response already contains the verified user; no extra round
+  // trip is needed.
+  const { data: exchangeData, error: exchangeError } =
+    await supabase.auth.exchangeCodeForSession(code);
+
+  if (exchangeError || !exchangeData.user) {
     return buildRedirect(`${appOrigin}/?authError=oauth_failed`, cookiesToSet);
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return buildRedirect(`${appOrigin}/`, cookiesToSet);
-  }
+  const user = exchangeData.user;
 
   // ── Fetch user record (role + is_active + is_deleted) ────────────────────
   const { data: dbUser } = await supabase
