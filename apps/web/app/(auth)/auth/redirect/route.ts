@@ -15,9 +15,16 @@ type ApplicationStatus =
  * Mirrors the role/application routing in /auth/callback but skips
  * the OAuth code exchange (session is already established).
  *
- * All redirects use new URL(path, request.url) — the origin is derived from
- * the live request, so this works on localhost, staging, production, and
- * Vercel preview deploys without any NEXT_PUBLIC_APP_URL env var.
+ * The redirect origin is resolved as follows (in priority order):
+ *   1. NEXT_PUBLIC_APP_URL — baked into the bundle at Docker build time; always
+ *      equals the public-facing domain in production.
+ *   2. x-forwarded-proto + x-forwarded-host headers — set by nginx/Cloudflare/
+ *      any reverse proxy; correct when the env var is not present.
+ *   3. host header — last resort for bare-metal / local dev without a proxy.
+ *
+ * We deliberately do NOT use `new URL(path, request.url)` because `request.url`
+ * reflects the URL the container received (e.g. http://7d28370d7c3c:4000/…),
+ * not the public-facing domain.
  */
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -29,6 +36,17 @@ export async function GET(request: NextRequest) {
     nextRaw && nextRaw.startsWith('/') && !nextRaw.startsWith('//')
       ? nextRaw
       : null;
+
+  // ── Derive the public-facing origin ──────────────────────────────────────
+  // NEXT_PUBLIC_APP_URL is baked into the bundle at Docker build time.
+  // Fallback to forwarded headers (set by reverse proxies) so this also works
+  // in local dev and non-Docker environments without the env var.
+  const appOrigin = (
+    process.env.NEXT_PUBLIC_APP_URL ??
+    `${request.headers.get('x-forwarded-proto') ?? 'https'}://${
+      request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? 'localhost:4000'
+    }`
+  ).replace(/\/$/, '');
 
   const cookieStore = cookies();
 
@@ -55,7 +73,7 @@ export async function GET(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.redirect(new URL('/auth', request.url));
+    return NextResponse.redirect(`${appOrigin}/auth`);
   }
 
   // ── Fetch user record (role + is_active + is_deleted) ────────────────────
@@ -68,19 +86,19 @@ export async function GET(request: NextRequest) {
   // ── Account inactive or deleted ───────────────────────────────────────────
   if (dbUser && (!dbUser.is_active || dbUser.is_deleted)) {
     await supabase.auth.signOut();
-    return NextResponse.redirect(new URL('/auth?error=account_suspended', request.url));
+    return NextResponse.redirect(`${appOrigin}/auth?error=account_suspended`);
   }
 
   const role: string = dbUser?.role ?? 'user';
 
   // ── Ops roles ─────────────────────────────────────────────────────────────
   if (role === 'backend_admin' || role === 'ops') {
-    return NextResponse.redirect(new URL('/ops', request.url));
+    return NextResponse.redirect(`${appOrigin}/ops`);
   }
 
   // ── Member ────────────────────────────────────────────────────────────────
   if (role === 'member') {
-    return NextResponse.redirect(new URL('/member/dashboard', request.url));
+    return NextResponse.redirect(`${appOrigin}/member/dashboard`);
   }
 
   // ── Regular user — check application status ───────────────────────────────
@@ -93,29 +111,28 @@ export async function GET(request: NextRequest) {
     .maybeSingle();
 
   if (!application) {
-    return NextResponse.redirect(new URL(safeNext ?? '/', request.url));
+    return NextResponse.redirect(`${appOrigin}${safeNext ?? '/'}`);
   }
 
   const status = application.status as ApplicationStatus;
 
   if (status === 'draft') {
-    return NextResponse.redirect(new URL('/application', request.url));
+    return NextResponse.redirect(`${appOrigin}/application`);
   }
 
   if (['submitted', 'under_review', 'approved', 'waitlisted'].includes(status)) {
-    return NextResponse.redirect(new URL('/application/status', request.url));
+    return NextResponse.redirect(`${appOrigin}/application/status`);
   }
 
   if (status === 'rejected') {
     const eligibleAt = application.re_application_eligible_at as string | null;
     const canReApply = eligibleAt ? new Date(eligibleAt) <= new Date() : true;
     return NextResponse.redirect(
-      new URL(
-        canReApply ? '/application/status?canReApply=true' : '/application/status',
-        request.url,
-      ),
+      canReApply
+        ? `${appOrigin}/application/status?canReApply=true`
+        : `${appOrigin}/application/status`,
     );
   }
 
-  return NextResponse.redirect(new URL(safeNext ?? '/', request.url));
+  return NextResponse.redirect(`${appOrigin}${safeNext ?? '/'}`);
 }
