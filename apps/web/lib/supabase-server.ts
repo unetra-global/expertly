@@ -36,18 +36,23 @@ export function createServerClient() {
   const cookieStore = cookies();
   return _createServerClient(supabaseUrl, supabaseKey, {
     auth: {
-      // Middleware is the single place that refreshes expired tokens (it writes
-      // fresh tokens to both request and response cookies so every server
-      // component downstream sees the updated session).
+      // autoRefreshToken: false is the critical guard against the 429 storm.
       //
-      // Allowing auto-refresh here caused the 429 storm: each server component
-      // that called getSession() with an expired token independently fired
-      // POST /auth/v1/token?grant_type=refresh_token from Node.js (user_agent:
-      // "node", apikey: "anon"), multiplying refresh calls by the number of
-      // server components per page render.
+      // Without it, every server component that sees an expired access token
+      // independently fires POST /auth/v1/token?grant_type=refresh_token from
+      // Node.js (user_agent: "node", apikey: "anon"), multiplying refresh calls
+      // by the number of server components per page render.
+      //
+      // Middleware is the sole owner of token refresh — it validates with
+      // getUser(), refreshes if needed, and writes the fresh tokens to BOTH
+      // request.cookies and response.cookies so every downstream server
+      // component sees the updated session without touching the network again.
+      //
+      // persistSession and detectSessionInUrl are intentionally left at their
+      // defaults (true/true). persistSession: false was previously added here
+      // but it prevents getSession() from loading the session from cookie
+      // storage on init, causing all server components to see a null session.
       autoRefreshToken: false,
-      persistSession: false,
-      detectSessionInUrl: false,
     },
     cookies: {
       get(name: string) {
