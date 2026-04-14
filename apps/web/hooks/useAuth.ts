@@ -19,12 +19,7 @@ export function useUser() {
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange(
-      (event: AuthChangeEvent, session: Session | null) => {
-        // TOKEN_REFRESH_FAILED means the stored refresh token is invalid.
-        // signOut() clears it from cookies so the auto-refresh loop stops.
-        if (event === 'TOKEN_REFRESH_FAILED') {
-          void supabase.auth.signOut();
-        }
+      (_event: AuthChangeEvent, session: Session | null) => {
         setUser(session?.user ?? null);
       },
     );
@@ -48,10 +43,7 @@ export function useSession() {
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange(
-      (event: AuthChangeEvent, session: Session | null) => {
-        if (event === 'TOKEN_REFRESH_FAILED') {
-          void supabase.auth.signOut();
-        }
+      (_event: AuthChangeEvent, session: Session | null) => {
         setSession(session);
       },
     );

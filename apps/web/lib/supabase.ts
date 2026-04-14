@@ -10,16 +10,9 @@ export function getBrowserClient() {
   if (!_browserClient) {
     _browserClient = createBrowserClient(supabaseUrl, supabaseAnonKey);
 
-    // When a refresh token is invalid/expired the Supabase client retries the
-    // POST /token request on every 429 it receives, creating an infinite loop
-    // that can generate tens of thousands of auth requests per day from a single
-    // browser.  Calling signOut() on TOKEN_REFRESH_FAILED wipes the stale token
-    // from cookies/localStorage so autoRefreshToken has nothing left to retry.
-    _browserClient.auth.onAuthStateChange((event) => {
-      if (event === 'TOKEN_REFRESH_FAILED') {
-        void _browserClient?.auth.signOut();
-      }
-    });
+    // When a refresh token is invalid the SDK emits SIGNED_OUT and clears the
+    // stored session automatically — autoRefreshToken then has nothing left to
+    // retry, which stops the 429 storm.  No extra handler needed here.
   }
   return _browserClient;
 }
