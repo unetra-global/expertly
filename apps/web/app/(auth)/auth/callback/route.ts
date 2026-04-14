@@ -58,17 +58,8 @@ export async function GET(request: NextRequest) {
   ).replace(/\/$/, '');
 
   // ── State 1: OAuth error or missing code ──────────────────────────────────
-  // For linkIdentity errors (e.g. identity_already_exists), redirect back to
-  // /onboarding with the error code so the page can show a meaningful message.
-  // For all other errors, fall back to the home page.
   if (oauthError || !code) {
-    const errorCode = searchParams.get('error_code') ?? oauthError ?? 'oauth_failed';
-    const isLinkError = ['identity_already_exists', 'identity_not_found'].includes(errorCode);
-    return NextResponse.redirect(
-      isLinkError
-        ? `${appOrigin}/onboarding?authError=${encodeURIComponent(errorCode)}`
-        : `${appOrigin}/`,
-    );
+    return NextResponse.redirect(`${appOrigin}/`);
   }
 
   // ── Resolve post-auth destination ─────────────────────────────────────────

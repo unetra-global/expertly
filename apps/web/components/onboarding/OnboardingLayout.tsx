@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 import { useOnboardingStore } from '@/stores/onboardingStore';
 import { getBrowserClient } from '@/lib/supabase';
 import { Step1Identity } from './Step1Identity';
@@ -21,28 +20,12 @@ type Step = 1 | 2 | 3 | 4;
 
 export function OnboardingLayout() {
   const { currentStep, setStep, applicationId } = useOnboardingStore();
-  const searchParams = useSearchParams();
   // Once submitted, lock the user to step 5 — read-only review
   const isLocked = !!applicationId;
 
   // null = checking, true = linked, false = not linked
   const [linkedinLinked, setLinkedinLinked] = useState<boolean | null>(null);
   const [linking, setLinking] = useState(false);
-  const [linkError, setLinkError] = useState<string | null>(null);
-
-  // Detect errors returned by Supabase after the LinkedIn OAuth round-trip.
-  // e.g. identity_already_exists when the LinkedIn account belongs to another user.
-  useEffect(() => {
-    const errorCode = searchParams.get('error_code') ?? searchParams.get('authError');
-    if (errorCode === 'identity_already_exists') {
-      setLinkError(
-        'This LinkedIn account is already connected to a different Expertly account. ' +
-        'Please sign out and sign in using your LinkedIn account directly instead.',
-      );
-    } else if (errorCode) {
-      setLinkError('LinkedIn connection failed. Please try again.');
-    }
-  }, [searchParams]);
 
   useEffect(() => {
     const supabase = getBrowserClient();
@@ -200,13 +183,6 @@ export function OnboardingLayout() {
                     </li>
                   ))}
                 </ul>
-
-                {/* Error banner — shown when LinkedIn OAuth returns an error */}
-                {linkError && (
-                  <div className="mb-6 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 leading-relaxed">
-                    {linkError}
-                  </div>
-                )}
 
                 <button
                   onClick={() => void handleConnectLinkedIn()}
