@@ -72,8 +72,13 @@ export default function AuthPage() {
     // redirectTo URL during the OAuth round-trip, so embedding the destination
     // in the URL is not sufficient. Cookies survive the full browser redirect
     // chain independently.
+    //
+    // Sign-in with no explicit returnTo → go to home page after auth.
+    // Sign-up with no explicit returnTo → no cookie → callback defaults to /onboarding.
     if (returnTo) {
       setRedirectCookie(returnTo);
+    } else if (intent === 'signin') {
+      setRedirectCookie('/');
     }
 
     // The callbackUrl intentionally omits ?next= — the cookie above is the
@@ -168,9 +173,15 @@ export default function AuthPage() {
     // Use window.location.href (full browser navigation) instead of router.push
     // because router.push does a SPA fetch to the Route Handler and may not
     // follow the HTTP redirect response properly in all Next.js versions.
+    //
+    // Sign-in with no returnTo → pass next=/ so the redirect route sends the
+    // user to the home page instead of /onboarding.
+    // Sign-up with no returnTo → no next param → redirect route defaults to /onboarding.
     const dest = returnTo
       ? `/auth/redirect?next=${encodeURIComponent(returnTo)}`
-      : '/auth/redirect';
+      : intent === 'signin'
+        ? '/auth/redirect?next=%2F'
+        : '/auth/redirect';
     window.location.href = dest;
   }
 
