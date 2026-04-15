@@ -52,7 +52,8 @@ export function Step3Services({ onBack, onNext }: Props) {
     const errs: Record<string, string> = {};
     if (!pref1) errs.primaryService = 'Please select your 1st preference service';
     if (feeMin === '') errs.feeMin = 'Minimum consultation rate is required';
-    if (feeMin !== '' && feeMax !== '' && Number(feeMax) > 0 && Number(feeMax) <= Number(feeMin)) errs.feeMax = 'Maximum must be greater than minimum';
+    if (feeMax === '') errs.feeMax = 'Maximum consultation rate is required';
+    if (feeMin !== '' && feeMax !== '' && Number(feeMax) <= Number(feeMin)) errs.feeMax = 'Maximum must be greater than minimum';
 
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
@@ -172,7 +173,7 @@ export function Step3Services({ onBack, onNext }: Props) {
             {errors.feeMin && <p className="mt-1 text-xs text-red-500">{errors.feeMin}</p>}
           </div>
           <div>
-            <label className="block text-xs font-semibold text-brand-text-secondary mb-1.5">Max (USD)</label>
+            <label className="block text-xs font-semibold text-brand-text-secondary mb-1.5">Max (USD) <span className="text-red-500">*</span></label>
             <input
               type="number"
               min={0}
@@ -205,7 +206,7 @@ export function Step3Services({ onBack, onNext }: Props) {
           Back
         </button>
         <button type="button" onClick={handleNext} className="btn-primary px-8 py-3 text-base">
-          Next: Your Motivation
+          Next: Review
           <svg className="ml-2 h-4 w-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>

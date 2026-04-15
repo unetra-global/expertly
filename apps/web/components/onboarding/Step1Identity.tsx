@@ -283,7 +283,6 @@ export function Step1Identity({ onNext }: Props) {
     } else if (!/^https?:\/\/(www\.)?linkedin\.com\/in\/.+/i.test(fields.linkedinUrl.trim())) {
       errs.linkedinUrl = 'Enter a valid LinkedIn profile URL (e.g. https://linkedin.com/in/yourname)';
     }
-    if (!fields.headline.trim()) errs.headline = 'Headline is required';
     if (!fields.bio.trim()) errs.bio = 'Bio is required';
     if (!formData.profilePhotoBase64) errs.photo = 'Profile photo is required';
 
@@ -552,26 +551,6 @@ export function Step1Identity({ onNext }: Props) {
             className={`input-base w-full ${errors.linkedinUrl ? 'border-red-300 focus:ring-red-200' : ''}`}
           />
           {errors.linkedinUrl && <p className="mt-1 text-xs text-red-500">{errors.linkedinUrl}</p>}
-        </div>
-
-        {/* ── 8. Professional headline ── */}
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-1.5">
-            <label className="block text-xs font-semibold text-brand-text-secondary">
-              Professional headline <span className="text-red-500">*</span>
-            </label>
-            <span className={`text-xs ${fields.headline.length > 110 ? 'text-amber-500' : 'text-brand-text-muted'}`}>
-              {fields.headline.length}/120
-            </span>
-          </div>
-          <input
-            type="text"
-            value={fields.headline}
-            onChange={(e) => updateField('headline', e.target.value.slice(0, 120))}
-            placeholder="e.g. Cross-border M&A specialist with 15+ years experience"
-            className={`input-base w-full ${errors.headline ? 'border-red-300 focus:ring-red-200' : ''}`}
-          />
-          {errors.headline && <p className="mt-1 text-xs text-red-500">{errors.headline}</p>}
         </div>
 
         {/* ── 10. Professional bio ── */}
