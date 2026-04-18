@@ -18,7 +18,10 @@
       "Bash(git commit -m \"Session 1.3: database migrations \\(17 files\\)\")",
       "Bash(npm install:*)",
       "Bash(pnpm --version)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(npm install *)",
+      "mcp__claude_ai_Supabase__list_projects",
+      "mcp__claude_ai_Supabase__get_logs"
     ]
   }
 }
