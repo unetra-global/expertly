@@ -20,6 +20,14 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   });
 
   const supabase = createServerClient(supabaseUrl, supabaseKey, {
+    auth: {
+      // Prevent the SDK from scheduling background refresh retries inside the
+      // long-running Next.js server process. The middleware calls getUser()
+      // explicitly — that single call handles any required token refresh.
+      // Without this, a failed refresh (e.g. rotated / deleted token) triggers
+      // aggressive retries from the Node process → 429 storm on Supabase Auth.
+      autoRefreshToken: false,
+    },
     cookies: {
       get(name: string) {
         return request.cookies.get(name)?.value;
