@@ -12,7 +12,6 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  // If env vars are missing (build time), allow through — layouts will guard.
   if (!supabaseUrl || !supabaseKey) return NextResponse.next();
 
   const response = NextResponse.next({
@@ -27,22 +26,14 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
       // Without this, a failed refresh (e.g. rotated / deleted token) triggers
       // aggressive retries from the Node process → 429 storm on Supabase Auth.
       autoRefreshToken: false,
+      persistSession: false,
+      detectSessionInUrl: false,
     },
     cookies: {
       get(name: string) {
         return request.cookies.get(name)?.value;
       },
       set(name: string, value: string, options: CookieOptions) {
-        // Write to BOTH request and response cookies.
-        //
-        // Why both? When @supabase/ssr refreshes an expired access token here
-        // in middleware, the new tokens must be visible to every server
-        // component (layout, page) that runs in the same render cycle — those
-        // components read from the *request* cookies, not the response.
-        // Writing only to the response (the old bug) left every downstream
-        // server component seeing the stale expired token and each one
-        // independently firing its own POST /token?grant_type=refresh_token,
-        // producing the 429 storm observed in auth logs (user_agent: node).
         request.cookies.set({ name, value, ...options });
         response.cookies.set({ name, value, ...options });
       },
@@ -53,11 +44,15 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     },
   });
 
+  // getSession() reads from cookies only — zero Supabase network calls.
+  // Security: the JWT is cryptographically verified by the NestJS backend
+  // on every API call (via jose). Middleware only needs to know whether a
+  // session cookie exists to decide whether to redirect to /auth.
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
-  if (!user) {
+  if (!session) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = '/auth';
     loginUrl.searchParams.set('returnTo', pathname);

@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { FastifyRequest } from 'fastify';
-import * as jose from 'jose';
+import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { SupabaseService } from '../services/supabase.service';
 import { AuthUser, UserRole, MembershipStatus } from '@expertly/types';
@@ -35,16 +35,21 @@ const AUTH_CACHE_TTL_MS = 60_000;
 const AUTH_CACHE_MAX_SIZE = 2_000;
 const authCache = new Map<string, CachedAuthUser>();
 
-// Lazily initialised once on first request so the env var is always present.
-let jwtSecret: Uint8Array | null = null;
+// JWKS client — fetches Supabase's public keys once and caches them for 10 min.
+// Works with any algorithm (ECC P-256 / ES256, RSA, HS256 via legacy secret).
+// No SUPABASE_JWT_SECRET env var needed — verification uses the public key set.
+let _jwks: ReturnType<typeof createRemoteJWKSet> | null = null;
 
-function getJwtSecret(): Uint8Array {
-  if (!jwtSecret) {
-    const secret = process.env.SUPABASE_JWT_SECRET;
-    if (!secret) throw new Error('SUPABASE_JWT_SECRET is not set');
-    jwtSecret = new TextEncoder().encode(secret);
+function getJWKS(): ReturnType<typeof createRemoteJWKSet> {
+  if (!_jwks) {
+    const supabaseUrl = process.env.SUPABASE_URL;
+    if (!supabaseUrl) throw new Error('SUPABASE_URL is not set');
+    _jwks = createRemoteJWKSet(
+      new URL(`${supabaseUrl}/auth/v1/.well-known/jwks.json`),
+      { cacheMaxAge: 600_000 }, // 10-minute cache — keys change rarely
+    );
   }
-  return jwtSecret;
+  return _jwks;
 }
 
 @Injectable()
@@ -77,15 +82,16 @@ export class JwtAuthGuard implements CanActivate {
       return true;
     }
 
-    // Verify JWT locally — zero Supabase network calls.
-    // Supabase tokens are standard HS256 JWTs signed with SUPABASE_JWT_SECRET.
-    // The payload includes sub (uid), email, and user_metadata (name fields).
+    // Verify JWT against Supabase's JWKS endpoint.
+    // jose caches the public keys for 10 min — this is NOT a per-request
+    // network call. Works automatically with ECC (P-256 / ES256) and any
+    // future key rotations without changing this code or env vars.
     let supabaseUid: string;
     let email: string;
     let firstName: string;
     let lastName: string;
     try {
-      const { payload } = await jose.jwtVerify(token, getJwtSecret(), {
+      const { payload } = await jwtVerify(token, getJWKS(), {
         audience: 'authenticated',
       });
       supabaseUid = payload.sub as string;
@@ -157,7 +163,6 @@ export class JwtAuthGuard implements CanActivate {
         authUser.memberId = memberRow.id;
         authUser.membershipStatus = memberRow.membership_status;
 
-        // Suspended members are downgraded to regular user
         if (memberRow.membership_status === 'suspended') {
           authUser.role = 'user';
         }
