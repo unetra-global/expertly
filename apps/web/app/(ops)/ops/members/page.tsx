@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { apiClient } from '@/lib/apiClient';
 import { queryKeys } from '@/hooks/queryKeys';
@@ -39,12 +39,30 @@ export default function MembersPage() {
   const { data: response, isLoading } = useQuery({
     queryKey: queryKeys.ops.members(filters),
     queryFn: () => {
-      const qs = filter ? `?filter=${filter}` : '';
-      return apiClient.get<{ data: OpsMember[]; meta: { total: number } }>(`/ops/members${qs}`);
+      const params = new URLSearchParams();
+      if (filter === 'pending_re_verification') params.set('pendingReVerification', 'true');
+      else if (filter === 'pending_service_change') params.set('pendingServiceChange', 'true');
+      else if (filter === 'expiring') params.set('expiringDays', '30');
+      const qs = params.toString();
+      return apiClient.get<{ data: OpsMember[]; meta: { total: number } }>(`/members/admin/list${qs ? `?${qs}` : ''}`);
     },
   });
 
   const members = response?.data ?? [];
+
+  const [reminderResult, setReminderResult] = useState<string | null>(null);
+  const reminderMutation = useMutation({
+    mutationFn: () =>
+      apiClient.post<{ sent: number }>('/members/admin/send-renewal-reminders', { daysUntilExpiry: 30 }),
+    onSuccess: (res) => {
+      setReminderResult(
+        res.sent === 0
+          ? 'No members to remind (nobody expires exactly 30 days from today).'
+          : `Sent ${res.sent} renewal reminder${res.sent === 1 ? '' : 's'}.`,
+      );
+    },
+    onError: () => setReminderResult('Failed to send renewal reminders.'),
+  });
 
   const handleFilterChange = (val: string) => {
     setFilter(val);
@@ -83,21 +101,38 @@ export default function MembersPage() {
       </div>
 
       {/* Filter tabs */}
-      <div className="flex gap-1 mb-5 bg-slate-100 p-1 rounded-lg w-fit">
-        {FILTER_TABS.map((tab) => (
+      <div className="flex items-center justify-between gap-3 mb-5">
+        <div className="flex gap-1 bg-slate-100 p-1 rounded-lg w-fit">
+          {FILTER_TABS.map((tab) => (
+            <button
+              key={tab.value}
+              onClick={() => handleFilterChange(tab.value)}
+              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                filter === tab.value
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        {filter === 'expiring' && (
           <button
-            key={tab.value}
-            onClick={() => handleFilterChange(tab.value)}
-            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-              filter === tab.value
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700'
-            }`}
+            onClick={() => { setReminderResult(null); reminderMutation.mutate(); }}
+            disabled={reminderMutation.isPending}
+            className="text-sm font-medium px-4 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-60 transition-colors"
           >
-            {tab.label}
+            {reminderMutation.isPending ? 'Sending…' : 'Send renewal reminders'}
           </button>
-        ))}
+        )}
       </div>
+
+      {reminderResult && (
+        <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 text-sm text-slate-700 mb-5">
+          {reminderResult}
+        </div>
+      )}
 
       {isLoading ? (
         <div className="space-y-2">

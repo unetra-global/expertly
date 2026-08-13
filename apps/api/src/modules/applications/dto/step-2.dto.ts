@@ -31,11 +31,6 @@ export class Step2Dto {
 
   @IsOptional()
   @IsArray()
-  @IsString({ each: true })
-  qualifications?: string[];
-
-  @IsOptional()
-  @IsArray()
   credentials?: unknown[];
 
   @IsOptional()

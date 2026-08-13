@@ -51,7 +51,7 @@ export default function MemberDetailPage() {
 
   const { data: member, isLoading } = useQuery({
     queryKey: queryKeys.ops.member(id),
-    queryFn: () => apiClient.get<OpsMember>(`/ops/members/${id}`),
+    queryFn: () => apiClient.get<OpsMember>(`/members/admin/${id}`),
     enabled: !!id,
   });
 
@@ -74,13 +74,13 @@ export default function MemberDetailPage() {
   };
 
   const verifyMutation = useMutation({
-    mutationFn: () => apiClient.patch(`/ops/members/${id}/verify`, {}),
+    mutationFn: () => apiClient.patch(`/members/admin/${id}/verify`, {}),
     onSuccess: invalidate,
   });
 
   const suspendMutation = useMutation({
     mutationFn: () =>
-      apiClient.patch(`/ops/members/${id}/suspend`, { reason: suspendReason }),
+      apiClient.patch(`/members/admin/${id}/suspend`, { reason: suspendReason }),
     onSuccess: () => {
       invalidate();
       setShowSuspendModal(false);
@@ -90,19 +90,19 @@ export default function MemberDetailPage() {
 
   const tierMutation = useMutation({
     mutationFn: () =>
-      apiClient.patch(`/ops/members/${id}/tier`, { tier: selectedTier }),
+      apiClient.patch(`/members/admin/${id}/tier`, { tier: selectedTier }),
     onSuccess: invalidate,
   });
 
   const featuredMutation = useMutation({
     mutationFn: () =>
-      apiClient.patch(`/ops/members/${id}/featured`, { isFeatured: !member?.isFeatured }),
+      apiClient.patch(`/members/admin/${id}/featured`, { isFeatured: !member?.isFeatured }),
     onSuccess: invalidate,
   });
 
   const credentialMutation = useMutation({
     mutationFn: () =>
-      apiClient.post(`/ops/members/${id}/credential`, {
+      apiClient.post(`/members/admin/${id}/credential`, {
         name: credentialForm.name,
         issuingBody: credentialForm.issuingBody || undefined,
         year: credentialForm.year ? parseInt(credentialForm.year, 10) : undefined,
@@ -118,13 +118,13 @@ export default function MemberDetailPage() {
 
   const serviceChangeMutation = useMutation({
     mutationFn: () =>
-      apiClient.patch(`/ops/members/${id}/approve-service-change`, {}),
+      apiClient.patch(`/members/admin/${id}/approve-service-change`, {}),
     onSuccess: invalidate,
   });
 
   const renewMutation = useMutation({
     mutationFn: () =>
-      apiClient.patch(`/ops/members/${id}/renew`, {
+      apiClient.patch(`/members/admin/${id}/renew`, {
         membershipExpiryAt: newExpiryDate,
         paymentReceivedAt: new Date().toISOString(),
       }),
@@ -151,9 +151,7 @@ export default function MemberDetailPage() {
     member.membershipExpiryAt &&
     new Date(member.membershipExpiryAt) < new Date(Date.now() + 30 * 864e5);
 
-  const photoSrc = member.profilePhotoBase64
-    ? `data:image/webp;base64,${member.profilePhotoBase64}`
-    : member.profilePhotoUrl ?? null;
+  const photoSrc = member.profilePhotoUrl ?? null;
 
   const fullName = [member.firstName, member.lastName].filter(Boolean).join(' ') || member.slug;
 
@@ -418,11 +416,11 @@ export default function MemberDetailPage() {
           )}
 
           {/* Key Engagements */}
-          {member.keyEngagements && member.keyEngagements.length > 0 && (
+          {member.careerHighlights && member.careerHighlights.length > 0 && (
             <div className="bg-white rounded-xl border border-slate-200 p-5">
               <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Key Engagements</h4>
               <ul className="space-y-1.5">
-                {member.keyEngagements.map((eng, i) => (
+                {member.careerHighlights.map((eng, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm text-slate-700">
                     <span className="text-slate-400 shrink-0 mt-0.5">•</span>
                     <span>{String(eng)}</span>
@@ -507,7 +505,7 @@ export default function MemberDetailPage() {
           <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-3">
             <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Change Tier</h4>
             <select
-              value={selectedTier || member.membershipTier || 'budding_entrepreneur'}
+              value={selectedTier || member.membershipTier || 'budding_professional'}
               onChange={(e) => setSelectedTier(e.target.value)}
               className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
             >

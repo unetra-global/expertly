@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { ScheduleModule } from '@nestjs/schedule';
 import { SupabaseModule } from './common/modules/supabase.module';
 import { CacheModule } from './common/modules/cache.module';
 import { EmbeddingModule } from './common/modules/embedding.module';
@@ -19,16 +18,12 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { AutomationModule } from './modules/automation/automation.module';
 import { AiModule } from './modules/ai/ai.module';
 import { EmailModule } from './modules/email/email.module';
-import { RssModule } from './modules/rss/rss.module';
 import { OpsModule } from './modules/ops/ops.module';
-import { AdminModule } from './modules/admin/admin.module';
-import { SchedulerModule } from './modules/scheduler/scheduler.module';
 import { NewsletterModule } from './modules/newsletter/newsletter.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    ScheduleModule.forRoot(),
     // Shared global singletons — must come before feature modules
     SupabaseModule,
     CacheModule,
@@ -39,7 +34,6 @@ import { NewsletterModule } from './modules/newsletter/newsletter.module';
     TaxonomyModule,
     MembersModule,
     HomepageModule,
-    // Week 3 modules
     ApplicationsModule,
     UploadModule,
     ArticlesModule,
@@ -47,15 +41,10 @@ import { NewsletterModule } from './modules/newsletter/newsletter.module';
     ConsultationModule,
     SearchModule,
     DashboardModule,
-    // Week 8 modules
     AutomationModule,
     AiModule,
     EmailModule,
-    RssModule,
     OpsModule,
-    AdminModule,
-    // Week 10 modules
-    SchedulerModule,
     NewsletterModule,
   ],
 })

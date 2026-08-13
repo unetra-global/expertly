@@ -1,6 +1,7 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { apiClient } from '@/lib/apiClient';
 import { queryKeys } from '@/hooks/queryKeys';
@@ -53,6 +54,9 @@ const TOTAL_CARDS = [
 ];
 
 export default function OpsOverviewPage() {
+  const qc = useQueryClient();
+  const [expiryResult, setExpiryResult] = useState<string | null>(null);
+
   const {
     data: stats,
     isLoading,
@@ -61,7 +65,20 @@ export default function OpsOverviewPage() {
   } = useQuery({
     queryKey: queryKeys.ops.stats(),
     queryFn: () => apiClient.get<OpsStats>('/admin/stats'),
-    refetchInterval: 60_000,
+  });
+
+  const expireMutation = useMutation({
+    mutationFn: () => apiClient.post<{ expired: number }>('/members/admin/expire-overdue', {}),
+    onSuccess: (res) => {
+      setExpiryResult(
+        res.expired === 0
+          ? 'No overdue memberships to expire.'
+          : `Expired ${res.expired} membership${res.expired === 1 ? '' : 's'}.`,
+      );
+      void qc.invalidateQueries({ queryKey: queryKeys.ops.stats() });
+      void qc.invalidateQueries({ queryKey: queryKeys.ops.members() });
+    },
+    onError: () => setExpiryResult('Failed to run expiry check.'),
   });
 
   return (
@@ -70,15 +87,30 @@ export default function OpsOverviewPage() {
         <div>
           <h2 className="text-2xl font-bold text-slate-900">Overview</h2>
           <p className="text-sm text-slate-500 mt-1">
-            Live ops counters — refreshes every 60 seconds
+            Live ops counters
           </p>
         </div>
-        {dataUpdatedAt > 0 && (
-          <span className="text-xs text-slate-400">
-            Last updated {new Date(dataUpdatedAt).toLocaleTimeString()}
-          </span>
-        )}
+        <div className="flex items-center gap-3">
+          {dataUpdatedAt > 0 && (
+            <span className="text-xs text-slate-400">
+              Last updated {new Date(dataUpdatedAt).toLocaleTimeString()}
+            </span>
+          )}
+          <button
+            onClick={() => { setExpiryResult(null); expireMutation.mutate(); }}
+            disabled={expireMutation.isPending}
+            className="text-sm font-medium px-4 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-60 transition-colors"
+          >
+            {expireMutation.isPending ? 'Running…' : 'Run expiry check'}
+          </button>
+        </div>
       </div>
+
+      {expiryResult && (
+        <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 text-sm text-slate-700 mb-6">
+          {expiryResult}
+        </div>
+      )}
 
       {isLoading && (
         <div className="grid grid-cols-2 gap-4 mb-8">

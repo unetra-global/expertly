@@ -10,14 +10,12 @@ export interface Availability {
   }[];
 }
 
-export interface Engagement {
-  linkedinUrl?: string;
-  twitterUrl?: string;
-  githubUrl?: string;
-  websiteUrl?: string;
-  speakingTopics?: string[];
-  openToConsultation: boolean;
-  openToMentoring: boolean;
+export interface Achievement {
+  type: 'award' | 'speaking' | 'publication' | 'media';
+  title: string;
+  organization?: string;
+  year?: number;
+  url?: string;
 }
 
 export interface Credential {
@@ -59,18 +57,11 @@ export interface Education {
   isCurrent: boolean;
 }
 
-export interface Speaker {
-  memberId?: string;
-  name: string;
-  title: string;
-  company?: string;
-  avatarUrl?: string;
-  bio?: string;
-}
-
 // ─── Enums (mirroring DB enums) ─────────────────────────────────────────────
 
 export type UserRole = 'user' | 'member' | 'ops' | 'backend_admin';
+
+export type MemberTier = 'budding_professional' | 'seasoned_professional';
 
 export type MembershipStatus = 'pending' | 'active' | 'suspended' | 'cancelled';
 
@@ -79,7 +70,8 @@ export type ApplicationStatus =
   | 'submitted'
   | 'under_review'
   | 'approved'
-  | 'rejected';
+  | 'rejected'
+  | 'waitlisted';
 
 export type ArticleStatus = 'draft' | 'published' | 'archived';
 
@@ -93,8 +85,6 @@ export type ConsultationStatus =
   | 'cancelled';
 
 export type JobStatus = 'pending' | 'processing' | 'completed' | 'failed';
-
-export type ConsentType = 'terms_of_service' | 'privacy_policy' | 'marketing';
 
 // ─── Core interfaces ─────────────────────────────────────────────────────────
 
@@ -114,21 +104,44 @@ export interface Member {
   id: string;
   userId: string;
   slug: string;
+  // Profile
+  designation?: string;
   headline: string;
   bio: string;
-  avatarUrl?: string;
+  profilePhotoUrl?: string;
   website?: string;
   linkedinUrl?: string;
+  // Location
+  city?: string;
+  country?: string;
+  region?: string;
+  state?: string;
+  contactPhone?: string;
+  contactEmail?: string;
+  // Membership
+  memberTier: 'budding_professional' | 'seasoned_professional';
   membershipStatus: MembershipStatus;
-  seatId?: string;
-  availability?: Availability;
-  engagement?: Engagement;
+  membershipStartDate?: string;
+  membershipExpiryDate?: string;
+  isVerified: boolean;
+  verifiedAt?: string;
+  isFeatured: boolean;
+  // Professional
+  primaryServiceId?: string;
+  yearsOfExperience?: number;
+  consultationFeeMinUsd?: number;
+  consultationFeeMaxUsd?: number;
+  firmName?: string;
+  firmSize?: string;
+  qualifications: string[];
   credentials: Credential[];
   testimonials: Testimonial[];
   workExperience: WorkExperience[];
   education: Education[];
-  embedding?: number[];
-  viewCount: number;
+  achievements: Achievement[];
+  careerHighlights: string[];
+  availability?: Availability;
+  // Timestamps
   createdAt: string;
   updatedAt: string;
   // joined from users
@@ -140,8 +153,6 @@ export interface Category {
   name: string;
   slug: string;
   description?: string;
-  sortOrder: number;
-  createdAt: string;
 }
 
 export interface Service {
@@ -151,7 +162,6 @@ export interface Service {
   slug: string;
   description?: string;
   isActive: boolean;
-  createdAt: string;
   // joined
   category?: Category;
 }
@@ -160,10 +170,7 @@ export interface MemberService {
   id: string;
   memberId: string;
   serviceId: string;
-  feeFrom?: number;
-  feeTo?: number;
-  feeCurrency: string;
-  description?: string;
+  isPrimary: boolean;
   createdAt: string;
   // joined
   service?: Service;
@@ -185,13 +192,11 @@ export interface Article {
   slug: string;
   body: string;
   excerpt?: string;
-  coverImageUrl?: string;
+  featuredImageUrl?: string;
   tags: string[];
   status: ArticleStatus;
-  viewCount: number;
-  readTime: number;
+  readTimeMinutes: number;
   publishedAt?: string;
-  embedding?: number[];
   createdAt: string;
   updatedAt: string;
   // joined
@@ -207,13 +212,9 @@ export interface Event {
   coverImageUrl?: string;
   startDate: string;
   endDate: string;
-  location?: string;
   isVirtual: boolean;
   virtualUrl?: string;
-  capacity?: number;
   status: EventStatus;
-  speakers: Speaker[];
-  embedding?: number[];
   registrationUrl?: string;
   createdAt: string;
   updatedAt: string;
@@ -224,35 +225,52 @@ export interface Event {
 export interface Application {
   id: string;
   userId: string;
-  // Step 1: personal info
-  fullName: string;
-  email: string;
-  phone?: string;
-  location: string;
+  // Step 1 — Identity
+  firstName?: string;
+  lastName?: string;
+  designation?: string;
+  headline?: string;
+  bio?: string;
   linkedinUrl?: string;
+  profilePhotoUrl?: string;
+  region?: string;
+  country?: string;
+  state?: string;
+  city?: string;
+  phoneExtension?: string;
+  phone?: string;
+  contactEmail?: string;
+  // Step 2 — Experience
+  yearsOfExperience?: number;
+  firmName?: string;
+  firmSize?: string;
   websiteUrl?: string;
-  // Step 2: professional
-  headline: string;
-  bio: string;
-  yearsOfExperience: number;
-  primaryCategoryId: string;
-  serviceIds: string[];
-  // Step 3: fit questions
-  whyJoin: string;
-  valueProposition: string;
-  referralSource?: string;
-  agreedToTerms: boolean;
-  // Meta
+  qualifications?: string[];
+  credentials?: Credential[];
+  workExperience?: WorkExperience[];
+  education?: Education[];
+  consultationFeeMinUsd?: number;
+  consultationFeeMaxUsd?: number;
+  // Step 3 — Services
+  primaryServiceId?: string;
+  secondaryServiceIds?: string[];
+  achievements?: Achievement[];
+  careerHighlights?: string[];
+  availability?: Availability;
+  // Workflow
+  creationMode?: string;
+  currentStep: number;
   status: ApplicationStatus;
-  reviewerId?: string;
+  membershipTier?: string;
   reviewNotes?: string;
+  rejectionReason?: string;
   reviewedAt?: string;
+  reApplicationEligibleAt?: string;
   submittedAt?: string;
   createdAt: string;
   updatedAt: string;
   // joined
   user?: User;
-  primaryCategory?: Category;
 }
 
 export interface ConsultationRequest {

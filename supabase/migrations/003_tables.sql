@@ -7,11 +7,7 @@ CREATE TABLE categories (
   id          UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
   name        TEXT        NOT NULL,
   slug        TEXT        NOT NULL UNIQUE,
-  description TEXT,
-  domain      TEXT,
-  sort_order  INTEGER     NOT NULL DEFAULT 0,
-  is_active   BOOLEAN     NOT NULL DEFAULT true,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  description TEXT
 );
 
 -- ── services ─────────────────────────────────────────────────────────────────
@@ -23,9 +19,7 @@ CREATE TABLE services (
   slug        TEXT        NOT NULL UNIQUE,
   description TEXT,
   is_active   BOOLEAN     NOT NULL DEFAULT true,
-  sort_order  INTEGER     NOT NULL DEFAULT 0,
-  regions     TEXT[]      NOT NULL DEFAULT '{}',
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  regions     TEXT[]      NOT NULL DEFAULT '{}'
 );
 
 -- ── users ─────────────────────────────────────────────────────────────────────
@@ -39,14 +33,13 @@ CREATE TABLE users (
   role                 user_role     NOT NULL DEFAULT 'user',
   is_active            BOOLEAN       NOT NULL DEFAULT true,
   is_deleted           BOOLEAN       NOT NULL DEFAULT false,
-  auth_provider        auth_provider DEFAULT 'email',
-  linkedin_id          TEXT,
-  avatar_url           TEXT,
-  timezone             TEXT          DEFAULT 'UTC',
   deleted_at           TIMESTAMPTZ,
   deletion_reason      TEXT,
+  auth_provider        auth_provider DEFAULT 'email',
+  timezone             TEXT          DEFAULT 'UTC',
   last_login_at        TIMESTAMPTZ,
-  profile_photo_base64 TEXT,
+  profile_photo_url    TEXT,
+  consent              JSONB         NOT NULL DEFAULT '{}',
   created_at           TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
   updated_at           TIMESTAMPTZ   NOT NULL DEFAULT NOW()
 );
@@ -61,8 +54,6 @@ CREATE TABLE members (
   headline                     TEXT              NOT NULL DEFAULT '',
   bio                          TEXT              NOT NULL DEFAULT '',
   designation                  TEXT              NOT NULL DEFAULT '',
-  profile_photo_url            TEXT,
-  avatar_url                   TEXT,
   website                      TEXT,
   linkedin_url                 TEXT,
   -- Location
@@ -74,7 +65,7 @@ CREATE TABLE members (
   contact_phone                TEXT,
   contact_email                TEXT,
   -- Membership
-  member_tier                  member_tier_enum  NOT NULL DEFAULT 'budding_entrepreneur',
+  member_tier                  member_tier_enum  NOT NULL DEFAULT 'budding_professional',
   membership_status            membership_status NOT NULL DEFAULT 'pending',
   membership_start_date        TIMESTAMPTZ,
   membership_expiry_date       TIMESTAMPTZ,
@@ -84,8 +75,8 @@ CREATE TABLE members (
   -- Professional
   primary_service_id           UUID              REFERENCES services(id) ON DELETE SET NULL,
   years_of_experience          INTEGER,
-  consultation_fee_min_usd     NUMERIC(10,2),
-  consultation_fee_max_usd     NUMERIC(10,2),
+  consultation_fee_min_usd     NUMERIC(10,2)     NOT NULL DEFAULT 0,
+  consultation_fee_max_usd     NUMERIC(10,2)     NOT NULL DEFAULT 0,
   firm_name                    TEXT,
   firm_size                    TEXT,
   qualifications               TEXT[]            NOT NULL DEFAULT '{}',
@@ -93,20 +84,15 @@ CREATE TABLE members (
   testimonials                 JSONB             NOT NULL DEFAULT '[]',
   work_experience              JSONB             NOT NULL DEFAULT '[]',
   education                    JSONB             NOT NULL DEFAULT '[]',
-  key_engagements              JSONB             NOT NULL DEFAULT '[]',
+  achievements                 JSONB             NOT NULL DEFAULT '[]',
+  career_highlights              TEXT[]            NOT NULL DEFAULT '{}',
   availability                 JSONB,
-  engagement                   JSONB,
-  engagements                  JSONB             DEFAULT '[]',
   -- AI / embedding
   embedding                    vector(768),
   embedding_status             embedding_status  DEFAULT 'pending',
   embedding_generated_at       TIMESTAMPTZ,
-  -- Analytics
-  view_count                   INTEGER           NOT NULL DEFAULT 0,
-  profile_view_count           INTEGER           DEFAULT 0,
   -- Payment / activation
   payment_received_at          TIMESTAMPTZ,
-  payment_received_by          UUID              REFERENCES users(id) ON DELETE SET NULL,
   activated_at                 TIMESTAMPTZ,
   activated_by                 UUID              REFERENCES users(id) ON DELETE SET NULL,
   renewed_at                   TIMESTAMPTZ,
@@ -115,6 +101,10 @@ CREATE TABLE members (
   re_verification_reason       TEXT,
   pending_service_change       UUID              REFERENCES services(id) ON DELETE SET NULL,
   pending_service_change_at    TIMESTAMPTZ,
+  -- Profile photo (S3 URL)
+  profile_photo_url            TEXT,
+  -- Consent
+  consent                      JSONB             NOT NULL DEFAULT '{}',
   -- Timestamps
   created_at                   TIMESTAMPTZ       NOT NULL DEFAULT NOW(),
   updated_at                   TIMESTAMPTZ       NOT NULL DEFAULT NOW()
@@ -126,10 +116,6 @@ CREATE TABLE member_services (
   id           UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
   member_id    UUID        NOT NULL REFERENCES members(id) ON DELETE CASCADE,
   service_id   UUID        NOT NULL REFERENCES services(id) ON DELETE CASCADE,
-  fee_from     NUMERIC(10,2),
-  fee_to       NUMERIC(10,2),
-  fee_currency TEXT        NOT NULL DEFAULT 'USD',
-  description  TEXT,
   is_primary   BOOLEAN     DEFAULT FALSE,
   created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE(member_id, service_id)
@@ -166,12 +152,13 @@ CREATE TABLE applications (
   primary_service_id       UUID               REFERENCES services(id) ON DELETE SET NULL,
   secondary_service_ids    UUID[]             NOT NULL DEFAULT '{}',
   -- Experience
-  credentials              JSONB              NOT NULL DEFAULT '[]',
   work_experience          JSONB              NOT NULL DEFAULT '[]',
   education                JSONB              NOT NULL DEFAULT '[]',
-  key_engagements          JSONB              NOT NULL DEFAULT '[]',
-  -- Availability / engagement
-  engagements              JSONB              NOT NULL DEFAULT '{}',
+  achievements             JSONB              NOT NULL DEFAULT '[]',
+  career_highlights          TEXT[]             NOT NULL DEFAULT '{}',
+  consultation_fee_min_usd NUMERIC(10,2)     NOT NULL DEFAULT 0,
+  consultation_fee_max_usd NUMERIC(10,2)     NOT NULL DEFAULT 0,
+  -- Availability
   availability             JSONB              NOT NULL DEFAULT '{}',
   -- Consents
   consents                 JSONB              NOT NULL DEFAULT '{}',
@@ -201,14 +188,10 @@ CREATE TABLE articles (
   subtitle             TEXT,
   body                 TEXT             NOT NULL DEFAULT '',
   excerpt              TEXT,
-  cover_image_url      TEXT,
-  featured_image_url   TEXT,
+  featured_image_url TEXT,
   tags                 TEXT[]           NOT NULL DEFAULT '{}',
   status               article_status   NOT NULL DEFAULT 'draft',
-  view_count           INTEGER          NOT NULL DEFAULT 0,
-  read_time            INTEGER          NOT NULL DEFAULT 1,
   read_time_minutes    INTEGER          DEFAULT 1,
-  word_count           INTEGER,
   published_at         TIMESTAMPTZ,
   submitted_at         TIMESTAMPTZ,
   -- Categorisation
@@ -218,7 +201,6 @@ CREATE TABLE articles (
   -- AI fields
   ai_qa_inputs         JSONB,
   ai_summary           TEXT,
-  regulatory_update_id UUID,
   embedding            vector(768),
   embedding_status     embedding_status DEFAULT 'pending',
   embedding_error      TEXT,
@@ -252,17 +234,13 @@ CREATE TABLE events (
   event_format         TEXT,            -- in_person|virtual|hybrid
   is_virtual           BOOLEAN          NOT NULL DEFAULT false,
   virtual_url          TEXT,
-  online_url           TEXT,
   -- Location
   country              country_enum,
   city                 TEXT,
-  location             TEXT,
   venue_name           TEXT,
   -- Details
-  capacity             INTEGER,
   is_free              BOOLEAN          DEFAULT FALSE,
   registration_url     TEXT,
-  speakers             JSONB            NOT NULL DEFAULT '[]',
   tags                 TEXT[]           DEFAULT '{}',
   organiser_name       TEXT,
   -- Publishing
@@ -289,7 +267,6 @@ CREATE TABLE consultation_requests (
   subject          TEXT,
   message          TEXT                NOT NULL,
   description      TEXT,
-  preferred_time   TEXT,
   status           consultation_status NOT NULL DEFAULT 'pending',
   scheduled_at     TIMESTAMPTZ,
   response_message TEXT,
@@ -312,21 +289,6 @@ CREATE TABLE user_digest_subscriptions (
   UNIQUE(user_id, category_id)
 );
 
--- ── digest_send_log ───────────────────────────────────────────────────────────
-
-CREATE TABLE digest_send_log (
-  id               UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
-  sent_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  recipient_count  INTEGER     NOT NULL DEFAULT 0,
-  status           TEXT        NOT NULL DEFAULT 'sent',
-  error_message    TEXT,
-  user_id          UUID        REFERENCES users(id) ON DELETE CASCADE,
-  category_id      UUID        REFERENCES categories(id),
-  week_start       DATE,
-  period_date      DATE,
-  guest_email      TEXT
-);
-
 -- ── member_notification_preferences ──────────────────────────────────────────
 
 CREATE TABLE member_notification_preferences (
@@ -336,32 +298,9 @@ CREATE TABLE member_notification_preferences (
   email_on_article_comment BOOLEAN     NOT NULL DEFAULT true,
   email_on_event_rsvp      BOOLEAN     NOT NULL DEFAULT true,
   article_status           BOOLEAN     DEFAULT TRUE,
-  regulatory_nudges        BOOLEAN     DEFAULT TRUE,
   platform_updates         BOOLEAN     DEFAULT TRUE,
   created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at               TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- ── regulatory_updates ────────────────────────────────────────────────────────
-
-CREATE TABLE regulatory_updates (
-  id                  UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
-  title               TEXT        NOT NULL,
-  body                TEXT        DEFAULT '',
-  category            TEXT        NOT NULL DEFAULT 'general',
-  source              TEXT,
-  source_url          TEXT,
-  summary             TEXT,
-  relevant_categories TEXT[]      DEFAULT '{}',
-  relevant_regions    TEXT[]      DEFAULT '{}',
-  published_at        TIMESTAMPTZ,
-  published_date      DATE,
-  is_active           BOOLEAN     NOT NULL DEFAULT true,
-  is_processed        BOOLEAN     DEFAULT FALSE,
-  nudges_sent         INTEGER     DEFAULT 0,
-  nudges_sent_at      TIMESTAMPTZ,
-  created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- ── background_jobs ───────────────────────────────────────────────────────────
@@ -385,19 +324,6 @@ CREATE TABLE background_jobs (
 
 -- Required for Supabase Realtime on this table
 ALTER TABLE background_jobs REPLICA IDENTITY FULL;
-
--- ── consent_log ───────────────────────────────────────────────────────────────
-
-CREATE TABLE consent_log (
-  id             UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id        UUID         REFERENCES users(id) ON DELETE SET NULL,
-  consent_type   consent_type NOT NULL,
-  ip_address     INET,
-  user_agent     TEXT,
-  consent_given  BOOLEAN      DEFAULT TRUE,
-  version        TEXT         DEFAULT '1.0',
-  created_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW()
-);
 
 -- ── email_logs ────────────────────────────────────────────────────────────────
 
@@ -433,16 +359,6 @@ CREATE TABLE broadcast_logs (
   sent_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- ── guest_newsletter_subscriptions ───────────────────────────────────────────
-
-CREATE TABLE guest_newsletter_subscriptions (
-  id          UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name        TEXT        NOT NULL,
-  email       TEXT        NOT NULL,
-  category_id UUID        REFERENCES categories(id) ON DELETE SET NULL,
-  is_active   BOOLEAN     NOT NULL DEFAULT TRUE,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- INDEXES
@@ -518,38 +434,14 @@ CREATE UNIQUE INDEX idx_digest_subs_user_category ON user_digest_subscriptions(u
 CREATE INDEX idx_digest_subs_email     ON user_digest_subscriptions(email);
 CREATE INDEX idx_digest_subs_is_active ON user_digest_subscriptions(is_active);
 
--- digest_send_log
-CREATE UNIQUE INDEX idx_digest_log_user_cat_week ON digest_send_log(user_id, category_id, week_start)
-  WHERE user_id IS NOT NULL AND category_id IS NOT NULL AND week_start IS NOT NULL;
-CREATE UNIQUE INDEX idx_digest_log_guest_email_period ON digest_send_log(guest_email, category_id, period_date)
-  WHERE guest_email IS NOT NULL AND category_id IS NOT NULL AND period_date IS NOT NULL;
-CREATE INDEX idx_digest_log_week   ON digest_send_log(week_start);
-CREATE INDEX idx_digest_log_period ON digest_send_log(user_id, category_id, period_date)
-  WHERE period_date IS NOT NULL;
-
 -- background_jobs
 CREATE INDEX idx_bg_jobs_status     ON background_jobs(status);
 CREATE INDEX idx_bg_jobs_type       ON background_jobs(type);
 CREATE INDEX idx_bg_jobs_created_at ON background_jobs(created_at DESC);
 CREATE INDEX idx_jobs_user          ON background_jobs(user_id);
 
--- regulatory_updates
-CREATE INDEX idx_regulatory_published_at ON regulatory_updates(published_at DESC);
-CREATE INDEX idx_regulatory_is_active    ON regulatory_updates(is_active);
-CREATE INDEX idx_regulatory_processed    ON regulatory_updates(is_processed)
-  WHERE is_processed = FALSE;
-
--- consent_log
-CREATE INDEX idx_consent_user_id ON consent_log(user_id);
-CREATE INDEX idx_consent_type    ON consent_log(consent_type);
-
 -- email_logs
 CREATE INDEX idx_email_logs_created_at ON email_logs(created_at DESC);
 CREATE INDEX idx_email_logs_status     ON email_logs(status);
 CREATE INDEX idx_email_logs_user       ON email_logs(user_id);
 CREATE INDEX idx_email_logs_template   ON email_logs(template_key);
-
--- guest_newsletter_subscriptions
-CREATE INDEX idx_guest_newsletter_active   ON guest_newsletter_subscriptions(is_active)
-  WHERE is_active = TRUE;
-CREATE INDEX idx_guest_newsletter_category ON guest_newsletter_subscriptions(category_id);

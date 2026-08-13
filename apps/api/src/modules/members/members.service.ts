@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Queue } from 'bullmq';
 import { SupabaseService } from '../../common/services/supabase.service';
@@ -7,7 +7,7 @@ import { EmailService } from '../../common/services/email.service';
 import { EmbeddingService } from '../../common/services/embedding.service';
 import { QUEUE_NAMES, QUEUE_JOB_TYPES, getQueueConnection, isQueueDisabled } from '../../config/queue.config';
 import { AuthUser, PaginationMeta } from '@expertly/types';
-import { resolveCountryName } from '@expertly/utils';
+import { resolveCountryName, MEMBER_TIERS, slugify, randomSuffix } from '@expertly/utils';
 import { QueryMembersDto } from './dto/query-members.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
 import { UpdateNotificationsDto } from './dto/update-notifications.dto';
@@ -43,37 +43,37 @@ const EMBEDDABLE_FIELDS: (keyof UpdateMemberDto)[] = [
 
 // Teaser fields for guests (no auth)
 const TEASER_FIELDS =
-  'id, slug, designation, headline, profile_photo_url, avatar_url, ' +
+  'id, slug, designation, headline, profile_photo_url, ' +
   'city, country, member_tier, is_verified, primary_service_id, ' +
-  'users!user_id(first_name, last_name, profile_photo_base64), ' +
+  'users!user_id(first_name, last_name, profile_photo_url), ' +
   'services!primary_service_id(id, name, categories!category_id(id, name))';
 
 // Full fields for authenticated users
 const FULL_FIELDS =
-  'id, slug, designation, headline, bio, profile_photo_url, avatar_url, ' +
+  'id, slug, designation, headline, bio, profile_photo_url, ' +
   'city, country, member_tier, is_verified, primary_service_id, firm_name, ' +
   'years_of_experience, consultation_fee_min_usd, consultation_fee_max_usd, ' +
   'website, linkedin_url, ' +
   'contact_phone, contact_email, ' +
-  'availability, engagement, engagements, ' +
+  'availability, achievements, career_highlights, ' +
   'work_experience, education, credentials, qualifications, testimonials, ' +
-  'is_featured, view_count, membership_status, created_at, updated_at, ' +
-  'users!user_id(first_name, last_name, email, profile_photo_base64), ' +
+  'is_featured, membership_status, created_at, updated_at, ' +
+  'users!user_id(first_name, last_name, email, profile_photo_url), ' +
   'services!primary_service_id(id, name, categories!category_id(id, name))';
 
 // Full fields for /me endpoint (all JSONB, no embedding)
 const ME_FIELDS =
-  'id, user_id, slug, designation, headline, bio, profile_photo_url, avatar_url, ' +
+  'id, user_id, slug, designation, headline, bio, profile_photo_url, ' +
   'city, country, website, linkedin_url, ' +
   'membership_status, member_tier, is_verified, verified_at, is_featured, ' +
   'primary_service_id, years_of_experience, consultation_fee_min_usd, ' +
-  'consultation_fee_max_usd, qualifications, availability, engagement, ' +
-  'credentials, testimonials, work_experience, education, view_count, ' +
+  'consultation_fee_max_usd, qualifications, availability, ' +
+  'credentials, testimonials, work_experience, education, achievements, career_highlights, ' +
   'membership_start_date, membership_expiry_date, ' +
   're_verification_requested_at, re_verification_reason, ' +
   'pending_service_change, pending_service_change_at, ' +
   'created_at, updated_at, ' +
-  'users!user_id(id, email, first_name, last_name, role, profile_photo_base64), ' +
+  'users!user_id(id, email, first_name, last_name, role, profile_photo_url), ' +
   'services!primary_service_id(id, name, slug)';
 
 // ─── Helper ───────────────────────────────────────────────────────────────────
@@ -273,14 +273,6 @@ export class MembersService {
       throw new NotFoundException(`Member with slug '${slug}' not found`);
     }
 
-    // Increment view count directly in DB (fire-and-forget)
-    const memberId = (result as { id?: string }).id;
-    if (memberId) {
-      void Promise.resolve(
-        this.supabase.adminClient.rpc('increment_member_view_count', { p_member_id: memberId, p_count: 1 }),
-      ).catch((err: Error) => this.logger.warn(`View count increment failed: ${err.message}`));
-    }
-
     return result;
   }
 
@@ -320,7 +312,7 @@ export class MembersService {
     // Include the three user-configurable notification preferences
     const { data: prefs } = await this.supabase.adminClient
       .from('member_notification_preferences')
-      .select('article_status, regulatory_nudges, platform_updates')
+      .select('article_status, platform_updates')
       .eq('member_id', user.memberId)
       .single();
 
@@ -586,5 +578,540 @@ export class MembersService {
         similarity: similarityMap.get(m.id as string) ?? 0,
       }))
       .sort((a, b) => (b.similarity as number) - (a.similarity as number));
+  }
+
+  // ── Ops ───────────────────────────────────────────────────────────────────
+
+  async listOpsMembers(query: {
+    pendingReVerification?: boolean;
+    pendingServiceChange?: boolean;
+    expiringDays?: number;
+    page?: number;
+    limit?: number;
+  }) {
+    const sb = this.supabase.adminClient;
+    const page = Math.max(1, query.page ?? 1);
+    const limit = Math.min(100, query.limit ?? 20);
+    const offset = (page - 1) * limit;
+
+    let q = sb
+      .from('members')
+      .select(
+        'id, slug, designation, membership_status, is_verified, country, ' +
+        'is_featured, member_tier, membership_expiry_date, created_at, ' +
+        'pending_service_change, re_verification_requested_at, ' +
+        'user:users!user_id(first_name, last_name)',
+        { count: 'exact' },
+      )
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (query.pendingReVerification) q = q.not('re_verification_requested_at', 'is', null);
+    if (query.pendingServiceChange) q = q.not('pending_service_change', 'is', null);
+    if (query.expiringDays) {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() + query.expiringDays);
+      q = q
+        .gte('membership_expiry_date', new Date().toISOString().split('T')[0])
+        .lte('membership_expiry_date', cutoff.toISOString().split('T')[0]);
+    }
+
+    const { data, count, error } = await q;
+    if (error) throw new BadRequestException(error.message);
+
+    type MemberRow = {
+      user: { first_name: string; last_name: string } | null;
+      membership_expiry_date: string | null;
+      [key: string]: unknown;
+    };
+    const flat = (data as unknown as MemberRow[] ?? []).map(({ user, membership_expiry_date, ...m }) => ({
+      ...m,
+      membership_expiry_at: membership_expiry_date,
+      first_name: user?.first_name ?? '',
+      last_name: user?.last_name ?? '',
+    }));
+
+    return {
+      data: flat,
+      meta: { total: count ?? 0, page, limit, totalPages: Math.ceil((count ?? 0) / limit) },
+    };
+  }
+
+  async getOpsMember(id: string) {
+    const { data, error } = await this.supabase.adminClient
+      .from('members')
+      .select(
+        'id, slug, designation, headline, bio, ' +
+        'membership_status, is_verified, is_featured, member_tier, ' +
+        'membership_start_date, membership_expiry_date, ' +
+        'linkedin_url, profile_photo_url, ' +
+        'country, city, region, state, ' +
+        'contact_phone, contact_email, firm_name, firm_size, website, ' +
+        'years_of_experience, consultation_fee_min_usd, consultation_fee_max_usd, ' +
+        'qualifications, credentials, work_experience, education, testimonials, achievements, career_highlights, ' +
+        'primary_service_id, ' +
+        'pending_service_change, re_verification_requested_at, user_id, created_at, updated_at, ' +
+        'user:users!user_id(first_name, last_name, email, profile_photo_url)',
+      )
+      .eq('id', id)
+      .single();
+
+    if (error || !data) throw new NotFoundException('Member not found');
+
+    const { user, membership_expiry_date, ...m } = data as unknown as {
+      user: { first_name: string; last_name: string; email: string; profile_photo_url: string | null } | null;
+      membership_expiry_date: string | null;
+      [key: string]: unknown;
+    };
+    return {
+      ...m,
+      membership_expiry_at: membership_expiry_date,
+      first_name: user?.first_name ?? '',
+      last_name: user?.last_name ?? '',
+      email: user?.email ?? '',
+      profile_photo_url: user?.profile_photo_url ?? null,
+    };
+  }
+
+  async activateMember(
+    applicationId: string,
+    operator: AuthUser,
+    body: { paymentReceivedAt?: string; membershipExpiryAt?: string; paymentReceivedBy?: string },
+  ) {
+    const sb = this.supabase.adminClient;
+
+    const { data: app } = await sb
+      .from('applications')
+      .select(
+        'id, status, user_id, first_name, last_name, designation, headline, bio, ' +
+        'linkedin_url, profile_photo_url, firm_name, firm_size, website_url, region, country, state, ' +
+        'phone_extension, phone, contact_email, city, ' +
+        'years_of_experience, consultation_fee_min_usd, consultation_fee_max_usd, ' +
+        'work_experience, education, primary_service_id, membership_tier, ' +
+        'secondary_service_ids, achievements, career_highlights',
+      )
+      .eq('id', applicationId)
+      .single();
+
+    if (!app) throw new NotFoundException('Application not found');
+    const a = app as unknown as Record<string, unknown>;
+
+    if (a['status'] !== 'approved') {
+      throw new BadRequestException('Application must be in approved status before activation');
+    }
+    if (operator.dbId === a['user_id']) {
+      throw new BadRequestException('Operators cannot activate their own application');
+    }
+
+    const baseName = slugify(`${a['first_name'] ?? ''} ${a['last_name'] ?? ''}`);
+    let slug = baseName;
+    for (let i = 0; i < 10; i++) {
+      const { data: existing } = await sb.from('members').select('id').eq('slug', slug).maybeSingle();
+      if (!existing) break;
+      slug = `${baseName}-${randomSuffix()}`;
+    }
+
+    const expiryAt = body.membershipExpiryAt ?? (() => {
+      const d = new Date();
+      d.setFullYear(d.getFullYear() + 1);
+      return d.toISOString();
+    })();
+
+    const { data: member, error: memberErr } = await sb
+      .from('members')
+      .insert({
+        user_id: a['user_id'],
+        slug,
+        designation: a['designation'],
+        headline: a['headline'] ?? '',
+        bio: a['bio'] ?? '',
+        linkedin_url: a['linkedin_url'],
+        profile_photo_url: a['profile_photo_url'],
+        firm_name: a['firm_name'],
+        firm_size: a['firm_size'],
+        website: a['website_url'],
+        region: a['region'],
+        country: a['country'],
+        state: a['state'],
+        city: a['city'],
+        contact_phone: a['phone_extension'] && a['phone'] ? `${a['phone_extension']} ${a['phone']}` : (a['phone'] ?? null),
+        contact_email: a['contact_email'],
+        years_of_experience: a['years_of_experience'],
+        consultation_fee_min_usd: a['consultation_fee_min_usd'],
+        consultation_fee_max_usd: a['consultation_fee_max_usd'],
+        work_experience: a['work_experience'] ?? [],
+        education: a['education'] ?? [],
+        primary_service_id: a['primary_service_id'],
+        achievements: a['achievements'] ?? [],
+        career_highlights: a['career_highlights'] ?? [],
+        member_tier: a['membership_tier'] ?? 'budding_professional',
+        membership_status: 'active',
+        membership_start_date: new Date().toISOString().split('T')[0],
+        membership_expiry_date: expiryAt,
+        payment_received_at: body.paymentReceivedAt ?? new Date().toISOString(),
+        activated_at: new Date().toISOString(),
+        activated_by: operator.dbId,
+        is_verified: false,
+        is_featured: false,
+      })
+      .select('id')
+      .single();
+
+    if (memberErr || !member) {
+      this.logger.error('Failed to create member record', memberErr);
+      throw new BadRequestException('Failed to create member record');
+    }
+
+    const memberId = (member as unknown as { id: string }).id;
+
+    const serviceIds: string[] = [
+      a['primary_service_id'] as string,
+      ...((a['secondary_service_ids'] as string[] | null) ?? []),
+    ].filter(Boolean);
+
+    for (const serviceId of serviceIds) {
+      await sb.from('member_services').insert({
+        member_id: memberId,
+        service_id: serviceId,
+        is_primary: serviceId === a['primary_service_id'],
+      });
+    }
+
+    await sb.from('users').update({ role: 'member' }).eq('id', a['user_id'] as string);
+
+    await sb.from('member_notification_preferences').insert({
+      member_id: memberId,
+      email_on_consultation: true,
+      email_on_article_comment: true,
+      email_on_event_rsvp: true,
+      article_status: true,
+      platform_updates: true,
+    });
+
+    const { data: svcData } = await sb.from('services').select('category_id').eq('id', a['primary_service_id'] as string).single();
+    if (svcData) {
+      const { data: userData } = await sb.from('users').select('email').eq('id', a['user_id'] as string).single();
+      await sb.from('user_digest_subscriptions').insert({
+        user_id: a['user_id'],
+        email: (userData as unknown as { email: string })?.email ?? '',
+        category_id: (svcData as unknown as { category_id: string }).category_id,
+        is_active: true,
+        frequency: 'weekly',
+      });
+    }
+
+    await sb.from('applications').update({ status: 'activated', activated_at: new Date().toISOString() }).eq('id', applicationId);
+
+    await this.aiQueue?.add(QUEUE_JOB_TYPES.GENERATE_EMBEDDING, { entityType: 'member', entityId: memberId });
+
+    await this.cache.delByPattern('expertly:members:*');
+    await this.cache.delByPattern('expertly:homepage:*');
+
+    try {
+      await this.supabase.revalidatePath(`/members/${slug}`);
+    } catch (err) {
+      this.logger.warn(`ISR revalidation failed: ${(err as Error).message}`);
+    }
+
+    const { data: userData } = await sb.from('users').select('email').eq('id', a['user_id'] as string).single();
+    await this.email.sendK17MemberActivated({
+      to: (userData as unknown as { email: string })?.email ?? '',
+      memberName: `${a['first_name'] ?? ''} ${a['last_name'] ?? ''}`.trim(),
+      memberSlug: slug,
+    });
+
+    return { memberId, slug };
+  }
+
+  async verifyMember(id: string) {
+    const sb = this.supabase.adminClient;
+
+    const { data: member } = await sb
+      .from('members')
+      .select('id, user_id, user:users!user_id(first_name, last_name, email)')
+      .eq('id', id)
+      .single();
+
+    if (!member) throw new NotFoundException('Member not found');
+    const m = member as unknown as { user: { first_name: string; last_name: string; email: string } | null };
+
+    await sb.from('members').update({ is_verified: true, verified_at: new Date().toISOString() }).eq('id', id);
+
+    await this.email.sendK12VerifiedBadgeAwarded({
+      to: m.user?.email ?? '',
+      memberName: `${m.user?.first_name ?? ''} ${m.user?.last_name ?? ''}`.trim(),
+    });
+
+    await this.cache.delByPattern('expertly:members:*');
+    return { message: 'Member verified' };
+  }
+
+  async suspendMember(id: string) {
+    await this.supabase.adminClient.from('members').update({ membership_status: 'suspended' }).eq('id', id);
+    await this.cache.delByPattern('expertly:members:*');
+    return { message: 'Member suspended' };
+  }
+
+  async updateMemberTier(id: string, body: { tier: string }) {
+    const validTiers: readonly string[] = MEMBER_TIERS;
+    if (!validTiers.includes(body.tier)) {
+      throw new BadRequestException(`Invalid tier: ${body.tier}. Must be one of: ${MEMBER_TIERS.join(', ')}`);
+    }
+    await this.supabase.adminClient.from('members').update({ member_tier: body.tier }).eq('id', id);
+    await this.cache.delByPattern('expertly:members:*');
+    return { message: 'Tier updated' };
+  }
+
+  async toggleFeatured(id: string, body: { isFeatured: boolean }) {
+    await this.supabase.adminClient.from('members').update({ is_featured: body.isFeatured }).eq('id', id);
+    await this.cache.delByPattern('expertly:members:*');
+    await this.cache.delByPattern('expertly:homepage:*');
+    return { message: 'Featured status updated' };
+  }
+
+  async addCredential(memberId: string, body: { name: string; issuingBody?: string; year?: number; url?: string; isVerified?: boolean }) {
+    const { data: member } = await this.supabase.adminClient.from('members').select('credentials').eq('id', memberId).single();
+    if (!member) throw new NotFoundException('Member not found');
+
+    const credentials = (((member as unknown as { credentials: unknown[] }).credentials) ?? []).slice();
+    credentials.push({
+      id: crypto.randomUUID(),
+      name: body.name,
+      issuing_body: body.issuingBody ?? null,
+      year: body.year ?? null,
+      url: body.url ?? null,
+      is_verified: body.isVerified ?? false,
+      verified_at: body.isVerified ? new Date().toISOString() : null,
+    });
+
+    await this.supabase.adminClient.from('members').update({ credentials }).eq('id', memberId);
+    return { message: 'Credential added' };
+  }
+
+  async verifyCredential(memberId: string, body: { credentialIndex: number; verified: boolean }) {
+    const { data: member } = await this.supabase.adminClient.from('members').select('credentials').eq('id', memberId).single();
+    if (!member) throw new NotFoundException('Member not found');
+
+    const credentials = (((member as unknown as { credentials: unknown[] }).credentials) ?? []).slice();
+    if (body.credentialIndex >= credentials.length) throw new BadRequestException('Credential index out of range');
+
+    credentials[body.credentialIndex] = {
+      ...(credentials[body.credentialIndex] as object),
+      is_verified: body.verified,
+      verified_at: body.verified ? new Date().toISOString() : null,
+    };
+
+    await this.supabase.adminClient.from('members').update({ credentials }).eq('id', memberId);
+    return { message: 'Credential updated' };
+  }
+
+  async verifyTestimonial(memberId: string, body: { testimonialIndex: number; verified: boolean }) {
+    return { message: 'Testimonial updated', memberId, body };
+  }
+
+  async approveServiceChange(id: string) {
+    const sb = this.supabase.adminClient;
+
+    const { data: member } = await sb
+      .from('members')
+      .select('id, user_id, pending_service_id, user:users!user_id(first_name, last_name, email)')
+      .eq('id', id)
+      .single();
+
+    if (!member) throw new NotFoundException('Member not found');
+    const m = member as unknown as { user_id: string; pending_service_id: string | null; user: { first_name: string; last_name: string; email: string } | null };
+
+    if (!m.pending_service_id) throw new BadRequestException('No pending service change');
+
+    const { data: svc } = await sb.from('services').select('name').eq('id', m.pending_service_id).single();
+
+    await sb.from('members').update({ primary_service_id: m.pending_service_id, pending_service_id: null, is_verified: false }).eq('id', id);
+    await sb.from('member_services').update({ is_primary: false }).eq('member_id', id);
+    await sb.from('member_services').upsert({ member_id: id, service_id: m.pending_service_id, is_primary: true });
+
+    const memberEmail = m.user?.email ?? '';
+    const memberName = `${m.user?.first_name ?? ''} ${m.user?.last_name ?? ''}`.trim();
+
+    await this.email.sendK19ServiceChangeApproved({ to: memberEmail, memberName, newServiceName: (svc as unknown as { name: string })?.name ?? '' });
+    await this.email.sendK11VerifiedBadgeRemoved({ to: memberEmail, memberName, reason: 'Your service area has changed — re-verification required for the new practice area.' });
+
+    await this.cache.delByPattern('expertly:members:*');
+    return { message: 'Service change approved' };
+  }
+
+  async rejectServiceChange(id: string, body: { rejectionReason: string }) {
+    const sb = this.supabase.adminClient;
+
+    const { data: member } = await sb
+      .from('members')
+      .select('id, user_id, user:users!user_id(first_name, last_name, email)')
+      .eq('id', id)
+      .single();
+
+    if (!member) throw new NotFoundException('Member not found');
+    const m = member as unknown as { user: { first_name: string; last_name: string; email: string } | null };
+
+    await sb.from('members').update({ pending_service_id: null }).eq('id', id);
+
+    await this.email.sendK20ServiceChangeRejected({
+      to: m.user?.email ?? '',
+      memberName: `${m.user?.first_name ?? ''} ${m.user?.last_name ?? ''}`.trim(),
+      rejectionReason: body.rejectionReason,
+    });
+
+    return { message: 'Service change rejected' };
+  }
+
+  async renewMembership(
+    id: string,
+    operator: AuthUser,
+    body: { paymentReceivedAt?: string; renewalPeriodYears?: number; membershipExpiryAt?: string; paymentReceivedBy?: string },
+  ) {
+    const sb = this.supabase.adminClient;
+
+    const { data: member } = await sb
+      .from('members')
+      .select('id, user_id, membership_expiry_date, membership_status, user:users!user_id(first_name, last_name)')
+      .eq('id', id)
+      .single();
+
+    if (!member) throw new NotFoundException('Member not found');
+    const m = member as unknown as { user_id: string; membership_expiry_date: string | null };
+
+    let newExpiry: string;
+    if (body.membershipExpiryAt) {
+      newExpiry = new Date(body.membershipExpiryAt).toISOString();
+    } else {
+      const years = body.renewalPeriodYears ?? 1;
+      const base = m.membership_expiry_date ? new Date(m.membership_expiry_date) : new Date();
+      base.setFullYear(base.getFullYear() + years);
+      newExpiry = base.toISOString();
+    }
+
+    await sb.from('members').update({
+      membership_expiry_date: newExpiry,
+      membership_status: 'active',
+      renewed_at: new Date().toISOString(),
+      payment_received_at: body.paymentReceivedAt ?? new Date().toISOString(),
+    }).eq('id', id);
+
+    await sb.from('users').update({ role: 'member' }).eq('id', m.user_id).eq('role', 'user');
+
+    const { data: user } = await sb.from('users').select('email, first_name, last_name').eq('id', m.user_id).single();
+    const u = user as unknown as { email: string; first_name: string; last_name: string } | null;
+
+    const formatted = new Date(newExpiry).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    await this.email.sendK22MembershipRenewed({
+      to: u?.email ?? '',
+      memberName: `${u?.first_name ?? ''} ${u?.last_name ?? ''}`.trim(),
+      newExpiryDate: formatted,
+    });
+
+    // operator param reserved for audit logging
+    void operator;
+
+    await this.cache.delByPattern('expertly:members:*');
+    return { message: 'Membership renewed', newExpiryAt: newExpiry };
+  }
+
+  async expireOverdueMemberships() {
+    const sb = this.supabase.adminClient;
+    const today = new Date().toISOString().split('T')[0];
+
+    const { data: members, error } = await sb
+      .from('members')
+      .select('id, slug, user_id, user:users!user_id(first_name, last_name, email)')
+      .lte('membership_expiry_date', today)
+      .eq('membership_status', 'active');
+
+    if (error) throw new BadRequestException(error.message);
+    if (!members || members.length === 0) {
+      return { expired: 0, members: [] };
+    }
+
+    type Row = {
+      id: string;
+      slug: string;
+      user_id: string;
+      user: { first_name: string | null; last_name: string | null; email: string } | null;
+    };
+
+    const rows = members as unknown as Row[];
+    const expired: { id: string; slug: string; email: string }[] = [];
+
+    for (const m of rows) {
+      try {
+        await sb.from('members').update({ membership_status: 'expired' }).eq('id', m.id);
+        await sb.from('users').update({ role: 'user' }).eq('id', m.user_id);
+
+        await this.cache.delByPattern(`expertly:member:*${m.slug}*`);
+
+        try {
+          await this.supabase.revalidatePath(`/members/${m.slug}`);
+        } catch (err) {
+          this.logger.warn(`ISR revalidation failed for ${m.slug}: ${(err as Error).message}`);
+        }
+
+        if (m.user?.email) {
+          await this.email.sendK14MembershipExpired({
+            to: m.user.email,
+            memberName: [m.user.first_name, m.user.last_name].filter(Boolean).join(' ') || 'Member',
+          });
+        }
+
+        expired.push({ id: m.id, slug: m.slug, email: m.user?.email ?? '' });
+      } catch (err) {
+        this.logger.error(`Failed to expire member ${m.id}: ${(err as Error).message}`);
+      }
+    }
+
+    await this.cache.delByPattern('expertly:members:*');
+    await this.cache.delByPattern('expertly:homepage:*');
+
+    return { expired: expired.length, members: expired };
+  }
+
+  async sendRenewalReminders(daysUntilExpiry = 30) {
+    const sb = this.supabase.adminClient;
+    const target = new Date();
+    target.setDate(target.getDate() + daysUntilExpiry);
+    const targetStr = target.toISOString().split('T')[0];
+
+    const { data: members, error } = await sb
+      .from('members')
+      .select('id, membership_expiry_date, user:users!user_id(first_name, last_name, email)')
+      .eq('membership_expiry_date', targetStr)
+      .eq('membership_status', 'active');
+
+    if (error) throw new BadRequestException(error.message);
+    if (!members || members.length === 0) {
+      return { sent: 0, daysUntilExpiry };
+    }
+
+    type Row = {
+      id: string;
+      membership_expiry_date: string;
+      user: { first_name: string | null; last_name: string | null; email: string } | null;
+    };
+
+    const rows = members as unknown as Row[];
+    let sent = 0;
+
+    for (const m of rows) {
+      try {
+        if (!m.user?.email) continue;
+        await this.email.sendK13RenewalReminder({
+          to: m.user.email,
+          memberName: [m.user.first_name, m.user.last_name].filter(Boolean).join(' ') || 'Member',
+          expiryDate: m.membership_expiry_date,
+          daysUntilExpiry,
+        });
+        sent++;
+      } catch (err) {
+        this.logger.error(`Failed to send K13 to member ${m.id}: ${(err as Error).message}`);
+      }
+    }
+
+    return { sent, daysUntilExpiry };
   }
 }

@@ -6,7 +6,7 @@ interface FeaturedMembersSectionProps {
 }
 
 function HomeMemberCard({ member }: { member: MemberCardData }) {
-  const photoUrl = member.profilePhotoUrl || member.avatarUrl;
+  const photoUrl = member.profilePhotoUrl;
   const displayName =
     member.users?.fullName ||
     [member.users?.firstName, member.users?.lastName].filter(Boolean).join(' ') ||

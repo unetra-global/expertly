@@ -16,7 +16,4 @@ export class CreateConsultationDto {
   @IsString()
   description?: string;
 
-  @IsOptional()
-  @IsString()
-  preferredTime?: string;
 }

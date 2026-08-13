@@ -30,19 +30,19 @@ export class UploadController {
   async uploadAvatar(
     @CurrentUser() user: AuthUser,
     @Req() req: FastifyRequest,
-  ): Promise<{ base64: string }> {
+  ): Promise<{ url: string }> {
     const file = await this.getFile(req);
     const buffer = await file.toBuffer();
     return this.upload.uploadAvatar(user.dbId, buffer, file.filename);
   }
 
-  // Converts a remote image URL to a base64 data URI — used after LinkedIn import
-  // so the photo is processed server-side (avoids browser CORS issues).
+  // Fetches a remote image URL server-side (avoids browser CORS), uploads to
+  // Supabase Storage, and returns the public URL. Used after LinkedIn import.
   @Post('avatar-from-url')
-  async avatarBase64FromUrl(
+  async avatarFromUrl(
     @CurrentUser() user: AuthUser,
     @Body('url') url: string,
-  ): Promise<{ base64: string }> {
+  ): Promise<{ url: string }> {
     if (!url || !/^https?:\/\//i.test(url)) {
       throw new BadRequestException('A valid image URL is required');
     }

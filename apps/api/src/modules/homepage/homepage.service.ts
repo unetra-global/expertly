@@ -5,13 +5,13 @@ import { CacheService } from '../../common/services/cache.service';
 const HOMEPAGE_TTL = 300; // 5 minutes
 
 const FEATURED_MEMBER_FIELDS =
-  'id, slug, designation, headline, profile_photo_url, avatar_url, ' +
+  'id, slug, designation, headline, profile_photo_url, ' +
   'city, country, member_tier, is_verified, primary_service_id, ' +
   'users!user_id(first_name, last_name), ' +
   'services!primary_service_id(name)';
 
 const ARTICLE_FIELDS =
-  'id, title, slug, excerpt, body, cover_image_url, tags, read_time, published_at, author_id, ' +
+  'id, title, slug, excerpt, body, featured_image_url, tags, read_time_minutes, published_at, author_id, ' +
   'author:members!author_id(id, slug, designation, city, country, profile_photo_url, user:users!user_id(first_name, last_name)), ' +
   'category:categories!category_id(id, name)';
 

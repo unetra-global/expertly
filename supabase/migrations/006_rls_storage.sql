@@ -32,14 +32,11 @@ ALTER TABLE consultation_requests         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_digest_subscriptions     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE digest_send_log               ENABLE ROW LEVEL SECURITY;
 ALTER TABLE member_notification_preferences ENABLE ROW LEVEL SECURITY;
-ALTER TABLE regulatory_updates            ENABLE ROW LEVEL SECURITY;
 ALTER TABLE background_jobs               ENABLE ROW LEVEL SECURITY;
-ALTER TABLE consent_log                   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE email_logs                    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE broadcast_logs                ENABLE ROW LEVEL SECURITY;
 ALTER TABLE categories                    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE services                      ENABLE ROW LEVEL SECURITY;
-ALTER TABLE guest_newsletter_subscriptions ENABLE ROW LEVEL SECURITY;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- RLS POLICIES
@@ -228,34 +225,10 @@ CREATE POLICY "notif_prefs: own read write"
   ON member_notification_preferences FOR ALL
   USING (member_id = auth_member_id());
 
--- ── regulatory_updates ────────────────────────────────────────────────────────
-
-CREATE POLICY "regulatory: member read"
-  ON regulatory_updates FOR SELECT
-  USING (is_active = true AND auth_user_role() IN ('member', 'ops', 'backend_admin'));
-
-CREATE POLICY "regulatory: ops write"
-  ON regulatory_updates FOR ALL
-  USING (auth_user_role() IN ('ops', 'backend_admin'));
-
 -- ── background_jobs ───────────────────────────────────────────────────────────
 
 CREATE POLICY "bg_jobs: ops read"
   ON background_jobs FOR SELECT
-  USING (auth_user_role() IN ('ops', 'backend_admin'));
-
--- ── consent_log ───────────────────────────────────────────────────────────────
-
-CREATE POLICY "consent: own read"
-  ON consent_log FOR SELECT
-  USING (user_id = auth_user_id());
-
-CREATE POLICY "consent: own insert"
-  ON consent_log FOR INSERT
-  WITH CHECK (user_id = auth_user_id());
-
-CREATE POLICY "consent: ops read all"
-  ON consent_log FOR SELECT
   USING (auth_user_role() IN ('ops', 'backend_admin'));
 
 -- ── email_logs ────────────────────────────────────────────────────────────────
@@ -270,15 +243,8 @@ CREATE POLICY "broadcast_logs: ops read"
   ON broadcast_logs FOR SELECT
   USING (auth_user_role() IN ('ops', 'backend_admin'));
 
--- ── guest_newsletter_subscriptions ────────────────────────────────────────────
--- Service role (backend) bypasses RLS entirely; anon users can only insert.
-
-CREATE POLICY "guest_newsletter: service role all"
-  ON guest_newsletter_subscriptions FOR ALL
-  USING (true);
-
 -- ─────────────────────────────────────────────────────────────────────────────
--- STORAGE BUCKETS
+-- STORAGE BUCKETS (Supabase Storage)
 -- ─────────────────────────────────────────────────────────────────────────────
 
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -293,10 +259,6 @@ ON CONFLICT (id) DO UPDATE
       file_size_limit    = EXCLUDED.file_size_limit,
       allowed_mime_types = EXCLUDED.allowed_mime_types;
 
--- Storage RLS policies — minimal, service-role managed.
--- Backend uses service role key and bypasses RLS.
--- Public buckets allow anonymous reads.
-
 CREATE POLICY storage_avatars_public_read
   ON storage.objects FOR SELECT
   USING (bucket_id = 'avatars');
@@ -308,9 +270,6 @@ CREATE POLICY storage_article_images_public_read
 CREATE POLICY storage_event_images_public_read
   ON storage.objects FOR SELECT
   USING (bucket_id = 'event-images');
-
--- Documents bucket: private — access via signed URLs from backend only.
--- No public read policy intentionally.
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- REALTIME

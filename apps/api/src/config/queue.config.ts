@@ -5,8 +5,6 @@ export const QUEUE_NAMES = {
   LINKEDIN: 'linkedin-queue',
   AI: 'ai-queue',
   EMAIL: 'email-queue',
-  RSS: 'rss-queue',
-  DIGEST: 'digest-queue',
 } as const;
 
 export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];
@@ -16,13 +14,6 @@ export const QUEUE_JOB_TYPES = {
   LINKEDIN_PDF_PARSE: 'linkedin_pdf_parse',
   GENERATE_EMBEDDING: 'generate_embedding',
   SEND_EMAIL: 'send_email',
-  INGEST_ALL_FEEDS: 'ingest_all_feeds',
-  INGEST_SINGLE_FEED: 'ingest_single_feed',
-  PROCESS_REGULATORY_UPDATE: 'process_regulatory_update',
-  SEND_WEEKLY_DIGEST: 'send_weekly_digest',
-  SEND_DAILY_DIGEST: 'send_daily_digest',
-  SEND_GUEST_NEWSLETTER: 'send_guest_newsletter',
-  SEND_DIGEST_BATCH: 'send_digest_batch',
 } as const;
 
 export type QueueJobType = (typeof QUEUE_JOB_TYPES)[keyof typeof QUEUE_JOB_TYPES];

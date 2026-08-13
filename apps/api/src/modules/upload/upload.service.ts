@@ -12,7 +12,7 @@ const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const ALLOWED_DOCUMENT_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
 const MAX_DOC_SIZE = 10 * 1024 * 1024;  // 10 MB
-const AVATAR_THUMB_SIZE = 256; // profile photos stored as 256×256 base64 in the DB
+const AVATAR_THUMB_SIZE = 400;
 
 @Injectable()
 export class UploadService {
@@ -20,13 +20,11 @@ export class UploadService {
 
   constructor(private readonly supabase: SupabaseService) {}
 
-  // Converts uploaded file to a 256×256 base64 data URI and persists it
-  // to the users table.  No CDN upload — profile photos live in the DB.
   async uploadAvatar(
     userId: string,
     buffer: Buffer,
     _originalName: string,
-  ): Promise<{ base64: string }> {
+  ): Promise<{ url: string }> {
     if (buffer.length > MAX_IMAGE_SIZE) {
       throw new BadRequestException('FILE_TOO_LARGE');
     }
@@ -35,26 +33,32 @@ export class UploadService {
       throw new BadRequestException('INVALID_FILE_TYPE');
     }
 
-    const thumb = await sharp(buffer)
+    const processed = await sharp(buffer)
       .resize(AVATAR_THUMB_SIZE, AVATAR_THUMB_SIZE, { fit: 'cover', position: 'entropy' })
-      .webp({ quality: 80 })
+      .webp({ quality: 85 })
       .toBuffer();
 
-    const base64 = `data:image/webp;base64,${thumb.toString('base64')}`;
-    await this.saveAvatarToUser(userId, base64);
-    return { base64 };
+    const path = `${userId}/avatar.webp`;
+    const { error } = await this.supabase.adminClient.storage
+      .from('avatars')
+      .upload(path, processed, { contentType: 'image/webp', upsert: true });
+    if (error) throw error;
+
+    const { data } = this.supabase.adminClient.storage.from('avatars').getPublicUrl(path);
+    await this.saveAvatarUrlToUser(userId, data.publicUrl);
+    return { url: data.publicUrl };
   }
 
-  // Fetches a remote image URL server-side (avoids browser CORS), converts to
-  // a 256×256 base64 data URI and persists it to users.  Used for LinkedIn imports.
-  async avatarBase64FromUrl(userId: string, imageUrl: string): Promise<{ base64: string }> {
+  // Fetches a remote image URL server-side (avoids browser CORS), uploads to
+  // Supabase Storage avatars bucket and persists the URL.  Used for LinkedIn imports.
+  async avatarBase64FromUrl(userId: string, imageUrl: string): Promise<{ url: string }> {
     let buffer: Buffer;
     try {
       const res = await fetch(imageUrl);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       buffer = Buffer.from(await res.arrayBuffer());
     } catch (err) {
-      this.logger.warn(`avatarBase64FromUrl fetch failed: ${String(err)}`);
+      this.logger.warn(`avatarFromUrl fetch failed: ${String(err)}`);
       throw new BadRequestException('FETCH_FAILED');
     }
 
@@ -62,23 +66,29 @@ export class UploadService {
       throw new BadRequestException('FILE_TOO_LARGE');
     }
 
-    const thumb = await sharp(buffer)
+    const processed = await sharp(buffer)
       .resize(AVATAR_THUMB_SIZE, AVATAR_THUMB_SIZE, { fit: 'cover', position: 'entropy' })
-      .webp({ quality: 80 })
+      .webp({ quality: 85 })
       .toBuffer();
 
-    const base64 = `data:image/webp;base64,${thumb.toString('base64')}`;
-    await this.saveAvatarToUser(userId, base64);
-    return { base64 };
+    const path = `${userId}/avatar.webp`;
+    const { error } = await this.supabase.adminClient.storage
+      .from('avatars')
+      .upload(path, processed, { contentType: 'image/webp', upsert: true });
+    if (error) throw error;
+
+    const { data } = this.supabase.adminClient.storage.from('avatars').getPublicUrl(path);
+    await this.saveAvatarUrlToUser(userId, data.publicUrl);
+    return { url: data.publicUrl };
   }
 
-  private async saveAvatarToUser(userId: string, base64: string): Promise<void> {
+  private async saveAvatarUrlToUser(userId: string, url: string): Promise<void> {
     const { error } = await this.supabase.adminClient
       .from('users')
-      .update({ profile_photo_base64: base64 })
+      .update({ profile_photo_url: url })
       .eq('id', userId);
     if (error) {
-      this.logger.error(`saveAvatarToUser failed for ${userId}: ${error.message}`);
+      this.logger.error(`saveAvatarUrlToUser failed for ${userId}: ${error.message}`);
       throw error;
     }
   }

@@ -11,7 +11,7 @@ import { CreateConsultationDto } from './dto/create-consultation.dto';
 import { UpdateConsultationStatusDto } from './dto/update-status.dto';
 
 const CONSULTATION_FIELDS =
-  'id, requester_id, member_id, service_id, subject, description, preferred_time, ' +
+  'id, requester_id, member_id, service_id, subject, description, ' +
   'status, created_at, updated_at';
 
 type ConsultationRow = {
@@ -63,7 +63,6 @@ export class ConsultationService {
         service_id: dto.serviceId ?? null,
         subject: dto.subject,
         description: dto.description ?? null,
-        preferred_time: dto.preferredTime ?? null,
         status: 'pending',
       })
       .select(CONSULTATION_FIELDS)

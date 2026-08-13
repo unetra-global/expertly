@@ -5,12 +5,14 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { AuthUser } from '@expertly/types';
+import { AuthUser, ApplicationStatus, MemberTier } from '@expertly/types';
 import { ApplicationsService } from './applications.service';
 import { Step1Dto } from './dto/step-1.dto';
 import { Step2Dto } from './dto/step-2.dto';
@@ -66,5 +68,28 @@ export class ApplicationsController {
     @Body() dto: SubmitDto,
   ): Promise<unknown> {
     return this.applications.submit(user, id, dto);
+  }
+
+  // ── Ops ───────────────────────────────────────────────────────────────────
+
+  @Get('admin/list')
+  @Roles('ops', 'backend_admin')
+  listAll(@Query('status') status?: string) {
+    return this.applications.listApplications({ status });
+  }
+
+  @Get('admin/:id')
+  @Roles('ops', 'backend_admin')
+  getById(@Param('id') id: string) {
+    return this.applications.getApplicationById(id);
+  }
+
+  @Patch('admin/:id/status')
+  @Roles('ops', 'backend_admin')
+  updateStatus(
+    @Param('id') id: string,
+    @Body() body: { status: ApplicationStatus; serviceId: string; membershipTier: MemberTier; rejectionReason?: string },
+  ) {
+    return this.applications.updateApplicationStatus(id, body);
   }
 }

@@ -7,10 +7,7 @@ export interface ArticleCardData {
   title: string;
   excerpt?: string;
   body?: string;
-  coverImageUrl?: string;
-  /** From full ArticleListItem shape — may be present in homepage API response */
   featuredImageUrl?: string;
-  readTime?: number;
   readTimeMinutes?: number;
   publishedAt?: string;
   category?: { id?: string; name: string };
@@ -54,8 +51,8 @@ export function ArticleCard({ article, className }: ArticleCardProps) {
       .join(' ') ||
     null;
 
-  const imageUrl = article.coverImageUrl || article.featuredImageUrl;
-  const readMinutes = article.readTime || article.readTimeMinutes;
+  const imageUrl = article.featuredImageUrl;
+  const readMinutes = article.readTimeMinutes;
   const rawExcerpt = article.excerpt ?? '';
   const excerpt = rawExcerpt.includes('<') ? stripHtml(rawExcerpt) : rawExcerpt;
 

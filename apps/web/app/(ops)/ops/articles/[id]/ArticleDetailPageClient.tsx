@@ -27,7 +27,7 @@ export default function ArticleDetailPage() {
 
   const { data: article, isLoading } = useQuery({
     queryKey: queryKeys.ops.article(id),
-    queryFn: () => apiClient.get<OpsArticle>(`/ops/articles/${id}`),
+    queryFn: () => apiClient.get<OpsArticle>(`/articles/admin/${id}`),
     enabled: !!id,
   });
 
@@ -38,7 +38,7 @@ export default function ArticleDetailPage() {
   };
 
   const approveMutation = useMutation({
-    mutationFn: () => apiClient.post(`/ops/articles/${id}/approve`, {}),
+    mutationFn: () => apiClient.post(`/articles/admin/${id}/approve`, {}),
     onSuccess: () => {
       invalidate();
       router.push('/ops/articles');
@@ -47,7 +47,7 @@ export default function ArticleDetailPage() {
 
   const rejectMutation = useMutation({
     mutationFn: () =>
-      apiClient.post(`/ops/articles/${id}/reject`, { reason: rejectReason }),
+      apiClient.post(`/articles/admin/${id}/reject`, { reason: rejectReason }),
     onSuccess: () => {
       invalidate();
       setShowRejectModal(false);
@@ -56,7 +56,7 @@ export default function ArticleDetailPage() {
   });
 
   const archiveMutation = useMutation({
-    mutationFn: () => apiClient.post(`/ops/articles/${id}/archive`, {}),
+    mutationFn: () => apiClient.post(`/articles/admin/${id}/archive`, {}),
     onSuccess: () => {
       invalidate();
       router.push('/ops/articles');

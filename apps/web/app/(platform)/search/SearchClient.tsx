@@ -87,10 +87,10 @@ function ArticleCard({ article }: { article: SearchArticleResult }) {
       href={`/articles/${article.slug}`}
       className="flex gap-4 p-4 rounded-2xl border border-gray-100 shadow-card hover:shadow-card-hover transition-shadow bg-white"
     >
-      {article.coverImageUrl && (
+      {article.featuredImageUrl && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={article.coverImageUrl}
+          src={article.featuredImageUrl}
           alt={article.title}
           className="w-24 h-16 rounded-lg object-cover flex-shrink-0 hidden sm:block"
         />

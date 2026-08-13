@@ -20,7 +20,7 @@ import { COUNTRY_NAMES } from '@expertly/utils';
 
 const SENSITIVE_FIELDS = [
   'headline', 'bio', 'designation', 'qualifications',
-  'credentials', 'workExperiences', 'educations',
+  'credentials', 'workExperience', 'education',
 ];
 
 const TIMEZONES = [
@@ -159,7 +159,7 @@ export default function ProfileEditor({ profile }: Props) {
 
   // ── Photo Section ────────────────────────────────────────────────────────────
 
-  const [photoUrl, setPhotoUrl] = useState(profile.users?.profilePhotoBase64 ?? profile.profilePhotoUrl ?? '');
+  const [photoUrl, setPhotoUrl] = useState(profile.profilePhotoUrl ?? '');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
@@ -168,9 +168,9 @@ export default function ProfileEditor({ profile }: Props) {
     try {
       const form = new FormData();
       form.append('file', file);
-      const result = await apiClient.upload<{ base64: string }>('/upload/avatar', form);
-      if (result?.base64) {
-        setPhotoUrl(result.base64);
+      const result = await apiClient.upload<{ url: string }>('/upload/avatar', form);
+      if (result?.url) {
+        setPhotoUrl(result.url);
         void queryClient.invalidateQueries({ queryKey: queryKeys.members.me() });
         showToast('Profile photo updated.', 'success');
       }
@@ -221,7 +221,7 @@ export default function ProfileEditor({ profile }: Props) {
     id: crypto.randomUUID(), title: '', company: '', startYear: new Date().getFullYear(),
   });
   const [workExp, setWorkExp] = useState<WorkExperience[]>(
-    profile.workExperiences?.length ? profile.workExperiences : [emptyWork()],
+    profile.workExperience?.length ? profile.workExperience : [emptyWork()],
   );
 
   const updateWork = (idx: number, field: keyof WorkExperience, val: string | number | boolean) =>
@@ -233,7 +233,7 @@ export default function ProfileEditor({ profile }: Props) {
     id: crypto.randomUUID(), institution: '', degree: '',
   });
   const [educations, setEducations] = useState<Education[]>(
-    profile.educations?.length ? profile.educations : [emptyEdu()],
+    profile.education?.length ? profile.education : [emptyEdu()],
   );
 
   const updateEdu = (idx: number, field: keyof Education, val: string | number) =>
@@ -582,7 +582,7 @@ export default function ProfileEditor({ profile }: Props) {
         title="Work Experience"
         isSensitive
         isSaving={saving['work'] ?? false}
-        onSave={(sensitive) => saveSection('work', { workExperiences: workExp }, sensitive)}
+        onSave={(sensitive) => saveSection('work', { workExperience: workExp }, sensitive)}
       >
         <div className="space-y-5">
           {workExp.map((exp, idx) => (
@@ -650,7 +650,7 @@ export default function ProfileEditor({ profile }: Props) {
         title="Education"
         isSensitive
         isSaving={saving['education'] ?? false}
-        onSave={(sensitive) => saveSection('education', { educations }, sensitive)}
+        onSave={(sensitive) => saveSection('education', { education: educations }, sensitive)}
       >
         <div className="space-y-5">
           {educations.map((edu, idx) => (

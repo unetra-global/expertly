@@ -116,7 +116,7 @@ function AboutTab({ member }: { member: MemberFullProfile }) {
       )}
 
       {/* Education */}
-      {(member.educations ?? []).length > 0 && (
+      {(member.education ?? []).length > 0 && (
         <section>
           <SectionLabel>
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -125,7 +125,7 @@ function AboutTab({ member }: { member: MemberFullProfile }) {
             Education
           </SectionLabel>
           <div className="grid sm:grid-cols-2 gap-3">
-            {(member.educations ?? []).map((edu) => (
+            {(member.education ?? []).map((edu) => (
               <div key={edu.id} className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
                 <p className="font-semibold text-sm text-brand-navy">{edu.degree}</p>
                 <p className="text-xs text-brand-text-secondary mt-0.5">{edu.institution}{edu.endYear ? ` · ${edu.endYear}` : ''}</p>
@@ -146,8 +146,8 @@ function AboutTab({ member }: { member: MemberFullProfile }) {
 
 function CredentialsTab({ member }: { member: MemberFullProfile }) {
   const hasQuals = (member.qualifications ?? []).length > 0;
-  const hasEdu = (member.educations ?? []).length > 0;
-  const hasExp = (member.workExperiences ?? []).length > 0;
+  const hasEdu = (member.education ?? []).length > 0;
+  const hasExp = (member.workExperience ?? []).length > 0;
   const hasCreds = (member.credentials ?? []).length > 0;
 
   return (
@@ -161,7 +161,7 @@ function CredentialsTab({ member }: { member: MemberFullProfile }) {
             Education
           </SectionLabel>
           <div className="grid sm:grid-cols-2 gap-3">
-            {(member.educations ?? []).map((edu) => (
+            {(member.education ?? []).map((edu) => (
               <div key={edu.id} className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
                 <p className="font-semibold text-sm text-brand-navy">{edu.degree}</p>
                 <p className="text-xs text-brand-text-secondary mt-0.5">{edu.institution}{edu.endYear ? ` · ${edu.endYear}` : ''}</p>
@@ -197,7 +197,7 @@ function CredentialsTab({ member }: { member: MemberFullProfile }) {
             Work Experience
           </SectionLabel>
           <div className="relative pl-4 border-l-2 border-gray-100 space-y-5">
-            {(member.workExperiences ?? []).map((exp) => (
+            {(member.workExperience ?? []).map((exp) => (
               <div key={exp.id} className="relative">
                 <div className="absolute -left-[1.3125rem] top-1.5 w-2.5 h-2.5 rounded-full bg-brand-blue border-2 border-white" />
                 <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">

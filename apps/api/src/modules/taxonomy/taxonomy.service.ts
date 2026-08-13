@@ -8,8 +8,6 @@ interface Category {
   id: string;
   name: string;
   slug: string;
-  domain: string | null;
-  sort_order: number;
 }
 
 interface Service {
@@ -18,7 +16,6 @@ interface Service {
   name: string;
   slug: string;
   regions: string[];
-  sort_order: number;
 }
 
 @Injectable()
@@ -36,9 +33,8 @@ export class TaxonomyService {
       async () => {
         const { data, error } = await this.supabase.adminClient
           .from('categories')
-          .select('id, name, slug, domain, sort_order')
-          .eq('is_active', true)
-          .order('sort_order');
+          .select('id, name, slug')
+          .order('name');
 
         if (error) throw error;
         return (data ?? []) as Category[];
@@ -56,9 +52,9 @@ export class TaxonomyService {
       async () => {
         let query = this.supabase.adminClient
           .from('services')
-          .select('id, category_id, name, slug, regions, sort_order')
+          .select('id, category_id, name, slug, regions')
           .eq('is_active', true)
-          .order('sort_order');
+          .order('name');
 
         if (categoryId) {
           query = query.eq('category_id', categoryId);
@@ -80,7 +76,7 @@ export class TaxonomyService {
       async () => {
         const { data, error } = await this.supabase.adminClient
           .from('services')
-          .select('id, category_id, name, slug, regions, sort_order')
+          .select('id, category_id, name, slug, regions')
           .eq('slug', slug)
           .single();
 

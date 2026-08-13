@@ -124,12 +124,15 @@ function ArticleCard({ article }: { article: ArticleListItem }) {
 interface ArticleListProps {
   initialServiceId?: string;
   isMember?: boolean;
+  isOps?: boolean;
 }
 
 export default function ArticleList({
   initialServiceId = '',
   isMember = false,
+  isOps = false,
 }: ArticleListProps) {
+  const canWrite = isMember || isOps;
   const router = useRouter();
   const searchParams = useSearchParams();
   const searchParamsKey = searchParams?.toString() ?? '';
@@ -316,10 +319,10 @@ export default function ArticleList({
           Publish articles and grow your professional brand on Expertly.
         </p>
         <Link
-          href={isMember ? '/member/articles/new' : '/auth?tab=signup'}
+          href={canWrite ? '/member/articles/new' : '/auth?tab=signup'}
           className="inline-flex items-center justify-center w-full text-xs font-semibold text-brand-blue bg-white hover:bg-blue-50 rounded-lg px-3 py-2 transition-colors"
         >
-          {isMember ? 'Write Article' : 'Start Writing'}
+          {canWrite ? 'Write Article' : 'Start Writing'}
         </Link>
       </div>
     </>
@@ -338,7 +341,7 @@ export default function ArticleList({
                 Articles and analysis from verified finance and legal professionals.
               </p>
             </div>
-            {isMember && (
+            {canWrite && (
               <Link
                 href="/member/articles/new"
                 className="flex-shrink-0 inline-flex items-center gap-2 bg-brand-blue hover:bg-brand-blue-dark text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors mt-1"

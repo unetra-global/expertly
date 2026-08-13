@@ -1,4 +1,4 @@
-import { IsArray, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsArray, IsIn, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class QaItemDto {
@@ -7,6 +7,17 @@ export class QaItemDto {
 
   @IsString()
   answer!: string;
+}
+
+export class AttachmentDto {
+  @IsIn(['text', 'image'])
+  type!: 'text' | 'image';
+
+  @IsString()
+  content!: string;
+
+  @IsString()
+  filename!: string;
 }
 
 export class GenerateArticleDto {
@@ -22,4 +33,10 @@ export class GenerateArticleDto {
   @IsOptional()
   @IsString()
   serviceId?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AttachmentDto)
+  attachments?: AttachmentDto[];
 }

@@ -34,10 +34,6 @@ export class UpdateMemberDto {
 
   @IsOptional()
   @IsString()
-  avatar_url?: string;
-
-  @IsOptional()
-  @IsString()
   city?: string;
   @IsOptional()
   @IsIn(COUNTRY_NAMES)
@@ -54,10 +50,6 @@ export class UpdateMemberDto {
   @IsOptional()
   @IsObject()
   availability?: Record<string, unknown>;
-
-  @IsOptional()
-  @IsObject()
-  engagement?: Record<string, unknown>;
 
   @IsOptional()
   @IsArray()

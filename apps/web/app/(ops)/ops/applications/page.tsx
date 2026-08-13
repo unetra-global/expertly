@@ -44,7 +44,7 @@ export default function ApplicationsPage() {
     queryKey: queryKeys.ops.applications(filters),
     queryFn: () => {
       const qs = status ? `?status=${status}` : '';
-      return apiClient.get<{ data: OpsApplication[]; meta: { total: number } }>(`/ops/applications${qs}`);
+      return apiClient.get<{ data: OpsApplication[]; meta: { total: number } }>(`/applications/admin/list${qs}`);
     },
   });
 

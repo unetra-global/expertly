@@ -3,7 +3,7 @@ import { SupabaseService } from '../../common/services/supabase.service';
 import { AuthUser } from '@expertly/types';
 
 const ME_FIELDS =
-  'id, slug, headline, bio, designation, profile_photo_url, avatar_url, ' +
+  'id, slug, headline, bio, designation, profile_photo_url, ' +
   'city, country, website, linkedin_url, ' +
   'primary_service_id, years_of_experience, qualifications, ' +
   'consultation_fee_min_usd, consultation_fee_max_usd, ' +
@@ -32,7 +32,7 @@ export class DashboardService {
         // Article stats
         this.supabase.adminClient
           .from('articles')
-          .select('id, status, view_count', { count: 'exact' })
+          .select('id, status', { count: 'exact' })
           .eq('author_id', user.memberId),
 
         // Consultation requests in last 30 days
@@ -53,30 +53,23 @@ export class DashboardService {
         // Recent articles
         this.supabase.adminClient
           .from('articles')
-          .select('id, title, slug, status, word_count, read_time, published_at, created_at')
+          .select('id, title, slug, status, read_time_minutes, published_at, created_at')
           .eq('author_id', user.memberId)
           .order('created_at', { ascending: false })
           .limit(3),
       ]);
 
     const member = memberResult.data as Record<string, unknown> | null;
-    const articles = (articleStatsResult.data ?? []) as Array<{
-      id: string;
-      status: string;
-      view_count?: number;
-    }>;
+    const articles = (articleStatsResult.data ?? []) as Array<{ id: string; status: string }>;
 
     // Calculate profile completion
     const profileCompletion = member ? this.calculateProfileCompletion(member) : 0;
 
-    const publishedArticles = articles.filter((a) => a.status === 'published');
-    const publishedCount = publishedArticles.length;
-    const totalViews = publishedArticles.reduce((sum, a) => sum + (a.view_count ?? 0), 0);
+    const publishedCount = articles.filter((a) => a.status === 'published').length;
 
     return {
       profileCompletion,
       publishedArticlesCount: publishedCount,
-      totalArticleViews: totalViews,
       consultationRequestsLast30Days: consultationCountResult.count ?? 0,
       membershipExpiryDate: member?.membership_expiry_date ?? null,
       isVerified: member?.is_verified ?? false,

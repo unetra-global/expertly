@@ -5,12 +5,12 @@ import { useEffect, useState } from 'react';
 import type { ArticleFull } from '@/types/api';
 
 const MEMBER_TIER_LABELS: Record<string, string> = {
-  budding_entrepreneur: 'Budding Entrepreneur',
+  budding_professional: 'Budding Professional',
   seasoned_professional: 'Seasoned Professional',
 };
 
 const MEMBER_TIER_SHORT: Record<string, string> = {
-  budding_entrepreneur: 'BE',
+  budding_professional: 'BP',
   seasoned_professional: 'SP',
 };
 
@@ -404,17 +404,20 @@ export function ArticleDetail({
                 </p>
               )}
 
-              {/* AI summary block */}
+              {/* Expertly Summary (Powered by AI) */}
               {article.aiSummary && (
                 <div className="flex gap-3 bg-brand-blue-subtle border border-blue-100 rounded-xl p-4 mb-6">
                   <div className="flex-shrink-0 w-5 h-5 rounded-full bg-brand-blue/15 flex items-center justify-center mt-0.5">
                     <svg className="w-3 h-3 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
                   </div>
                   <div>
-                    <p className="text-[10px] font-semibold text-brand-blue uppercase tracking-wider mb-1">
-                      AI Summary
+                    <p className="text-xs font-semibold text-brand-blue mb-1">
+                      Expertly Summary
+                      <span className="ml-1.5 text-[10px] font-normal text-brand-blue/70">
+                        Powered by AI
+                      </span>
                     </p>
                     <p className="text-sm text-brand-text-secondary leading-relaxed">
                       {article.aiSummary}

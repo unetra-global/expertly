@@ -46,7 +46,7 @@ interface TierBadgeProps {
 
 const TIER_STYLES: Record<string, string> = {
   seasoned_professional: 'bg-amber-50 text-amber-700 border-amber-200',
-  budding_entrepreneur: 'bg-gray-50 text-gray-600 border-gray-200',
+  budding_professional: 'bg-gray-50 text-gray-600 border-gray-200',
 };
 
 export function TierBadge({ tier, className, size = 'md' }: TierBadgeProps) {

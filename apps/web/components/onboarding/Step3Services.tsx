@@ -64,9 +64,7 @@ export function Step3Services({ onBack, onNext }: Props) {
     setStep3({
       primaryServiceId: pref1,
       secondaryServiceIds: [pref2, pref3].filter(Boolean),
-      keyEngagements: [],
-      engagements: [],
-      availability: formData.availability,
+      achievements: [],
     });
     onNext();
   }

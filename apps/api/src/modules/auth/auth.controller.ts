@@ -23,7 +23,6 @@ interface MemberRow {
   headline: string;
   bio: string;
   profile_photo_url: string | null;
-  avatar_url: string | null;
   designation: string;
   city: string;
   country: string;
@@ -39,12 +38,10 @@ interface MemberRow {
   consultation_fee_max_usd: number | null;
   qualifications: string | null;
   availability: unknown;
-  engagement: unknown;
   credentials: unknown[];
   testimonials: unknown[];
   work_experience: unknown[];
   education: unknown[];
-  view_count: number;
   created_at: string;
   updated_at: string;
 }
@@ -94,12 +91,12 @@ export class AuthController {
       const { data: memberData } = await this.supabase.adminClient
         .from('members')
         .select(
-          'id, user_id, slug, headline, bio, profile_photo_url, avatar_url, designation, ' +
+          'id, user_id, slug, headline, bio, profile_photo_url, designation, ' +
           'city, country, website, linkedin_url, ' +
           'membership_status, member_tier, is_verified, is_featured, primary_service_id, ' +
           'years_of_experience, consultation_fee_min_usd, consultation_fee_max_usd, ' +
-          'qualifications, availability, engagement, credentials, testimonials, ' +
-          'work_experience, education, view_count, membership_start_date, ' +
+          'qualifications, availability, credentials, testimonials, ' +
+          'work_experience, education, membership_start_date, ' +
           'membership_expiry_date, created_at, updated_at, ' +
           'services!primary_service_id(id, name, slug)',
         )

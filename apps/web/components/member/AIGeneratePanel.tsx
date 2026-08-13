@@ -1,21 +1,50 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { X, Sparkles, RotateCcw } from 'lucide-react';
+import { X, Sparkles, RotateCcw, Paperclip, FileText, ImageIcon, Loader2 } from 'lucide-react';
 import { getBrowserClient } from '@/lib/supabase';
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4001') + '/api/v1';
 
 // ── Questions ─────────────────────────────────────────────────────────────────
 
-const DEFAULT_QUESTIONS = [
-  'What specific topic or issue will this article address?',
-  'Who is your target audience for this piece?',
-  'What are the key points or arguments you want to make?',
-  'Are there any recent developments, regulations, or cases that prompted this article?',
-  'What practical advice or takeaways should readers leave with?',
-  'Do you have any real examples or anonymised case studies to include?',
+interface QuestionConfig {
+  label: string;
+  placeholder: string;
+}
+
+const DEFAULT_QUESTIONS: QuestionConfig[] = [
+  {
+    label: 'Topic / Title',
+    placeholder: 'e.g. Recent CESTAT ruling on Section 16 ITC eligibility',
+  },
+  {
+    label: 'Specify your target audience and region, if any?',
+    placeholder: 'e.g. Indian CA firms and in-house tax teams',
+  },
+  {
+    label: 'Your thoughts / notes',
+    placeholder: 'The key points, arguments, or angles you want to cover…',
+  },
+  {
+    label: 'Any recent developments or regulations for this topic?',
+    placeholder: 'Notifications, circulars, rulings, amendments — the AI will also search for more',
+  },
+  {
+    label: 'Your practical advice / key takeaways',
+    placeholder: 'What should the reader do differently after reading this?',
+  },
+  {
+    label: 'Any illustration / table / case study you wish to include',
+    placeholder: 'e.g. Pre vs post-amendment comparison, Facts of X v. CIT, etc.',
+  },
+  {
+    label: 'Any specific prompt / tone you want the AI to consider while generating the article',
+    placeholder: 'e.g. More conservative tone, avoid speculation on pending cases, 1,200 words, etc.',
+  },
 ];
+
+const RESEARCH_LINKS_QUESTION = 'Research links the AI should reference';
 
 interface GeneratedResult {
   title: string;
@@ -57,25 +86,114 @@ interface Props {
   onClose: () => void;
 }
 
+interface Attachment {
+  type: 'text' | 'image';
+  content: string;
+  filename: string;
+}
+
+const MAX_FILE_BYTES = 5 * 1024 * 1024;
+
 export default function AIGeneratePanel({ categoryId, onGenerated, onClose }: Props) {
   const [answers, setAnswers] = useState<string[]>(DEFAULT_QUESTIONS.map(() => ''));
+  const [researchLinks, setResearchLinks] = useState<string[]>(['']);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const setAnswer = (idx: number, val: string) =>
     setAnswers((prev) => prev.map((a, i) => (i === idx ? val : a)));
+
+  const setLink = (idx: number, val: string) =>
+    setResearchLinks((prev) => prev.map((l, i) => (i === idx ? val : l)));
+
+  const addLink = () => setResearchLinks((prev) => [...prev, '']);
+  const removeLink = (idx: number) =>
+    setResearchLinks((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== idx)));
+
+  const removeAttachment = (idx: number) =>
+    setAttachments((prev) => prev.filter((_, i) => i !== idx));
+
+  const handleFileUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setUploadError(null);
+    setIsUploading(true);
+
+    try {
+      const supabase = getBrowserClient();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) {
+        setUploadError('Not authenticated. Please refresh and try again.');
+        return;
+      }
+
+      for (const file of Array.from(files)) {
+        if (file.size > MAX_FILE_BYTES) {
+          setUploadError(`"${file.name}" exceeds the 5 MB limit.`);
+          continue;
+        }
+
+        const fd = new FormData();
+        fd.append('file', file);
+
+        const resp = await fetch(`${API_BASE}/articles/generate/extract`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: fd,
+        });
+
+        if (!resp.ok) {
+          let msg = '';
+          try {
+            const err = await resp.json() as { message?: string };
+            msg = err.message ?? '';
+          } catch {
+            msg = resp.statusText;
+          }
+          setUploadError(`"${file.name}" could not be processed: ${msg || resp.status}`);
+          continue;
+        }
+
+        const payload = await resp.json() as {
+          success?: boolean;
+          data?: Attachment;
+        };
+        const att = payload.data;
+        if (att?.type && att.content) {
+          setAttachments((prev) => [...prev, att]);
+        }
+      }
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   const handleGenerate = async () => {
     setError(null);
     setIsGenerating(true);
     setProgress(0);
 
-    const qa = DEFAULT_QUESTIONS.map((question, i) => ({
-      question,
+    const qa = DEFAULT_QUESTIONS.map((q, i) => ({
+      question: q.label,
       answer: answers[i] ?? '',
     }));
+
+    const cleanedLinks = researchLinks.map((l) => l.trim()).filter(Boolean);
+    if (cleanedLinks.length > 0) {
+      qa.push({
+        question: RESEARCH_LINKS_QUESTION,
+        answer: cleanedLinks.map((l) => `- ${l}`).join('\n'),
+      });
+    }
 
     // Get auth token
     const supabase = getBrowserClient();
@@ -97,7 +215,11 @@ export default function AIGeneratePanel({ categoryId, onGenerated, onClose }: Pr
           'Authorization': `Bearer ${token}`,
           'Accept': 'text/event-stream',
         },
-        body: JSON.stringify({ qa, ...(categoryId ? { categoryId } : {}) }),
+        body: JSON.stringify({
+          qa,
+          ...(categoryId ? { categoryId } : {}),
+          ...(attachments.length > 0 ? { attachments } : {}),
+        }),
         signal: abortRef.current.signal,
       });
 
@@ -266,23 +388,134 @@ export default function AIGeneratePanel({ categoryId, onGenerated, onClose }: Pr
                 The more detail you provide, the better your article draft will be. All fields are optional — fill in whatever is relevant.
               </p>
 
-              {DEFAULT_QUESTIONS.map((question, idx) => (
+              {DEFAULT_QUESTIONS.map((q, idx) => (
                 <div key={idx} className="group">
-                  <label className="flex items-start gap-2.5 text-xs font-semibold text-brand-navy mb-2 uppercase tracking-wide">
+                  <label className="flex items-start gap-2.5 text-sm font-semibold text-brand-navy mb-2">
                     <span className="w-5 h-5 rounded-full bg-brand-blue-subtle text-brand-blue flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
                       {idx + 1}
                     </span>
-                    {question}
+                    {q.label}
                   </label>
                   <textarea
                     className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-brand-text bg-white focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue resize-none transition-colors placeholder:text-gray-300"
                     rows={2}
                     value={answers[idx] ?? ''}
                     onChange={(e) => setAnswer(idx, e.target.value)}
-                    placeholder="Your answer…"
+                    placeholder={q.placeholder}
                   />
                 </div>
               ))}
+
+              {/* Research links */}
+              <div className="group">
+                <label className="flex items-start gap-2.5 text-sm font-semibold text-brand-navy mb-1">
+                  <span className="w-5 h-5 rounded-full bg-brand-blue-subtle text-brand-blue flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
+                    {DEFAULT_QUESTIONS.length + 1}
+                  </span>
+                  Upload relevant documents / links
+                </label>
+                <p className="text-xs text-brand-text-muted ml-[30px] mb-2">
+                  Paste URLs to rulings, notifications, articles, or other sources the AI should reference.
+                </p>
+                <div className="space-y-2">
+                  {researchLinks.map((link, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <input
+                        type="url"
+                        className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-brand-text bg-white focus:outline-none focus:ring-2 focus:ring-brand-blue/30 focus:border-brand-blue transition-colors placeholder:text-gray-300"
+                        value={link}
+                        onChange={(e) => setLink(idx, e.target.value)}
+                        placeholder="https://…"
+                      />
+                      {researchLinks.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeLink(idx)}
+                          className="w-9 h-9 flex items-center justify-center text-brand-text-muted hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          aria-label="Remove link"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={addLink}
+                  className="mt-2 text-xs font-medium text-brand-blue hover:underline"
+                >
+                  + Add another link
+                </button>
+
+                {/* File upload */}
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <p className="text-xs text-brand-text-muted mb-2">
+                    Or upload documents / screenshots the AI should reference (PDF, DOCX, XLSX, images, etc. — max 5 MB each).
+                  </p>
+
+                  {attachments.length > 0 && (
+                    <div className="space-y-1.5 mb-3">
+                      {attachments.map((att, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2"
+                        >
+                          {att.type === 'image' ? (
+                            <ImageIcon className="w-4 h-4 text-brand-blue shrink-0" />
+                          ) : (
+                            <FileText className="w-4 h-4 text-brand-blue shrink-0" />
+                          )}
+                          <span className="flex-1 text-sm text-brand-text truncate">
+                            {att.filename}
+                          </span>
+                          <span className="text-[10px] text-brand-text-muted uppercase tracking-wide">
+                            {att.type}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => removeAttachment(idx)}
+                            className="text-brand-text-muted hover:text-red-600 transition-colors"
+                            aria-label={`Remove ${att.filename}`}
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => void handleFileUpload(e.target.files)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                    className="inline-flex items-center gap-2 text-xs font-medium text-brand-blue hover:underline disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        Uploading…
+                      </>
+                    ) : (
+                      <>
+                        <Paperclip className="w-3.5 h-3.5" />
+                        Upload document / image
+                      </>
+                    )}
+                  </button>
+
+                  {uploadError && (
+                    <p className="mt-2 text-xs text-red-600">{uploadError}</p>
+                  )}
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -313,7 +546,11 @@ export default function AIGeneratePanel({ categoryId, onGenerated, onClose }: Pr
               </button>
               <button
                 onClick={() => void handleGenerate()}
-                disabled={answers.every((a) => !a.trim())}
+                disabled={
+                  answers.every((a) => !a.trim()) &&
+                  researchLinks.every((l) => !l.trim()) &&
+                  attachments.length === 0
+                }
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-semibold text-white bg-brand-navy rounded-xl hover:bg-brand-navy/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 <Sparkles className="w-4 h-4 text-yellow-400" />

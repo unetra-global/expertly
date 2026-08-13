@@ -192,7 +192,6 @@ export function Step2Experience({ onBack, onNext }: Props) {
       firmName: primaryExp?.company ?? '',
       firmSize: primaryExp?.firmSize ?? '',
       firmWebsiteUrl: primaryExp?.website ?? '',
-      qualifications: [],
       credentials: [],
       workExperience,
       education,

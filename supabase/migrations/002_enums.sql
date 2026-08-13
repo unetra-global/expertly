@@ -52,7 +52,7 @@ CREATE TYPE consent_type AS ENUM ('terms_of_service', 'privacy_policy', 'marketi
 
 CREATE TYPE auth_provider AS ENUM ('linkedin', 'email');
 
-CREATE TYPE member_tier_enum AS ENUM ('budding_entrepreneur', 'seasoned_professional');
+CREATE TYPE member_tier_enum AS ENUM ('budding_professional', 'seasoned_professional');
 
 CREATE TYPE embedding_status AS ENUM ('pending', 'generated', 'failed');
 

@@ -22,14 +22,12 @@ export interface PaginatedResponse<T> {
 export interface Category {
   id: string;
   name: string;
-  domain?: string;
   isActive?: boolean;
 }
 
 export interface Service {
   id: string;
   name: string;
-  sortOrder?: number;
   category?: Category;
 }
 
@@ -103,7 +101,7 @@ export interface Testimonial {
   createdAt?: string;
 }
 
-export interface Engagement {
+export interface Achievement {
   id: string;
   type: 'speaking' | 'publication' | 'award' | 'media';
   title: string;
@@ -117,7 +115,6 @@ export interface MemberListItem {
   id: string;
   slug: string;
   profilePhotoUrl?: string;
-  avatarUrl?: string;
   designation?: string;
   city?: string;
   country?: string;
@@ -126,7 +123,7 @@ export interface MemberListItem {
   firmName?: string;
   primaryServiceId?: string;
   /** Supabase join — plural because of the FK relationship name */
-  users?: { firstName?: string; lastName?: string; fullName?: string; email?: string; profilePhotoBase64?: string };
+  users?: { firstName?: string; lastName?: string; fullName?: string; email?: string };
   /** Joined primary service (categories is the join from categories table) */
   services?: { id?: string; name?: string; categories?: { id?: string; name?: string } };
   // Authenticated-only fields (omitted by API for guests)
@@ -149,12 +146,13 @@ export interface MemberFullProfile extends MemberListItem {
   availabilityNotes?: string;
   isAvailable?: boolean;
   secondaryServices?: Array<{ id: string; name: string }>;
-  workExperiences?: WorkExperience[];
-  educations?: Education[];
+  workExperience?: WorkExperience[];
+  education?: Education[];
   qualifications?: Qualification[];
   credentials?: Credential[];
   testimonials?: Testimonial[];
-  engagements?: Engagement[];
+  achievements?: Achievement[];
+  careerHighlights?: string[];
   updatedAt?: string;
 }
 
@@ -224,9 +222,7 @@ export interface EventListItem {
   tags?: string[];
 }
 
-export interface EventFull extends EventListItem {
-  speakers?: EventSpeaker[];
-}
+export type EventFull = EventListItem;
 
 // ── Applications ──────────────────────────────────────────────────────────────
 
@@ -277,7 +273,6 @@ export interface Availability {
 
 export interface NotificationPreferences {
   articleStatus: boolean;
-  regulatoryNudges: boolean;
   platformUpdates: boolean;
 }
 
@@ -312,7 +307,6 @@ export interface MemberArticle {
   excerpt?: string;
   featuredImageUrl?: string;
   status: ArticleStatus;
-  wordCount?: number;
   tags?: string[];
   rejectionReason?: string;
   submittedAt?: string;
@@ -321,7 +315,6 @@ export interface MemberArticle {
   updatedAt: string;
   category?: { id: string; name: string };
   categoryId?: string;
-  viewCount?: number;
   isAiAssisted?: boolean;
 }
 
@@ -331,7 +324,6 @@ export interface ConsultationRequest {
   id: string;
   subject: string;
   description?: string;
-  preferredTime?: string;
   status: 'pending' | 'accepted' | 'declined' | 'completed';
   requesterName?: string;
   requesterEmail?: string;
@@ -344,7 +336,6 @@ export interface ConsultationRequest {
 export interface DashboardStats {
   profileCompletion: number;
   publishedArticlesCount: number;
-  totalArticleViews: number;
   consultationRequestsCount: number;
   membershipExpiryAt?: string;
   membershipTier?: string;
@@ -390,7 +381,6 @@ export interface OpsApplication {
   bio?: string;
   linkedinUrl?: string;
   profilePhotoUrl?: string;
-  profilePhotoBase64?: string;
   region?: string;
   state?: string;
   city?: string;
@@ -409,12 +399,11 @@ export interface OpsApplication {
   credentials?: Credential[];
   workExperience?: WorkExperience[];
   education?: Education[];
-  // Step 3 — services & engagements
+  // Step 3 — services & achievements
   primaryServiceId?: string;
   secondaryServiceIds?: string[];
-  keyEngagements?: string[];
-  engagements?: Engagement[];
-  availability?: Availability;
+  achievements?: Achievement[];
+  careerHighlights?: string[];
   // Step 4 — motivation
   motivationWhy?: string;
   motivationEngagement?: string;
@@ -427,6 +416,8 @@ export interface OpsApplication {
   reApplicationEligibleAt?: string;
   createdAt: string;
   updatedAt: string;
+  // Joined
+  user?: { email: string };
 }
 
 export interface OpsMember {
@@ -446,7 +437,6 @@ export interface OpsMember {
   membershipExpiryAt?: string;
   linkedinUrl?: string;
   profilePhotoUrl?: string;
-  profilePhotoBase64?: string;
   country?: string;
   city?: string;
   region?: string;
@@ -464,9 +454,9 @@ export interface OpsMember {
   workExperience?: WorkExperience[];
   education?: Education[];
   testimonials?: Testimonial[];
-  engagements?: Engagement[];
+  achievements?: Achievement[];
+  careerHighlights?: string[];
   primaryServiceId?: string;
-  keyEngagements?: string[];
   motivationWhy?: string;
   motivationEngagement?: string;
   motivationUnique?: string;
@@ -579,9 +569,9 @@ export interface SearchArticleResult {
   slug: string;
   title: string;
   excerpt?: string;
-  coverImageUrl?: string;
+  featuredImageUrl?: string;
   publishedAt?: string;
-  readTime?: number;
+  readTimeMinutes?: number;
   tags?: string[];
 }
 

@@ -1,5 +1,6 @@
 import {
   Controller,
+  Delete,
   Get,
   Post,
   Patch,
@@ -130,5 +131,135 @@ export class MembersController {
     @CurrentUser() user: AuthUser,
   ) {
     return this.members.aiSearch(dto, user ?? null);
+  }
+
+  // ── Ops ───────────────────────────────────────────────────────────────────
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ops', 'backend_admin')
+  @Post('admin/expire-overdue')
+  expireOverdue() {
+    return this.members.expireOverdueMemberships();
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ops', 'backend_admin')
+  @Post('admin/send-renewal-reminders')
+  sendRenewalReminders(@Body() body: { daysUntilExpiry?: number }) {
+    return this.members.sendRenewalReminders(body.daysUntilExpiry);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ops', 'backend_admin')
+  @Get('admin/list')
+  listOpsMembers(
+    @Query('pendingReVerification') pendingReVerification?: string,
+    @Query('pendingServiceChange') pendingServiceChange?: string,
+    @Query('expiringDays') expiringDays?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.members.listOpsMembers({
+      pendingReVerification: pendingReVerification === 'true',
+      pendingServiceChange: pendingServiceChange === 'true',
+      expiringDays: expiringDays ? parseInt(expiringDays, 10) : undefined,
+      page: page ? parseInt(page, 10) : undefined,
+      limit: limit ? parseInt(limit, 10) : undefined,
+    });
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ops', 'backend_admin')
+  @Get('admin/:id')
+  getOpsMember(@Param('id') id: string) {
+    return this.members.getOpsMember(id);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ops', 'backend_admin')
+  @Post('admin/:id/activate')
+  activateMember(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthUser,
+    @Body() body: { paymentReceivedAt?: string; membershipExpiryAt?: string; paymentReceivedBy?: string },
+  ) {
+    return this.members.activateMember(id, user, body);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ops', 'backend_admin')
+  @Patch('admin/:id/verify')
+  verifyMember(@Param('id') id: string) {
+    return this.members.verifyMember(id);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ops', 'backend_admin')
+  @Patch('admin/:id/suspend')
+  suspendMember(@Param('id') id: string) {
+    return this.members.suspendMember(id);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ops', 'backend_admin')
+  @Patch('admin/:id/tier')
+  updateMemberTier(@Param('id') id: string, @Body() body: { tier: string }) {
+    return this.members.updateMemberTier(id, body);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ops', 'backend_admin')
+  @Patch('admin/:id/featured')
+  toggleFeatured(@Param('id') id: string, @Body() body: { isFeatured: boolean }) {
+    return this.members.toggleFeatured(id, body);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ops', 'backend_admin')
+  @Post('admin/:id/credential')
+  addCredential(
+    @Param('id') id: string,
+    @Body() body: { name: string; issuingBody?: string; year?: number; url?: string; isVerified?: boolean },
+  ) {
+    return this.members.addCredential(id, body);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ops', 'backend_admin')
+  @Patch('admin/:id/credentials')
+  verifyCredential(@Param('id') id: string, @Body() body: { credentialIndex: number; verified: boolean }) {
+    return this.members.verifyCredential(id, body);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ops', 'backend_admin')
+  @Patch('admin/:id/testimonials')
+  verifyTestimonial(@Param('id') id: string, @Body() body: { testimonialIndex: number; verified: boolean }) {
+    return this.members.verifyTestimonial(id, body);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ops', 'backend_admin')
+  @Patch('admin/:id/approve-service-change')
+  approveServiceChange(@Param('id') id: string) {
+    return this.members.approveServiceChange(id);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ops', 'backend_admin')
+  @Patch('admin/:id/reject-service-change')
+  rejectServiceChange(@Param('id') id: string, @Body() body: { rejectionReason: string }) {
+    return this.members.rejectServiceChange(id, body);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ops', 'backend_admin')
+  @Patch('admin/:id/renew')
+  renewMembership(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthUser,
+    @Body() body: { paymentReceivedAt?: string; renewalPeriodYears?: number; paymentReceivedBy?: string; membershipExpiryAt?: string },
+  ) {
+    return this.members.renewMembership(id, user, body);
   }
 }

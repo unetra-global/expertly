@@ -64,11 +64,12 @@ export default async function ArticlesPage({ searchParams }: PageProps) {
     ...(sp.maxReadTime && { maxReadTime: sp.maxReadTime }),
   };
 
-  // Check if the logged-in user is a member — getSession() reads from cookies, no network call.
+  // Check the logged-in user's role — getSession() reads from cookies, no network call.
   const supabase = createServerClient();
   const { data: { session } } = await supabase.auth.getSession();
   const user = session?.user ?? null;
   let isMember = false;
+  let isOps = false;
   if (user) {
     const { data: dbUser } = await supabase
       .from('users')
@@ -76,6 +77,7 @@ export default async function ArticlesPage({ searchParams }: PageProps) {
       .eq('supabase_uid', user.id)
       .maybeSingle();
     isMember = dbUser?.role === 'member';
+    isOps = dbUser?.role === 'ops' || dbUser?.role === 'backend_admin';
   }
 
   const queryClient = getQueryClient();
@@ -89,6 +91,7 @@ export default async function ArticlesPage({ searchParams }: PageProps) {
       <ArticleList
         initialServiceId={serviceId ?? ''}
         isMember={isMember}
+        isOps={isOps}
       />
     </HydrationBoundary>
   );

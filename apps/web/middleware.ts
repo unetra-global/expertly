@@ -19,16 +19,18 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   });
 
   const supabase = createServerClient(supabaseUrl, supabaseKey, {
-    auth: {
-      // Prevent the SDK from scheduling background refresh retries inside the
-      // long-running Next.js server process. The middleware calls getUser()
-      // explicitly — that single call handles any required token refresh.
-      // Without this, a failed refresh (e.g. rotated / deleted token) triggers
-      // aggressive retries from the Node process → 429 storm on Supabase Auth.
-      autoRefreshToken: false,
-      persistSession: false,
-      detectSessionInUrl: false,
-    },
+    // IMPORTANT: autoRefreshToken: false is required here.
+    // The browser SDK already has autoRefreshToken: true (default) and owns
+    // the refresh lifecycle. If middleware also refreshes, both racing on the
+    // same refresh_token trips Supabase's per-IP rate limit on /auth/v1/token
+    // and causes 429 storms (one client's refresh invalidates the other's
+    // refresh_token -> "Invalid Refresh Token" -> retry cascade).
+    //
+    // getUser() below still works with this setting: it just validates the
+    // current token without attempting to refresh. If the access token is
+    // expired (browser refresh hasn't caught up yet), getUser() returns null,
+    // we redirect to /auth once, and the browser refreshes on next load.
+    auth: { autoRefreshToken: false },
     cookies: {
       get(name: string) {
         return request.cookies.get(name)?.value;
@@ -44,15 +46,14 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     },
   });
 
-  // getSession() reads from cookies only — zero Supabase network calls.
-  // Security: the JWT is cryptographically verified by the NestJS backend
-  // on every API call (via jose). Middleware only needs to know whether a
-  // session cookie exists to decide whether to redirect to /auth.
+  // getUser() authenticates the JWT with Supabase Auth (GET /auth/v1/user).
+  // Unlike getSession(), it returns a verified user — so we don't leak
+  // protected page shells to anyone with a forged cookie.
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (!session) {
+  if (!user) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = '/auth';
     loginUrl.searchParams.set('returnTo', pathname);

@@ -7,267 +7,25 @@ import {
   Param,
   Patch,
   Post,
-  Query,
-  Req,
   UseGuards,
 } from '@nestjs/common';
-import { FastifyRequest } from 'fastify';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { OpsService } from './ops.service';
-import type { AuthUser } from '@expertly/types';
+import { SupabaseService } from '../../common/services/supabase.service';
 
 @Controller('ops')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('ops')
+@Roles('ops', 'backend_admin')
 export class OpsController {
-  constructor(private readonly ops: OpsService) {}
-
-  // ── Applications ──────────────────────────────────────────────────────────
-
-  @Get('applications')
-  listApplications(
-    @Query('status') status?: string,
-    @Query('service') service?: string,
-    @Query('country') country?: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-  ) {
-    return this.ops.listApplications({
-      status,
-      service,
-      country,
-      page: page ? parseInt(page, 10) : undefined,
-      limit: limit ? parseInt(limit, 10) : undefined,
-    });
-  }
-
-  @Get('applications/:id')
-  getApplication(@Param('id') id: string) {
-    return this.ops.getApplication(id);
-  }
-
-  @Patch('applications/:id/approve')
-  approveApplication(
-    @Param('id') id: string,
-    @Body() body: { serviceId: string; membershipTier: string },
-  ) {
-    return this.ops.approveApplication(id, body);
-  }
-
-  @Patch('applications/:id/reject')
-  rejectApplication(
-    @Param('id') id: string,
-    @Body() body: { rejectionReason: string },
-  ) {
-    return this.ops.rejectApplication(id, body);
-  }
-
-  @Patch('applications/:id/waitlist')
-  waitlistApplication(@Param('id') id: string) {
-    return this.ops.waitlistApplication(id);
-  }
-
-  // ── Members ───────────────────────────────────────────────────────────────
-
-  @Get('members')
-  listMembers(
-    @Query('pendingReVerification') pendingReVerification?: string,
-    @Query('pendingServiceChange') pendingServiceChange?: string,
-    @Query('expiringDays') expiringDays?: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-  ) {
-    return this.ops.listMembers({
-      pendingReVerification: pendingReVerification === 'true',
-      pendingServiceChange: pendingServiceChange === 'true',
-      expiringDays: expiringDays ? parseInt(expiringDays, 10) : undefined,
-      page: page ? parseInt(page, 10) : undefined,
-      limit: limit ? parseInt(limit, 10) : undefined,
-    });
-  }
-
-  @Get('members/:id')
-  getMember(@Param('id') id: string) {
-    return this.ops.getMember(id);
-  }
-
-  @Post('members/:id/activate')
-  activateMember(
-    @Param('id') id: string,
-    @CurrentUser() user: AuthUser,
-    @Body() body: { paymentReceivedAt?: string; membershipExpiryAt?: string; paymentReceivedBy?: string },
-  ) {
-    return this.ops.activateMember(id, user, body);
-  }
-
-  @Patch('members/:id/verify')
-  verifyMember(@Param('id') id: string) {
-    return this.ops.verifyMember(id);
-  }
-
-  @Patch('members/:id/suspend')
-  suspendMember(@Param('id') id: string) {
-    return this.ops.suspendMember(id);
-  }
-
-  @Patch('members/:id/tier')
-  updateMemberTier(
-    @Param('id') id: string,
-    @Body() body: { tier: string },
-  ) {
-    return this.ops.updateMemberTier(id, body);
-  }
-
-  @Patch('members/:id/featured')
-  toggleFeatured(
-    @Param('id') id: string,
-    @Body() body: { isFeatured: boolean },
-  ) {
-    return this.ops.toggleFeatured(id, body);
-  }
-
-  @Post('members/:id/credential')
-  addCredential(
-    @Param('id') id: string,
-    @Body() body: { name: string; issuingBody?: string; year?: number; url?: string; isVerified?: boolean },
-  ) {
-    return this.ops.addCredential(id, body);
-  }
-
-  @Patch('members/:id/credentials')
-  verifyCredential(
-    @Param('id') id: string,
-    @Body() body: { credentialIndex: number; verified: boolean },
-  ) {
-    return this.ops.verifyCredential(id, body);
-  }
-
-  @Patch('members/:id/testimonials')
-  verifyTestimonial(
-    @Param('id') id: string,
-    @Body() body: { testimonialIndex: number; verified: boolean },
-  ) {
-    return this.ops.verifyTestimonial(id, body);
-  }
-
-  @Patch('members/:id/approve-service-change')
-  approveServiceChange(@Param('id') id: string) {
-    return this.ops.approveServiceChange(id);
-  }
-
-  @Patch('members/:id/reject-service-change')
-  rejectServiceChange(
-    @Param('id') id: string,
-    @Body() body: { rejectionReason: string },
-  ) {
-    return this.ops.rejectServiceChange(id, body);
-  }
-
-  @Patch('members/:id/renew')
-  renewMembership(
-    @Param('id') id: string,
-    @CurrentUser() user: AuthUser,
-    @Body() body: { paymentReceivedAt?: string; renewalPeriodYears?: number; paymentReceivedBy?: string; membershipExpiryAt?: string },
-  ) {
-    return this.ops.renewMembership(id, user, body);
-  }
+  constructor(private readonly ops: OpsService) { }
 
   // ── Ops Users ─────────────────────────────────────────────────────────────
 
   @Get('users')
   listUsers() {
     return this.ops.listOpsUsers();
-  }
-
-  // ── Articles ──────────────────────────────────────────────────────────────
-
-  @Get('articles')
-  listArticles(
-    @Query('status') status?: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-  ) {
-    return this.ops.listArticles({
-      status,
-      page: page ? parseInt(page, 10) : undefined,
-      limit: limit ? parseInt(limit, 10) : undefined,
-    });
-  }
-
-  @Get('articles/:id')
-  getArticle(@Param('id') id: string) {
-    return this.ops.getArticle(id);
-  }
-
-  @Post('articles/:id/approve')
-  approveArticle(@Param('id') id: string) {
-    return this.ops.approveArticle(id);
-  }
-
-  @Post('articles/:id/reject')
-  rejectArticle(
-    @Param('id') id: string,
-    @Body() body: { reason?: string; rejectionReason?: string },
-  ) {
-    return this.ops.rejectArticle(id, body);
-  }
-
-  @Post('articles/:id/archive')
-  archiveArticle(
-    @Param('id') id: string,
-    @Body() body: { reason?: string },
-  ) {
-    return this.ops.archiveArticle(id, body);
-  }
-
-  // ── Events ────────────────────────────────────────────────────────────────
-
-  @Get('events')
-  listEvents() {
-    return this.ops.listEvents();
-  }
-
-  @Post('events/import')
-  async importEvents(@Req() req: FastifyRequest) {
-    if (!req.isMultipart()) {
-      throw new BadRequestException('Request must be multipart/form-data');
-    }
-    const data = await req.file();
-    if (!data) {
-      throw new BadRequestException('No file uploaded');
-    }
-    const file = data as unknown as { filename: string; toBuffer: () => Promise<Buffer> };
-    const buffer = await file.toBuffer();
-    return this.ops.importEvents(buffer, file.filename);
-  }
-
-  @Post('events')
-  createEvent(@Body() body: Record<string, unknown>) {
-    return this.ops.createEvent(body);
-  }
-
-  @Patch('events/:id/publish')
-  publishEvent(
-    @Param('id') id: string,
-    @Body() body: { isPublished: boolean },
-  ) {
-    return this.ops.publishEvent(id, body.isPublished);
-  }
-
-  @Patch('events/:id')
-  updateEvent(
-    @Param('id') id: string,
-    @Body() body: Record<string, unknown>,
-  ) {
-    return this.ops.updateEvent(id, body);
-  }
-
-  @Delete('events/:id')
-  deleteEvent(@Param('id') id: string) {
-    return this.ops.deleteEvent(id);
   }
 
   // ── Broadcast ─────────────────────────────────────────────────────────────
@@ -285,15 +43,119 @@ export class OpsController {
     return this.ops.getBroadcastLogs();
   }
 
-  // ── Regulatory Updates ────────────────────────────────────────────────────
+}
 
-  @Get('regulatory')
-  getRegulatoryUpdates() {
-    return this.ops.getRegulatoryUpdates();
+// ─────────────────────────────────────────────────────────────────────────────
+// Admin controller — /admin/* routes
+// Both ops and backend_admin can read; write operations are backend_admin only.
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Controller('admin')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('ops', 'backend_admin')
+export class AdminController {
+  constructor(private readonly supabase: SupabaseService) { }
+
+  // ── GET /admin/users ───────────────────────────────────────────────────────
+
+  @Get('users')
+  async listUsers() {
+    const { data, error } = await this.supabase.adminClient
+      .from('users')
+      .select('id, email, role, is_active, is_deleted, created_at')
+      .order('created_at', { ascending: false });
+
+    if (error) throw new BadRequestException(error.message);
+    return data ?? [];
   }
 
-  @Post('regulatory/trigger')
-  triggerRssIngestion() {
-    return this.ops.triggerRssIngestion();
+  // ── GET /admin/stats ───────────────────────────────────────────────────────
+
+  @Get('stats')
+  async getStats() {
+    const sb = this.supabase.adminClient;
+    const now = new Date().toISOString();
+    const in30Days = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+    const [
+      totalApps,
+      totalMembers,
+      totalArticles,
+      totalEvents,
+      pendingApps,
+      pendingArticles,
+      pendingReVerification,
+      expiringIn30Days,
+    ] = await Promise.all([
+      sb.from('applications').select('id', { count: 'exact', head: true }),
+      sb.from('members').select('id', { count: 'exact', head: true }),
+      sb.from('articles').select('id', { count: 'exact', head: true }),
+      sb.from('events').select('id', { count: 'exact', head: true }),
+      sb.from('applications').select('id', { count: 'exact', head: true })
+        .in('status', ['submitted', 'under_review']),
+      sb.from('articles').select('id', { count: 'exact', head: true })
+        .eq('status', 'draft'),
+      sb.from('members').select('id', { count: 'exact', head: true })
+        .not('re_verification_requested_at', 'is', null)
+        .eq('membership_status', 'active'),
+      sb.from('members').select('id', { count: 'exact', head: true })
+        .gte('membership_expiry_date', now)
+        .lte('membership_expiry_date', in30Days)
+        .eq('membership_status', 'active'),
+    ]);
+
+    return {
+      totalApplications: totalApps.count ?? 0,
+      totalMembers: totalMembers.count ?? 0,
+      totalArticles: totalArticles.count ?? 0,
+      totalEvents: totalEvents.count ?? 0,
+      pendingApplications: pendingApps.count ?? 0,
+      pendingArticles: pendingArticles.count ?? 0,
+      pendingReVerification: pendingReVerification.count ?? 0,
+      expiringIn30Days: expiringIn30Days.count ?? 0,
+    };
+  }
+
+  // ── PATCH /admin/users/:id/role — backend_admin only ──────────────────────
+
+  @Patch('users/:id/role')
+  @Roles('backend_admin')
+  async updateUserRole(
+    @Param('id') id: string,
+    @Body() body: { role: string },
+  ) {
+    const validRoles = ['user', 'member', 'ops', 'backend_admin'];
+    if (!validRoles.includes(body.role)) {
+      throw new BadRequestException(`Invalid role: ${body.role}`);
+    }
+
+    const { data, error } = await this.supabase.adminClient
+      .from('users')
+      .update({ role: body.role })
+      .eq('id', id)
+      .select('id, email, role')
+      .single();
+
+    if (error) throw new BadRequestException(error.message);
+    return data;
+  }
+
+  // ── DELETE /admin/users/:id — backend_admin only ──────────────────────────
+
+  @Delete('users/:id')
+  @Roles('backend_admin')
+  async deleteUser(@Param('id') id: string) {
+    const { error } = await this.supabase.adminClient
+      .from('users')
+      .update({
+        is_deleted: true,
+        is_active: false,
+        email: `deleted_${id}@anonymised.local`,
+        deleted_at: new Date().toISOString(),
+      })
+      .eq('id', id);
+
+    if (error) throw new BadRequestException(error.message);
+    return { message: 'User anonymised and deactivated' };
   }
 }

@@ -8,7 +8,7 @@ import { queryKeys } from '@/hooks/queryKeys';
 import type { OpsApplication, Service, OpsUser } from '@/types/api';
 
 const TIER_OPTIONS: { value: string; label: string }[] = [
-  { value: 'budding_entrepreneur', label: 'Budding Entrepreneur' },
+  { value: 'budding_professional', label: 'Budding Entrepreneur' },
   { value: 'seasoned_professional', label: 'Seasoned Professional' },
 ];
 
@@ -29,7 +29,7 @@ export default function ApplicationDetailPage() {
   const qc = useQueryClient();
 
   const [selectedServiceId, setSelectedServiceId] = useState('');
-  const [selectedTier, setSelectedTier] = useState('budding_entrepreneur');
+  const [selectedTier, setSelectedTier] = useState('budding_professional');
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showActivateModal, setShowActivateModal] = useState(false);
@@ -39,7 +39,7 @@ export default function ApplicationDetailPage() {
 
   const { data: app, isLoading } = useQuery({
     queryKey: queryKeys.ops.application(id),
-    queryFn: () => apiClient.get<OpsApplication>(`/ops/applications/${id}`),
+    queryFn: () => apiClient.get<OpsApplication>(`/applications/admin/${id}`),
     enabled: !!id,
   });
 
@@ -49,7 +49,7 @@ export default function ApplicationDetailPage() {
       if (app.primaryServiceId && !selectedServiceId) {
         setSelectedServiceId(app.primaryServiceId);
       }
-      if (app.membershipTier && selectedTier === 'budding_entrepreneur') {
+      if (app.membershipTier && selectedTier === 'budding_professional') {
         setSelectedTier(app.membershipTier);
       }
     }
@@ -72,38 +72,24 @@ export default function ApplicationDetailPage() {
     void qc.invalidateQueries({ queryKey: queryKeys.ops.stats() });
   };
 
-  const approveMutation = useMutation({
-    mutationFn: () =>
-      apiClient.patch(`/ops/applications/${id}/approve`, {
+  const updateStatusMutation = useMutation({
+    mutationFn: (payload: { status: string; rejectionReason?: string }) =>
+      apiClient.patch(`/applications/admin/${id}/status`, {
+        status: payload.status,
         serviceId: selectedServiceId || app?.primaryServiceId,
         membershipTier: selectedTier,
+        ...(payload.rejectionReason ? { rejectionReason: payload.rejectionReason } : {}),
       }),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       invalidate();
-      router.push('/ops/applications');
-    },
-  });
-
-  const rejectMutation = useMutation({
-    mutationFn: () =>
-      apiClient.patch(`/ops/applications/${id}/reject`, { rejectionReason: rejectReason }),
-    onSuccess: () => {
-      invalidate();
-      setShowRejectModal(false);
-      router.push('/ops/applications');
-    },
-  });
-
-  const waitlistMutation = useMutation({
-    mutationFn: () => apiClient.patch(`/ops/applications/${id}/waitlist`, {}),
-    onSuccess: () => {
-      invalidate();
+      if (variables.status === 'rejected') setShowRejectModal(false);
+      if (variables.status !== 'waitlisted') router.push('/ops/applications');
     },
   });
 
   const activateMutation = useMutation({
     mutationFn: () =>
-      apiClient.post(`/ops/members/${id}/activate`, {
+      apiClient.post(`/members/admin/${id}/activate`, {
         paymentReceivedAt: paymentReceivedAt || new Date().toISOString(),
         paymentReceivedBy: paymentReceivedBy || undefined,
         membershipExpiryAt: membershipExpiryAt || undefined,
@@ -163,14 +149,10 @@ export default function ApplicationDetailPage() {
           {/* Basic info */}
           <div className="bg-white rounded-xl border border-slate-200 p-5">
             <div className="flex gap-4">
-              {(app.profilePhotoBase64 || app.profilePhotoUrl) && (
+              {app.profilePhotoUrl && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={
-                    app.profilePhotoBase64
-                      ? `data:image/webp;base64,${app.profilePhotoBase64}`
-                      : app.profilePhotoUrl!
-                  }
+                  src={app.profilePhotoUrl}
                   alt=""
                   className="w-16 h-16 rounded-full object-cover shrink-0"
                 />
@@ -225,15 +207,21 @@ export default function ApplicationDetailPage() {
           </div>
 
           {/* Contact details */}
-          {(app.contactEmail || app.phone) && (
+          {(app.contactEmail || app.phone || app.user?.email) && (
             <div className="bg-white rounded-xl border border-slate-200 p-5">
               <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
                 Contact
               </h4>
               <div className="space-y-1 text-sm text-slate-700">
+                {app.user?.email && (
+                  <p>
+                    <span className="text-slate-400 mr-2">Login Email</span>
+                    {app.user.email}
+                  </p>
+                )}
                 {app.contactEmail && (
                   <p>
-                    <span className="text-slate-400 mr-2">Email</span>
+                    <span className="text-slate-400 mr-2">Contact Email</span>
                     {app.contactEmail}
                   </p>
                 )}
@@ -420,13 +408,13 @@ export default function ApplicationDetailPage() {
           )}
 
           {/* Key engagements */}
-          {app.keyEngagements && app.keyEngagements.length > 0 && (
+          {app.careerHighlights && app.careerHighlights.length > 0 && (
             <div className="bg-white rounded-xl border border-slate-200 p-5">
               <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
                 Key Engagements
               </h4>
               <ul className="space-y-1 list-disc list-inside">
-                {app.keyEngagements.map((item, i) => (
+                {app.careerHighlights.map((item, i) => (
                   <li key={i} className="text-sm text-slate-700">{item}</li>
                 ))}
               </ul>
@@ -462,6 +450,41 @@ export default function ApplicationDetailPage() {
             </div>
           )}
 
+          {/* Achievements */}
+          {app.achievements && app.achievements.length > 0 && (
+            <div className="bg-white rounded-xl border border-slate-200 p-5">
+              <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                Achievements
+              </h4>
+              <div className="space-y-3">
+                {app.achievements.map((a) => (
+                  <div key={a.id} className="border-l-2 border-slate-100 pl-3">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600 capitalize">
+                        {a.type}
+                      </span>
+                      <p className="text-sm font-medium text-slate-900">{a.title}</p>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      {a.organization ?? ''}
+                      {a.year ? ` · ${a.year}` : ''}
+                    </p>
+                    {a.url && (
+                      <a
+                        href={a.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-600 hover:underline mt-0.5 inline-block"
+                      >
+                        View ↗
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Rejection reason (if rejected) */}
           {app.rejectionReason && (
             <div className="bg-red-50 border border-red-200 rounded-xl p-4">
@@ -469,6 +492,12 @@ export default function ApplicationDetailPage() {
                 Rejection Reason
               </p>
               <p className="text-sm text-red-700">{app.rejectionReason}</p>
+              {app.reApplicationEligibleAt && (
+                <p className="text-xs text-red-500 mt-2">
+                  Eligible to re-apply after{' '}
+                  {new Date(app.reApplicationEligibleAt).toLocaleDateString()}
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -494,6 +523,24 @@ export default function ApplicationDetailPage() {
               ))}
             </select>
 
+            {app.secondaryServiceIds && app.secondaryServiceIds.length > 0 && (
+              <div className="mt-3">
+                <p className="text-xs text-slate-400 mb-1.5">Also interested in</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {app.secondaryServiceIds.map((sid) => {
+                    const svc = services.find((s) => s.id === sid);
+                    return svc ? (
+                      <span
+                        key={sid}
+                        className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600"
+                      >
+                        {svc.name}
+                      </span>
+                    ) : null;
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Tier selection */}
@@ -502,7 +549,7 @@ export default function ApplicationDetailPage() {
               Membership Tier
             </h4>
             <select
-              value={selectedTier || app.membershipTier || 'budding_entrepreneur'}
+              value={selectedTier || app.membershipTier || 'budding_professional'}
               onChange={(e) => setSelectedTier(e.target.value)}
               className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
               disabled={!isApprovable}
@@ -526,19 +573,19 @@ export default function ApplicationDetailPage() {
               </p>
 
               <button
-                onClick={() => approveMutation.mutate()}
-                disabled={approveMutation.isPending}
+                onClick={() => updateStatusMutation.mutate({ status: 'approved' })}
+                disabled={updateStatusMutation.isPending}
                 className="w-full bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors disabled:opacity-60"
               >
-                {approveMutation.isPending ? 'Approving…' : '✓ Approve'}
+                {updateStatusMutation.isPending ? 'Saving…' : '✓ Approve'}
               </button>
 
               <button
-                onClick={() => waitlistMutation.mutate()}
-                disabled={waitlistMutation.isPending || app.status === 'waitlisted'}
+                onClick={() => updateStatusMutation.mutate({ status: 'waitlisted' })}
+                disabled={updateStatusMutation.isPending || app.status === 'waitlisted'}
                 className="w-full bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors disabled:opacity-60"
               >
-                {waitlistMutation.isPending ? 'Moving…' : '⏳ Waitlist'}
+                {updateStatusMutation.isPending ? 'Saving…' : '⏳ Waitlist'}
               </button>
 
               <button
@@ -616,11 +663,9 @@ export default function ApplicationDetailPage() {
           )}
 
           {/* Error display */}
-          {(approveMutation.error || rejectMutation.error || waitlistMutation.error || activateMutation.error) && (
+          {(updateStatusMutation.error || activateMutation.error) && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
-              {String(
-                (approveMutation.error || rejectMutation.error || waitlistMutation.error || activateMutation.error) ?? 'Error'
-              )}
+              {String((updateStatusMutation.error || activateMutation.error) ?? 'Error')}
             </div>
           )}
 
@@ -640,6 +685,12 @@ export default function ApplicationDetailPage() {
               <div className="flex justify-between">
                 <span>Reviewed</span>
                 <span>{new Date(app.reviewedAt).toLocaleDateString()}</span>
+              </div>
+            )}
+            {app.reApplicationEligibleAt && (
+              <div className="flex justify-between text-red-400">
+                <span>Re-apply after</span>
+                <span>{new Date(app.reApplicationEligibleAt).toLocaleDateString()}</span>
               </div>
             )}
           </div>
@@ -710,11 +761,11 @@ export default function ApplicationDetailPage() {
                 Cancel
               </button>
               <button
-                onClick={() => rejectMutation.mutate()}
-                disabled={!rejectReason.trim() || rejectMutation.isPending}
+                onClick={() => updateStatusMutation.mutate({ status: 'rejected', rejectionReason: rejectReason })}
+                disabled={!rejectReason.trim() || updateStatusMutation.isPending}
                 className="flex-1 bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors disabled:opacity-60"
               >
-                {rejectMutation.isPending ? 'Rejecting…' : 'Confirm Reject'}
+                {updateStatusMutation.isPending ? 'Rejecting…' : 'Confirm Reject'}
               </button>
             </div>
           </div>

@@ -43,7 +43,7 @@ export default function ArticlesPage() {
     queryKey: queryKeys.ops.articles(filters),
     queryFn: () => {
       const qs = status ? `?status=${status}` : '';
-      return apiClient.get<{ data: OpsArticle[]; meta: { total: number } }>(`/ops/articles${qs}`);
+      return apiClient.get<{ data: OpsArticle[]; meta: { total: number } }>(`/articles/admin/list${qs}`);
     },
   });
 

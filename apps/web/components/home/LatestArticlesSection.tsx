@@ -67,8 +67,8 @@ function AuthorRow({ article, compact = false }: { article: ArticleCardData; com
 
 /** Large featured card — left 2/3 of top row */
 function FeaturedCard({ article }: { article: ArticleCardData }) {
-  const imageUrl = article.coverImageUrl || article.featuredImageUrl;
-  const readMinutes = article.readTime || article.readTimeMinutes;
+  const imageUrl = article.featuredImageUrl;
+  const readMinutes = article.readTimeMinutes;
   const rawExcerpt = article.excerpt ?? '';
   const excerpt = rawExcerpt.includes('<') ? stripHtml(rawExcerpt) : rawExcerpt;
 
@@ -134,8 +134,8 @@ function FeaturedCard({ article }: { article: ArticleCardData }) {
 
 /** Stacked card — right column, fills its flex-1 slot */
 function SideCard({ article }: { article: ArticleCardData }) {
-  const imageUrl = article.coverImageUrl || article.featuredImageUrl;
-  const readMinutes = article.readTime || article.readTimeMinutes;
+  const imageUrl = article.featuredImageUrl;
+  const readMinutes = article.readTimeMinutes;
 
   return (
     <Link
@@ -194,8 +194,8 @@ function SideCard({ article }: { article: ArticleCardData }) {
 
 /** Small equal-width card — bottom grid row */
 function GridCard({ article }: { article: ArticleCardData }) {
-  const imageUrl = article.coverImageUrl || article.featuredImageUrl;
-  const readMinutes = article.readTime || article.readTimeMinutes;
+  const imageUrl = article.featuredImageUrl;
+  const readMinutes = article.readTimeMinutes;
 
   return (
     <Link

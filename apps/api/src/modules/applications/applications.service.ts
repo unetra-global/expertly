@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { SupabaseService } from '../../common/services/supabase.service';
 import { EmailService } from '../../common/services/email.service';
-import { AuthUser } from '@expertly/types';
+import { AuthUser, ApplicationStatus, MemberTier } from '@expertly/types';
 import { Step1Dto } from './dto/step-1.dto';
 import { Step2Dto } from './dto/step-2.dto';
 import { Step3Dto } from './dto/step-3.dto';
@@ -17,9 +17,8 @@ const APPLICATION_SELECT =
   'id, user_id, status, current_step, first_name, last_name, designation, headline, bio, ' +
   'linkedin_url, profile_photo_url, region, country, state, phone_extension, phone, contact_email, ' +
   'years_of_experience, firm_name, firm_size, website_url, city, ' +
-  'consultation_fee_min_usd, consultation_fee_max_usd, qualifications, credentials, ' +
-  'work_experience, education, primary_service_id, secondary_service_ids, ' +
-  'key_engagements, engagements, availability, ' +
+  'credentials, work_experience, education, primary_service_id, secondary_service_ids, ' +
+  'achievements, career_highlights, consultation_fee_min_usd, consultation_fee_max_usd, ' +
   'consents, creation_mode, submitted_at, ' +
   're_application_eligible_at, created_at, updated_at';
 
@@ -187,7 +186,6 @@ export class ApplicationsService {
       website_url: dto.firmWebsiteUrl,
       consultation_fee_min_usd: dto.consultationFeeMinUsd,
       consultation_fee_max_usd: dto.consultationFeeMaxUsd,
-      qualifications: dto.qualifications,
       credentials: dto.credentials,
       work_experience: dto.workExperience,
       education: dto.education,
@@ -229,9 +227,8 @@ export class ApplicationsService {
     const payload: Record<string, unknown> = {
       primary_service_id: dto.primaryServiceId,
       secondary_service_ids: dto.secondaryServiceIds,
-      key_engagements: dto.keyEngagements,
-      engagements: dto.engagements,
-      availability: dto.availability,
+      achievements: dto.achievements,
+      career_highlights: dto.careerHighlights,
     };
 
     Object.keys(payload).forEach((k) => {
@@ -335,5 +332,95 @@ export class ApplicationsService {
     }
 
     return app;
+  }
+
+  // ── Ops ───────────────────────────────────────────────────────────────────
+
+  async listApplications(query: { status?: string }) {
+    const sb = this.supabase.adminClient;
+    const { data, count, error } = await sb
+      .from('applications')
+      .select('*', { count: 'exact' })
+      .match(query.status ? { status: query.status } : {})
+      .order('created_at', { ascending: false });
+    if (error) throw new BadRequestException(error.message);
+    return { data: data ?? [], meta: { total: count ?? 0 } };
+  }
+
+  async getApplicationById(id: string) {
+    const { data, error } = await this.supabase.adminClient
+      .from('applications')
+      .select('*, user:users!user_id(email)')
+      .eq('id', id)
+      .single();
+    if (error || !data) throw new NotFoundException('Application not found');
+    return data;
+  }
+
+  async updateApplicationStatus(
+    id: string,
+    body: { status: ApplicationStatus; serviceId: string; membershipTier: MemberTier; rejectionReason?: string },
+  ) {
+    const sb = this.supabase.adminClient;
+
+    const { data: app } = await sb
+      .from('applications')
+      .select('id, status, first_name, last_name, user:users!user_id(email)')
+      .eq('id', id)
+      .single() as { data: { id: string; status: string; first_name: string | null; last_name: string | null; user: { email: string } | null } | null };
+
+    if (!app) throw new NotFoundException('Application not found');
+
+    const applicantName = `${app.first_name ?? ''} ${app.last_name ?? ''}`.trim();
+    const commonUpdate = {
+      primary_service_id: body.serviceId,
+      membership_tier: body.membershipTier,
+      reviewed_at: new Date().toISOString(),
+    };
+
+    switch (body.status) {
+      case 'approved': {
+        await sb.from('applications').update({ ...commonUpdate, status: 'approved' }).eq('id', id);
+        await this.email.sendK2ApplicationApproved({
+          to: app.user?.email ?? '',
+          applicantName,
+          applicationId: id,
+          firstName: app.first_name ?? undefined,
+          lastName: app.last_name ?? undefined,
+          serviceAssigned: body.serviceId,
+          tier: body.membershipTier,
+        });
+        break;
+      }
+      case 'rejected': {
+        if (!body.rejectionReason || body.rejectionReason.length < 20) {
+          throw new BadRequestException('Rejection reason must be at least 20 characters');
+        }
+        const reEligibleAt = new Date();
+        reEligibleAt.setMonth(reEligibleAt.getMonth() + 6);
+        await sb.from('applications').update({
+          ...commonUpdate,
+          status: 'rejected',
+          rejection_reason: body.rejectionReason,
+          re_application_eligible_at: reEligibleAt.toISOString(),
+        }).eq('id', id);
+        await this.email.sendK3ApplicationRejected({
+          to: app.user?.email ?? '',
+          applicantName,
+          rejectionReason: body.rejectionReason,
+        });
+        break;
+      }
+      case 'waitlisted': {
+        await sb.from('applications').update({ ...commonUpdate, status: 'waitlisted' }).eq('id', id);
+        await this.email.sendK4ApplicationWaitlisted({
+          to: app.user?.email ?? '',
+          applicantName,
+        });
+        break;
+      }
+    }
+
+    return { message: `Application ${body.status}` };
   }
 }

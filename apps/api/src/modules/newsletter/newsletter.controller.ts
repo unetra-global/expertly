@@ -4,29 +4,21 @@ import {
   Get,
   Body,
   HttpCode,
+  UseGuards,
 } from '@nestjs/common';
 import {
-  IsEmail,
   IsString,
-  IsNotEmpty,
   IsArray,
   ArrayMinSize,
-  MinLength,
-  MaxLength,
+  IsNotEmpty,
 } from 'class-validator';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { NewsletterService } from './newsletter.service';
+import { AuthUser } from '@expertly/types';
 
 class SubscribeDto {
-  @IsString()
-  @MinLength(1)
-  @MaxLength(100)
-  name!: string;
-
-  @IsEmail()
-  email!: string;
-
-  /** At least one category must be selected. */
   @IsArray()
   @ArrayMinSize(1)
   @IsString({ each: true })
@@ -40,16 +32,18 @@ export class NewsletterController {
 
   /**
    * POST /newsletter/subscribe
-   * Public — no auth required.
-   * Inserts one row per selected category into guest_newsletter_subscriptions.
+   * Authenticated — subscribes the current user to digest categories.
    */
-  @Public()
+  @UseGuards(JwtAuthGuard)
   @Post('subscribe')
   @HttpCode(201)
-  subscribe(@Body() dto: SubscribeDto): Promise<{ message: string }> {
+  subscribe(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: SubscribeDto,
+  ): Promise<{ message: string }> {
     return this.newsletter.subscribe({
-      name: dto.name,
-      email: dto.email,
+      userId: user.dbId,
+      email: user.email,
       categoryIds: dto.categoryIds,
     });
   }

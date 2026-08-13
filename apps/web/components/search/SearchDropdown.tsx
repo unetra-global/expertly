@@ -75,10 +75,10 @@ function ArticleResult({ article, onClose }: { article: SearchArticleResult; onC
       onClick={onClose}
       className="flex items-center gap-3 px-4 py-2.5 hover:bg-brand-surface transition-colors"
     >
-      {article.coverImageUrl ? (
+      {article.featuredImageUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={article.coverImageUrl}
+          src={article.featuredImageUrl}
           alt={article.title}
           className="w-12 h-9 rounded object-cover flex-shrink-0"
         />

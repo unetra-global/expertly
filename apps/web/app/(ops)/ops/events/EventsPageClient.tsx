@@ -141,7 +141,7 @@ export default function EventsPage() {
 
   const { data: events = [], isLoading } = useQuery({
     queryKey: queryKeys.ops.events(),
-    queryFn: () => apiClient.get<OpsEvent[]>('/ops/events'),
+    queryFn: () => apiClient.get<OpsEvent[]>('/events/admin/list'),
     select: (data) => (Array.isArray(data) ? data : (data as { data?: OpsEvent[] }).data ?? []),
   });
 
@@ -150,7 +150,7 @@ export default function EventsPage() {
 
   const createMutation = useMutation({
     mutationFn: () =>
-      apiClient.post('/ops/events', {
+      apiClient.post('/events/admin', {
         ...form,
         regions: form.regions ? form.regions.split(',').map((r) => r.trim()) : [],
         tags: form.tags ? form.tags.split(',').map((t) => t.trim()) : [],
@@ -172,12 +172,12 @@ export default function EventsPage() {
 
   const publishMutation = useMutation({
     mutationFn: ({ id, isPublished }: { id: string; isPublished: boolean }) =>
-      apiClient.patch(`/ops/events/${id}/publish`, { isPublished }),
+      apiClient.patch(`/events/admin/${id}/publish`, { isPublished }),
     onSuccess: invalidate,
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => apiClient.delete(`/ops/events/${id}`),
+    mutationFn: (id: string) => apiClient.delete(`/events/admin/${id}`),
     onSuccess: () => {
       invalidate();
       setDeleteConfirm(null);
@@ -188,7 +188,7 @@ export default function EventsPage() {
     mutationFn: (file: File) => {
       const fd = new FormData();
       fd.append('file', file);
-      return apiClient.upload<ImportResult>('/ops/events/import', fd);
+      return apiClient.upload<ImportResult>('/events/admin/import', fd);
     },
     onSuccess: (result) => {
       setImportResult(result);

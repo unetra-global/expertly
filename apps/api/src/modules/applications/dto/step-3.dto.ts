@@ -11,13 +11,10 @@ export class Step3Dto {
   secondaryServiceIds?: string[];
 
   @IsOptional()
+  achievements?: unknown[];
+
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  keyEngagements?: string[];
-
-  @IsOptional()
-  engagements?: Record<string, unknown>;
-
-  @IsOptional()
-  availability?: Record<string, unknown>;
+  careerHighlights?: string[];
 }

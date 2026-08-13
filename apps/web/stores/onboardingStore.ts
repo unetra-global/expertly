@@ -40,7 +40,7 @@ export interface CredentialEntry {
   uploading?: boolean;
 }
 
-export interface EngagementEntry {
+export interface AchievementEntry {
   id: string;
   type: 'speaking' | 'publication' | 'award' | 'media';
   title: string;
@@ -49,21 +49,12 @@ export interface EngagementEntry {
   url: string;
 }
 
-export interface AvailabilityData {
-  days: string[];
-  startHour: number;
-  endHour: number;
-  timezone: string;
-  notes: string;
-}
-
 // ── Step-level form data types ────────────────────────────────────────────────
 
 export interface Step1Data {
   firstName: string;
   lastName: string;
   profilePhotoUrl: string;
-  profilePhotoBase64: string;
   designation: string;
   headline: string;
   bio: string;
@@ -84,7 +75,6 @@ export interface Step2Data {
   firmWebsiteUrl: string;  // website of current employer, derived from work experience
   consultationFeeMinUsd: number | '';
   consultationFeeMaxUsd: number | '';
-  qualifications: string[];
   credentials: CredentialEntry[];
   workExperience: WorkExperienceEntry[];
   education: EducationEntry[];
@@ -93,9 +83,8 @@ export interface Step2Data {
 export interface Step3Data {
   primaryServiceId: string;
   secondaryServiceIds: string[];
-  keyEngagements: string[];
-  engagements: EngagementEntry[];
-  availability: AvailabilityData;
+  achievements: AchievementEntry[];
+  careerHighlights: string[];
 }
 
 export type OnboardingFormData = Step1Data & Step2Data & Step3Data;
@@ -161,7 +150,6 @@ const defaultFormData: OnboardingFormData = {
   firstName: '',
   lastName: '',
   profilePhotoUrl: '',
-  profilePhotoBase64: '',
   designation: '',
   headline: '',
   bio: '',
@@ -180,22 +168,14 @@ const defaultFormData: OnboardingFormData = {
   firmWebsiteUrl: '',
   consultationFeeMinUsd: '',
   consultationFeeMaxUsd: '',
-  qualifications: [],
   credentials: [],
   workExperience: [],
   education: [],
   // Step 3
   primaryServiceId: '',
   secondaryServiceIds: [],
-  keyEngagements: [],
-  engagements: [],
-  availability: {
-    days: [],
-    startHour: 9,
-    endHour: 17,
-    timezone: '',
-    notes: '',
-  },
+  achievements: [],
+  careerHighlights: [],
 };
 
 const initialState: OnboardingState = {
@@ -335,7 +315,7 @@ export const useOnboardingStore = create<OnboardingState & OnboardingActions>()(
     }),
     {
       name: 'expertly-onboarding',
-      version: 7, // bumped: motivation step removed
+      version: 11, // bumped: removed qualifications from onboarding
       storage: createJSONStorage(() => {
         // SSR guard — sessionStorage is not available on the server
         if (typeof window !== 'undefined') return window.sessionStorage;

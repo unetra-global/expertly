@@ -105,7 +105,6 @@ export default function SettingsPage() {
 
   const defaultPrefs: NotificationPreferences = {
     articleStatus: true,
-    regulatoryNudges: true,
     platformUpdates: true,
   };
 
@@ -126,7 +125,6 @@ export default function SettingsPage() {
     mutationFn: (updated: NotificationPreferences) =>
       apiClient.patch('/members/me/notifications', {
         article_status: updated.articleStatus,
-        regulatory_nudges: updated.regulatoryNudges,
         platform_updates: updated.platformUpdates,
       }),
     onSuccess: () => {
@@ -150,11 +148,6 @@ export default function SettingsPage() {
       key: 'articleStatus',
       label: 'Article status updates',
       description: 'Email when your article is approved or rejected.',
-    },
-    {
-      key: 'regulatoryNudges',
-      label: 'Regulatory update nudges',
-      description: 'Prompt to write about relevant regulatory changes.',
     },
     {
       key: 'platformUpdates',

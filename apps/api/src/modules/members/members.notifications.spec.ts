@@ -4,7 +4,7 @@
  * Covers PATCH /api/v1/members/me/notifications
  *
  * Scenarios:
- *  N-01  Updates article_status, regulatory_nudges, platform_updates
+ *  N-01  Updates article_status, platform_updates
  *  N-02  Partial update — only one field provided, others unchanged
  *  N-03  Removed fields (consultation_requests, membership_reminders) are stripped by whitelist
  *  N-04  Returns 403 when JWT guard blocks
@@ -58,7 +58,7 @@ function buildSupabaseMock() {
     upsert: jest.fn().mockReturnThis(),
     update: jest.fn().mockReturnThis(),
     single: jest.fn().mockResolvedValue({
-      data: { article_status: true, regulatory_nudges: true, platform_updates: true },
+      data: { article_status: true, platform_updates: true },
       error: null,
     }),
     maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
@@ -129,13 +129,13 @@ describe('Notification Preferences — PATCH /members/me/notifications', () => {
 
   afterEach(async () => { await app?.close(); });
 
-  it('N-01: updates article_status, regulatory_nudges, platform_updates', async () => {
+  it('N-01: updates article_status, platform_updates', async () => {
     const { app: a, supabase } = await buildApp(MEMBER_USER);
     app = a;
 
     const res = await request(app.getHttpServer())
       .patch('/members/me/notifications')
-      .send({ article_status: false, regulatory_nudges: true, platform_updates: false });
+      .send({ article_status: false, platform_updates: false });
 
     expect(res.status).toBe(200);
     expect(supabase.adminClient.from).toHaveBeenCalledWith('member_notification_preferences');
@@ -143,7 +143,6 @@ describe('Notification Preferences — PATCH /members/me/notifications', () => {
       expect.objectContaining({
         member_id: MEMBER_USER.memberId,
         article_status: false,
-        regulatory_nudges: true,
         platform_updates: false,
       }),
       { onConflict: 'member_id' },
@@ -159,7 +158,6 @@ describe('Notification Preferences — PATCH /members/me/notifications', () => {
       .send({ article_status: false });
 
     const [callArg] = supabase._builder.upsert.mock.calls[0] as [Record<string, unknown>];
-    expect(Object.keys(callArg)).not.toContain('regulatory_nudges');
     expect(Object.keys(callArg)).not.toContain('platform_updates');
   });
 

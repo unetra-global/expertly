@@ -6,7 +6,6 @@ export interface MemberCardData {
   id: string;
   slug: string;
   profilePhotoUrl?: string;
-  avatarUrl?: string;
   designation?: string;
   city?: string;
   country?: string;
@@ -40,7 +39,7 @@ export function MemberCard({
   className,
   variant = 'teaser',
 }: MemberCardProps) {
-  const photoUrl = member.profilePhotoUrl || member.avatarUrl;
+  const photoUrl = member.profilePhotoUrl;
   const displayName =
     member.users?.fullName ||
     [member.users?.firstName, member.users?.lastName].filter(Boolean).join(' ') ||

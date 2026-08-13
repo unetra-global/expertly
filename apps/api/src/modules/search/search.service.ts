@@ -15,7 +15,7 @@ const MEMBER_TEASER_FIELDS =
   'services!primary_service_id(name)';
 
 const ARTICLE_LIST_FIELDS =
-  'id, title, slug, excerpt, cover_image_url, tags, read_time, published_at';
+  'id, title, slug, excerpt, featured_image_url, tags, read_time_minutes, published_at';
 
 const EVENT_LIST_FIELDS =
   'id, title, slug, description, cover_image_url, start_date, end_date, ' +

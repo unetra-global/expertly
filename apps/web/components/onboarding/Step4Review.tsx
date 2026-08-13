@@ -127,9 +127,8 @@ export function Step4Review({ onBack }: Props) {
       await apiClient.patch(`/applications/${appId}/step-3`, {
         primaryServiceId: formData.primaryServiceId,
         secondaryServiceIds: formData.secondaryServiceIds,
-        keyEngagements: formData.keyEngagements,
-        engagements: formData.engagements,
-        availability: formData.availability,
+        achievements: formData.achievements,
+        careerHighlights: formData.careerHighlights,
       });
 
       // 3. Submit with consents
@@ -188,9 +187,9 @@ export function Step4Review({ onBack }: Props) {
       <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-6 sm:p-8">
         <h3 className="text-xs font-bold uppercase tracking-widest text-brand-text-muted mb-4">Profile</h3>
         <div className="flex items-start gap-4">
-          {(formData.profilePhotoBase64 || formData.profilePhotoUrl) ? (
+          {formData.profilePhotoUrl ? (
             <img
-              src={formData.profilePhotoBase64 || formData.profilePhotoUrl}
+              src={formData.profilePhotoUrl}
               alt=""
               className="w-14 h-14 rounded-xl object-cover border border-gray-100 shrink-0"
             />
@@ -369,11 +368,11 @@ export function Step4Review({ onBack }: Props) {
               <p className="text-sm text-brand-text-secondary">{secondaryServices.join(' · ')}</p>
             </div>
           )}
-          {formData.keyEngagements.length > 0 && (
+          {formData.careerHighlights.length > 0 && (
             <div>
               <p className="text-xs font-semibold text-brand-text-secondary mb-2">Why you for this area</p>
               <ol className="space-y-1.5">
-                {formData.keyEngagements.map((ke, i) => (
+                {formData.careerHighlights.map((ke, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm text-brand-text-secondary">
                     <span className="w-4 h-4 rounded-full bg-brand-navy text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
                       {i + 1}
@@ -387,47 +386,19 @@ export function Step4Review({ onBack }: Props) {
         </div>
       </div>
 
-      {/* ── Availability & Rates ──────────────────────────────── */}
+      {/* ── Rates ────────────────────────────────────────────── */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-6 sm:p-8">
-        <h3 className="text-xs font-bold uppercase tracking-widest text-brand-text-muted mb-4">Availability &amp; Rates</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          <div>
-            <p className="text-xs font-semibold text-brand-text-secondary mb-2">Available days</p>
-            <div className="flex flex-wrap gap-1.5">
-              {formData.availability.days.length > 0 ? (
-                formData.availability.days.map((day) => (
-                  <span key={day} className="px-2.5 py-1 rounded-lg bg-brand-blue text-white text-xs font-semibold">
-                    {day.slice(0, 3)}
-                  </span>
-                ))
-              ) : (
-                <span className="text-xs text-brand-text-muted">Not set</span>
-              )}
-            </div>
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-brand-text-secondary mb-1">Timezone</p>
-            <p className="text-sm text-brand-text-secondary">
-              {formData.availability.timezone?.replace(/_/g, ' ') || '—'}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-brand-text-secondary mb-1">Consultation fee</p>
-            <p className="text-sm text-brand-text-secondary">
-              {formData.consultationFeeMinUsd !== '' ? (
-                <>
-                  USD {formData.consultationFeeMinUsd.toLocaleString()}
-                  {formData.consultationFeeMaxUsd != null && formData.consultationFeeMaxUsd !== '' && ` – ${(formData.consultationFeeMaxUsd as number).toLocaleString()}`}
-                </>
-              ) : '—'}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-brand-text-secondary mb-1">Available hours</p>
-            <p className="text-sm text-brand-text-secondary">
-              {formData.availability.startHour}:00 – {formData.availability.endHour}:00
-            </p>
-          </div>
+        <h3 className="text-xs font-bold uppercase tracking-widest text-brand-text-muted mb-4">Rates</h3>
+        <div>
+          <p className="text-xs font-semibold text-brand-text-secondary mb-1">Consultation fee</p>
+          <p className="text-sm text-brand-text-secondary">
+            {formData.consultationFeeMinUsd !== '' ? (
+              <>
+                USD {formData.consultationFeeMinUsd.toLocaleString()}
+                {formData.consultationFeeMaxUsd != null && formData.consultationFeeMaxUsd !== '' && ` – ${(formData.consultationFeeMaxUsd as number).toLocaleString()}`}
+              </>
+            ) : '—'}
+          </p>
         </div>
       </div>
 
